@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import html2canvas from 'html2canvas';
 
 export default function ShareTree({ treeRef, userName, memberCount }) {

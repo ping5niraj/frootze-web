@@ -347,10 +347,11 @@ export default function FamilyTree({ relationships, currentUser }) {
   }, [relationships, currentUser]);
 
   // Only draw AFTER photos are preloaded
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!photosReady || !svgRef.current || !relationships || !currentUser) return;
     buildTree(relationships, currentUser, photoMapRef.current, svgRef);
-  }, [photosReady]);
+  }, [photosReady]); // intentionally only depends on photosReady
 
   return (
     <div className="w-full">
