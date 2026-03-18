@@ -46,7 +46,7 @@ export default function VerifyOTP() {
         setTimeout(() => navigate('/dashboard'), 100);
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'தவறான OTP / Invalid OTP. Please try again.');
+      setError(err.response?.data?.error || 'தவறான OTP / Invalid OTP');
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ export default function VerifyOTP() {
     try {
       await sendOTP(phone);
     } catch (err) {
-      setError('OTP அனுப்ப தோல்வி / Failed to resend OTP');
+      setError('மீண்டும் அனுப்ப தோல்வி / Failed to resend');
     }
   };
 
@@ -79,33 +79,27 @@ export default function VerifyOTP() {
 
         <div className="card">
           <input
-            type="tel"
-            maxLength={6}
-            placeholder="• • • • • •"
+            type="tel" maxLength={6} placeholder="• • • • • •"
             value={otp}
             onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
             onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
             className="input-field text-center text-2xl tracking-widest mb-4"
           />
 
-          {error && (
-            <p className="text-red-500 text-sm mb-3 text-center">{error}</p>
-          )}
+          {/* Dev hint — remove before production */}
+          <p className="text-amber-600 text-xs text-center mb-4 bg-amber-50 rounded-lg py-2">
+            🧪 {T.devOtpHint.ta}: <strong>123456</strong>
+          </p>
 
-          <button
-            onClick={handleVerify}
-            disabled={loading || otp.length !== 6}
-            className="btn-primary mb-3"
-          >
+          {error && <p className="text-red-500 text-sm mb-3 text-center">{error}</p>}
+
+          <button onClick={handleVerify} disabled={loading || otp.length !== 6} className="btn-primary mb-3">
             {loading ? T.verifying.ta : T.verify.ta}
           </button>
 
           <div className="text-center">
             {canResend ? (
-              <button
-                onClick={handleResend}
-                className="text-purple-600 text-sm font-medium hover:text-purple-800"
-              >
+              <button onClick={handleResend} className="text-purple-600 text-sm font-medium hover:text-purple-800">
                 OTP மீண்டும் அனுப்பு / Resend OTP
               </button>
             ) : (
@@ -115,20 +109,10 @@ export default function VerifyOTP() {
             )}
           </div>
 
-          <button
-            onClick={() => navigate('/')}
-            className="w-full text-center text-gray-400 text-sm mt-4 hover:text-gray-600"
-          >
+          <button onClick={() => navigate('/')} className="w-full text-center text-gray-400 text-sm mt-4 hover:text-gray-600">
             {T.changeNumber.ta}
           </button>
         </div>
-
-        <p className="text-center text-xs text-gray-400 mt-4">
-          உங்கள் தொலைபேசிக்கு OTP அனுப்பப்பட்டது
-        </p>
-        <p className="text-center text-xs text-gray-400">
-          OTP has been sent to your phone
-        </p>
       </div>
     </div>
   );
