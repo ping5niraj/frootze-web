@@ -64,7 +64,6 @@ export default function Dashboard() {
         <div className="text-center">
           <div className="text-4xl mb-3">🌳</div>
           <p className="text-purple-600">{T.loading.ta}</p>
-          <p className="text-gray-400 text-sm">{T.loading.en}</p>
         </div>
       </div>
     );
@@ -85,13 +84,13 @@ export default function Dashboard() {
           </div>
           <button onClick={() => { logout(); navigate('/'); }}
             className="text-purple-200 text-sm hover:text-white">
-            <span className="block text-center">{T.logout.ta}</span>
-            <span className="block text-center text-xs opacity-70">{T.logout.en}</span>
+            {T.logout.ta}
           </button>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           {[
@@ -107,11 +106,30 @@ export default function Dashboard() {
           ))}
         </div>
 
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => navigate('/profile')}
+            className="flex items-center gap-2 bg-white border border-purple-200 rounded-xl p-3 hover:bg-purple-50 transition-all">
+            <span className="text-xl">👤</span>
+            <div className="text-left">
+              <p className="text-xs font-semibold text-gray-800">சுயவிவரம்</p>
+              <p className="text-xs text-gray-400">Edit Profile</p>
+            </div>
+          </button>
+          <button onClick={() => navigate('/directory')}
+            className="flex items-center gap-2 bg-white border border-purple-200 rounded-xl p-3 hover:bg-purple-50 transition-all">
+            <span className="text-xl">📚</span>
+            <div className="text-left">
+              <p className="text-xs font-semibold text-gray-800">குடும்ப அகராதி</p>
+              <p className="text-xs text-gray-400">Family Directory</p>
+            </div>
+          </button>
+        </div>
+
         {/* Pending */}
         {pending.length > 0 && (
           <div className="card border-l-4 border-amber-400">
             <h2 className="font-semibold text-gray-800 mb-1">{T.confirmThese.ta} ({pending.length})</h2>
-            <p className="text-gray-400 text-xs mb-3">{T.confirmThese.en}</p>
             <div className="space-y-3">
               {pending.map((rel) => (
                 <div key={rel.id} className="flex items-center justify-between bg-amber-50 rounded-xl p-3">
@@ -133,9 +151,9 @@ export default function Dashboard() {
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => handleVerify(rel.id)} disabled={actionLoading === rel.id}
-                      className="bg-green-500 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-green-600">{T.yes.ta}</button>
+                      className="bg-green-500 text-white text-xs px-3 py-1.5 rounded-lg">{T.yes.ta}</button>
                     <button onClick={() => handleReject(rel.id)} disabled={actionLoading === rel.id}
-                      className="bg-red-100 text-red-600 text-xs px-3 py-1.5 rounded-lg hover:bg-red-200">{T.no.ta}</button>
+                      className="bg-red-100 text-red-600 text-xs px-3 py-1.5 rounded-lg">{T.no.ta}</button>
                   </div>
                 </div>
               ))}
@@ -143,18 +161,14 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Add Button */}
+        {/* Add + Share buttons */}
         <button onClick={() => navigate('/add-relative')} className="btn-primary">
           {T.addFamilyMember.ta}
           <span className="block text-xs opacity-75 font-normal">{T.addFamilyMember.en}</span>
         </button>
 
-        {/* Share — now passes relationships + currentUser */}
         {relationships.length > 0 && (
-          <ShareTree
-            relationships={relationships}
-            currentUser={user}
-          />
+          <ShareTree treeRef={treeContainerRef} userName={user?.name} memberCount={relationships.length} />
         )}
 
         {/* Tabs */}
@@ -195,7 +209,6 @@ export default function Dashboard() {
           <div className="card">
             <div className="flex items-baseline gap-2 mb-3">
               <h2 className="font-semibold text-gray-800">{T.myFamilyTree.ta}</h2>
-              <span className="text-gray-400 text-sm">{T.myFamilyTree.en}</span>
             </div>
             {relationships.length === 0 ? (
               <div className="text-center py-8">
