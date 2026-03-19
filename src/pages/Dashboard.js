@@ -138,16 +138,25 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Second row — Birthdays */}
-        <button onClick={() => navigate('/birthdays')}
-          className="flex items-center gap-2 bg-white border border-purple-200 rounded-xl p-3 hover:bg-purple-50 transition-all w-full">
-          <span className="text-xl">🎂</span>
-          <div className="text-left">
-            <p className="text-xs font-semibold text-gray-800">பிறந்தநாள் நாட்காட்டி</p>
-            <p className="text-xs text-gray-400">Birthday Calendar</p>
-          </div>
-          <span className="ml-auto text-gray-300 text-sm">→</span>
-        </button>
+        {/* Second row — Birthdays + Quiz */}
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={() => navigate('/birthdays')}
+            className="flex items-center gap-2 bg-white border border-purple-200 rounded-xl p-3 hover:bg-purple-50 transition-all">
+            <span className="text-xl">🎂</span>
+            <div className="text-left">
+              <p className="text-xs font-semibold text-gray-800">பிறந்தநாள்</p>
+              <p className="text-xs text-gray-400">Birthdays</p>
+            </div>
+          </button>
+          <button onClick={() => navigate('/quiz')}
+            className="flex items-center gap-2 bg-white border border-purple-200 rounded-xl p-3 hover:bg-purple-50 transition-all">
+            <span className="text-xl">🧠</span>
+            <div className="text-left">
+              <p className="text-xs font-semibold text-gray-800">வினாடி வினா</p>
+              <p className="text-xs text-gray-400">Daily Quiz</p>
+            </div>
+          </button>
+        </div>
 
         {/* Pending */}
         {pending.length > 0 && (
