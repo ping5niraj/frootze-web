@@ -9,6 +9,8 @@ import AddRelative from './pages/AddRelative';
 import EditProfile from './pages/EditProfile';
 import Directory from './pages/Directory';
 import Messages from './pages/Messages';
+import LocationPage from './pages/LocationPage';
+import Birthdays from './pages/Birthdays';
 
 function App() {
   return (
@@ -23,6 +25,8 @@ function App() {
           <Route path="/profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
           <Route path="/directory" element={<ProtectedRoute><Directory /></ProtectedRoute>} />
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+          <Route path="/locations" element={<ProtectedRoute><LocationPage /></ProtectedRoute>} />
+          <Route path="/birthdays" element={<ProtectedRoute><Birthdays /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

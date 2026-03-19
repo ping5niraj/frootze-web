@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import FamilyTree from '../components/FamilyTree';
 import ProfilePhoto from '../components/ProfilePhoto';
 import ShareTree from '../components/ShareTree';
+import BirthdayBanner from '../components/BirthdayBanner';
 import { T } from '../utils/strings';
 
 export default function Dashboard() {
@@ -106,27 +107,47 @@ export default function Dashboard() {
           ))}
         </div>
 
+        {/* Birthday Banner */}
+        <BirthdayBanner />
+
         {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-2">
           <button onClick={() => navigate('/profile')}
-            className="flex flex-col items-center gap-1 bg-white border border-purple-200 rounded-xl p-3 hover:bg-purple-50 transition-all">
+            className="flex flex-col items-center gap-1 bg-white border border-purple-200 rounded-xl p-2 hover:bg-purple-50 transition-all">
             <span className="text-xl">👤</span>
             <p className="text-xs font-semibold text-gray-800">சுயவிவரம்</p>
             <p className="text-xs text-gray-400">Profile</p>
           </button>
           <button onClick={() => navigate('/directory')}
-            className="flex flex-col items-center gap-1 bg-white border border-purple-200 rounded-xl p-3 hover:bg-purple-50 transition-all">
+            className="flex flex-col items-center gap-1 bg-white border border-purple-200 rounded-xl p-2 hover:bg-purple-50 transition-all">
             <span className="text-xl">📚</span>
             <p className="text-xs font-semibold text-gray-800">அகராதி</p>
             <p className="text-xs text-gray-400">Directory</p>
           </button>
           <button onClick={() => navigate('/messages')}
-            className="flex flex-col items-center gap-1 bg-white border border-purple-200 rounded-xl p-3 hover:bg-purple-50 transition-all">
+            className="flex flex-col items-center gap-1 bg-white border border-purple-200 rounded-xl p-2 hover:bg-purple-50 transition-all">
             <span className="text-xl">💬</span>
             <p className="text-xs font-semibold text-gray-800">செய்திகள்</p>
             <p className="text-xs text-gray-400">Messages</p>
           </button>
+          <button onClick={() => navigate('/locations')}
+            className="flex flex-col items-center gap-1 bg-white border border-purple-200 rounded-xl p-2 hover:bg-purple-50 transition-all">
+            <span className="text-xl">📍</span>
+            <p className="text-xs font-semibold text-gray-800">இடங்கள்</p>
+            <p className="text-xs text-gray-400">Locations</p>
+          </button>
         </div>
+
+        {/* Second row — Birthdays */}
+        <button onClick={() => navigate('/birthdays')}
+          className="flex items-center gap-2 bg-white border border-purple-200 rounded-xl p-3 hover:bg-purple-50 transition-all w-full">
+          <span className="text-xl">🎂</span>
+          <div className="text-left">
+            <p className="text-xs font-semibold text-gray-800">பிறந்தநாள் நாட்காட்டி</p>
+            <p className="text-xs text-gray-400">Birthday Calendar</p>
+          </div>
+          <span className="ml-auto text-gray-300 text-sm">→</span>
+        </button>
 
         {/* Pending */}
         {pending.length > 0 && (
