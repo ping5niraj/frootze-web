@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  Box, VStack, HStack, Text, Heading, Button,
-  PinInput, PinInputField
+  Box, VStack, HStack, Text, Heading, Button
 } from '@chakra-ui/react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -139,21 +138,32 @@ export default function VerifyOTP() {
               உங்கள் தொலைபேசிக்கு வந்த 6 இலக்க OTP-ஐ உள்ளிடவும்
             </Text>
 
-            {/* OTP Pin Input */}
-            <HStack justify="center" spacing={3}>
-              <PinInput size="lg" value={otp} onChange={setOtp} onComplete={handleVerify} otp>
-                {[...Array(6)].map((_, i) => (
-                  <PinInputField key={i}
-                    bg="whiteAlpha.100" border="2px solid"
-                    borderColor="whiteAlpha.300" color="white"
-                    fontSize="xl" fontWeight="700"
-                    h={{ base: '48px', md: '56px' }}
-                    w={{ base: '48px', md: '56px' }}
-                    _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 3px rgba(128,0,255,0.2)' }}
-                  />
-                ))}
-              </PinInput>
-            </HStack>
+            {/* OTP Input */}
+            <Box>
+              <input
+                type="tel"
+                maxLength={6}
+                placeholder="• • • • • •"
+                value={otp}
+                onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                onKeyDown={e => e.key === 'Enter' && handleVerify()}
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  borderRadius: '14px',
+                  color: 'white',
+                  fontSize: '28px',
+                  fontWeight: '700',
+                  textAlign: 'center',
+                  letterSpacing: '12px',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                }}
+              />
+            </Box>
 
             {error && (
               <Box bg="red.900" border="1px solid" borderColor="red.500" borderRadius="xl" px={4} py={3}>
