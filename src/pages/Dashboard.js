@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getMyRelationships, verifyRelationship, rejectRelationship } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import FamilyTree from '../components/FamilyTree';
@@ -25,15 +25,12 @@ export default function Dashboard() {
 
   const fetchRelationships = async () => {
     try {
-      const token = localStorage.getItem('pmf_token');
-      if (!token) { setLoading(false); return; }
       const res = await getMyRelationships();
       const { my_relationships, pending_verification, summary } = res.data;
       setRelationships(my_relationships || []);
       setPending(pending_verification || []);
       setSummary(summary || {});
     } catch (err) {
-      console.error('Failed to fetch relationships:', err.message);
       setRelationships([]); setPending([]); setSummary({});
     } finally {
       setLoading(false);
@@ -55,137 +52,123 @@ export default function Dashboard() {
   };
 
   const handlePhotoUpdated = (photoUrl) => {
-    const updatedUser = { ...user, profile_photo: photoUrl };
-    login(localStorage.getItem('pmf_token'), updatedUser);
+    login(localStorage.getItem('pmf_token'), { ...user, profile_photo: photoUrl });
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-3">🌳</div>
-          <p className="text-purple-600">{T.loading.ta}</p>
+      <div style={{ minHeight: '100vh', background: 'var(--gradient-hero)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="animate-float" style={{ fontSize: '64px', marginBottom: '16px' }}>🌳</div>
+          <p style={{ color: '#a7f3d0', fontFamily: 'var(--font-tamil)', fontSize: '16px' }}>குடும்ப மரம் ஏற்றுகிறோம்...</p>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginTop: '4px' }}>Loading your family tree</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div style={{ minHeight: '100vh', background: '#f8f4ff', paddingBottom: '80px' }}>
+
       {/* Header */}
-      <div className="bg-purple-700 text-white px-4 py-5">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div style={{
+        background: 'var(--gradient-hero)', padding: '20px 20px 28px',
+        position: 'relative', overflow: 'hidden'
+      }}>
+        <div style={{
+          position: 'absolute', top: '-50px', right: '-50px',
+          width: '200px', height: '200px', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(16,185,129,0.2) 0%, transparent 70%)'
+        }} />
+
+        <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <ProfilePhoto user={user} onPhotoUpdated={handlePhotoUpdated} />
             <div>
-              <h1 className="text-xl font-bold">🌳 frootze</h1>
-              <p className="text-purple-200 text-sm">{T.welcome.ta}, {user?.name}!</p>
-              <p className="text-purple-300 text-xs">{user?.phone}</p>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', fontFamily: 'var(--font-tamil)' }}>வணக்கம்!</p>
+              <h2 style={{ color: 'white', fontSize: '20px', fontWeight: '700', letterSpacing: '-0.5px' }}>{user?.name}</h2>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>{user?.phone}</p>
             </div>
           </div>
-          <button onClick={() => { logout(); navigate('/'); }}
-            className="text-purple-200 text-sm hover:text-white">
-            {T.logout.ta}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.1)', borderRadius: '12px',
+              padding: '8px 14px', cursor: 'pointer'
+            }} onClick={() => navigate('/profile')}>
+              <span style={{ fontSize: '20px' }}>⚙️</span>
+            </div>
+            <button onClick={() => { logout(); window.location.href = '/'; }} style={{
+              background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '12px',
+              padding: '8px 14px', color: 'white', cursor: 'pointer', fontSize: '12px',
+              fontFamily: 'var(--font-display)', fontWeight: '600'
+            }}>
+              வெளியேறு
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* Stats Row */}
+        <div style={{ maxWidth: '600px', margin: '16px auto 0', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
           {[
-            { ta: T.verified.ta, en: T.verified.en, value: summary.total_verified || 0, color: 'text-green-600', bg: 'bg-green-50' },
-            { ta: T.sent.ta, en: T.sent.en, value: summary.pending_sent || 0, color: 'text-amber-600', bg: 'bg-amber-50' },
-            { ta: T.toConfirm.ta, en: T.toConfirm.en, value: summary.pending_my_action || 0, color: 'text-purple-600', bg: 'bg-purple-50' },
-          ].map((stat) => (
-            <div key={stat.ta} className={`${stat.bg} rounded-2xl p-3 text-center`}>
-              <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-              <div className="text-xs font-medium text-gray-600 mt-1">{stat.ta}</div>
-              <div className="text-xs text-gray-400">{stat.en}</div>
+            { value: summary.total_verified || 0, ta: 'சரிபார்க்கப்பட்டது', en: 'Verified', color: '#34d399' },
+            { value: summary.pending_sent || 0, ta: 'அனுப்பியது', en: 'Sent', color: '#fbbf24' },
+            { value: summary.pending_my_action || 0, ta: 'உறுதிப்படுத்தவும்', en: 'To Confirm', color: '#c084fc' },
+          ].map((s, i) => (
+            <div key={i} className="glass" style={{ borderRadius: '14px', padding: '12px', textAlign: 'center' }}>
+              <div style={{ fontSize: '24px', fontWeight: '800', color: s.color }}>{s.value}</div>
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontFamily: 'var(--font-tamil)', marginTop: '2px' }}>{s.ta}</div>
             </div>
           ))}
         </div>
+      </div>
+
+      <div style={{ maxWidth: '600px', margin: '0 auto', padding: '16px 16px 0' }}>
 
         {/* Birthday Banner */}
         <BirthdayBanner />
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-4 gap-2">
-          <button onClick={() => navigate('/profile')}
-            className="flex flex-col items-center gap-1 bg-white border border-purple-200 rounded-xl p-2 hover:bg-purple-50 transition-all">
-            <span className="text-xl">👤</span>
-            <p className="text-xs font-semibold text-gray-800">சுயவிவரம்</p>
-            <p className="text-xs text-gray-400">Profile</p>
-          </button>
-          <button onClick={() => navigate('/directory')}
-            className="flex flex-col items-center gap-1 bg-white border border-purple-200 rounded-xl p-2 hover:bg-purple-50 transition-all">
-            <span className="text-xl">📚</span>
-            <p className="text-xs font-semibold text-gray-800">அகராதி</p>
-            <p className="text-xs text-gray-400">Directory</p>
-          </button>
-          <button onClick={() => navigate('/messages')}
-            className="flex flex-col items-center gap-1 bg-white border border-purple-200 rounded-xl p-2 hover:bg-purple-50 transition-all">
-            <span className="text-xl">💬</span>
-            <p className="text-xs font-semibold text-gray-800">செய்திகள்</p>
-            <p className="text-xs text-gray-400">Messages</p>
-          </button>
-          <button onClick={() => navigate('/locations')}
-            className="flex flex-col items-center gap-1 bg-white border border-purple-200 rounded-xl p-2 hover:bg-purple-50 transition-all">
-            <span className="text-xl">📍</span>
-            <p className="text-xs font-semibold text-gray-800">இடங்கள்</p>
-            <p className="text-xs text-gray-400">Locations</p>
-          </button>
-        </div>
-
-        {/* Second row — Birthdays + Quiz */}
-        <div className="grid grid-cols-2 gap-2">
-          <button onClick={() => navigate('/birthdays')}
-            className="flex items-center gap-2 bg-white border border-purple-200 rounded-xl p-3 hover:bg-purple-50 transition-all">
-            <span className="text-xl">🎂</span>
-            <div className="text-left">
-              <p className="text-xs font-semibold text-gray-800">பிறந்தநாள்</p>
-              <p className="text-xs text-gray-400">Birthdays</p>
-            </div>
-          </button>
-          <button onClick={() => navigate('/quiz')}
-            className="flex items-center gap-2 bg-white border border-purple-200 rounded-xl p-3 hover:bg-purple-50 transition-all">
-            <span className="text-xl">🧠</span>
-            <div className="text-left">
-              <p className="text-xs font-semibold text-gray-800">வினாடி வினா</p>
-              <p className="text-xs text-gray-400">Daily Quiz</p>
-            </div>
-          </button>
-        </div>
-
-        {/* Pending */}
+        {/* Pending Verifications */}
         {pending.length > 0 && (
-          <div className="card border-l-4 border-amber-400">
-            <h2 className="font-semibold text-gray-800 mb-1">{T.confirmThese.ta} ({pending.length})</h2>
-            <div className="space-y-3">
-              {pending.map((rel) => (
-                <div key={rel.id} className="flex items-center justify-between bg-amber-50 rounded-xl p-3">
-                  <div className="flex items-center gap-3">
+          <div className="card animate-fadeInUp" style={{ marginBottom: '12px', borderLeft: '4px solid var(--gold)', marginTop: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <span style={{ fontSize: '20px' }}>⚠️</span>
+              <div>
+                <p style={{ fontWeight: '700', fontSize: '14px', color: '#92400e' }}>{T.confirmThese.ta} ({pending.length})</p>
+                <p style={{ fontSize: '11px', color: '#b45309' }}>{T.confirmThese.en}</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {pending.map(rel => (
+                <div key={rel.id} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  background: '#fffbeb', borderRadius: '12px', padding: '10px 12px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     {rel.to_user?.profile_photo ? (
-                      <img src={rel.to_user.profile_photo} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-amber-300" />
+                      <img src={rel.to_user.profile_photo} alt="" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
                     ) : (
-                      <div className="w-9 h-9 rounded-full bg-amber-200 flex items-center justify-center text-sm font-bold text-amber-800">
-                        {rel.to_user?.name?.charAt(0).toUpperCase()}
-                      </div>
+                      <div style={{
+                        width: '36px', height: '36px', borderRadius: '50%',
+                        background: 'var(--gradient-btn)', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', color: 'white', fontWeight: '700', fontSize: '14px'
+                      }}>{rel.to_user?.name?.charAt(0)}</div>
                     )}
                     <div>
-                      <p className="font-medium text-gray-800 text-sm">{rel.to_user?.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {T.saysYouAreTheir.ta}{' '}
-                        <span className="font-semibold text-purple-600">{rel.relation_tamil}</span>
+                      <p style={{ fontWeight: '600', fontSize: '13px' }}>{rel.to_user?.name}</p>
+                      <p style={{ fontSize: '11px', color: '#92400e' }}>
+                        {T.saysYouAreTheir.ta} <strong style={{ color: 'var(--purple-600)' }}>{rel.relation_tamil}</strong>
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div style={{ display: 'flex', gap: '8px' }}>
                     <button onClick={() => handleVerify(rel.id)} disabled={actionLoading === rel.id}
-                      className="bg-green-500 text-white text-xs px-3 py-1.5 rounded-lg">{T.yes.ta}</button>
+                      style={{ background: 'var(--gradient-green)', color: 'white', border: 'none', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>
+                      ✓ ஆம்
+                    </button>
                     <button onClick={() => handleReject(rel.id)} disabled={actionLoading === rel.id}
-                      className="bg-red-100 text-red-600 text-xs px-3 py-1.5 rounded-lg">{T.no.ta}</button>
+                      style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>
+                      ✗
+                    </button>
                   </div>
                 </div>
               ))}
@@ -193,40 +176,46 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Add + Share buttons */}
-        <button onClick={() => navigate('/add-relative')} className="btn-primary">
-          {T.addFamilyMember.ta}
-          <span className="block text-xs opacity-75 font-normal">{T.addFamilyMember.en}</span>
-        </button>
-
+        {/* Share Button */}
         {relationships.length > 0 && (
-          <ShareTree treeRef={treeContainerRef} userName={user?.name} memberCount={relationships.length} />
+          <div style={{ marginTop: pending.length > 0 ? '0' : '12px', marginBottom: '12px' }}>
+            <ShareTree treeRef={treeContainerRef} userName={user?.name} memberCount={relationships.length} />
+          </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex bg-gray-100 rounded-xl p-1">
-          <button onClick={() => setActiveTab('tree')}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'tree' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500'}`}>
-            {T.familyTree.ta}
-          </button>
-          <button onClick={() => setActiveTab('list')}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'list' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500'}`}>
-            {T.listView.ta}
-          </button>
+        {/* Tab Toggle */}
+        <div style={{
+          display: 'flex', background: 'white', borderRadius: '14px', padding: '4px',
+          marginBottom: '12px', boxShadow: 'var(--shadow-sm)'
+        }}>
+          {[
+            { key: 'tree', label: '🌳 குடும்ப மரம்' },
+            { key: 'list', label: '📋 பட்டியல்' }
+          ].map(tab => (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+              flex: 1, padding: '10px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+              fontFamily: 'var(--font-display)', fontWeight: '600', fontSize: '13px',
+              transition: 'all 0.2s ease',
+              background: activeTab === tab.key ? 'var(--gradient-btn)' : 'transparent',
+              color: activeTab === tab.key ? 'white' : '#9ca3af',
+              boxShadow: activeTab === tab.key ? 'var(--shadow-sm)' : 'none'
+            }}>
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* Tree View */}
         {activeTab === 'tree' && (
           <div className="card">
-            <div className="flex items-baseline gap-2 mb-4">
-              <h2 className="font-semibold text-gray-800">{T.myFamilyTree.ta}</h2>
-              <span className="text-gray-400 text-sm">{T.myFamilyTree.en}</span>
-            </div>
             {relationships.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-5xl mb-3">🌱</div>
-                <p className="text-gray-600 text-sm font-medium">{T.emptyTree.ta}</p>
-                <p className="text-gray-400 text-xs mt-1">{T.emptyTree.en}</p>
+              <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+                <div className="animate-float" style={{ fontSize: '56px', marginBottom: '16px' }}>🌱</div>
+                <p style={{ fontWeight: '700', fontSize: '16px', color: 'var(--purple-700)', fontFamily: 'var(--font-tamil)' }}>{T.emptyTree.ta}</p>
+                <p style={{ color: '#9ca3af', fontSize: '13px', marginTop: '4px' }}>{T.emptyTree.en}</p>
+                <button onClick={() => navigate('/add-relative')} className="btn-primary" style={{ marginTop: '20px', maxWidth: '240px' }}>
+                  + குடும்பத்தினரை சேர்
+                </button>
               </div>
             ) : (
               <div ref={treeContainerRef}>
@@ -239,38 +228,41 @@ export default function Dashboard() {
         {/* List View */}
         {activeTab === 'list' && (
           <div className="card">
-            <div className="flex items-baseline gap-2 mb-3">
-              <h2 className="font-semibold text-gray-800">{T.myFamilyTree.ta}</h2>
-            </div>
             {relationships.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-4xl mb-2">🌱</div>
-                <p className="text-gray-500 text-sm">{T.emptyTree.ta}</p>
+              <div style={{ textAlign: 'center', padding: '32px' }}>
+                <div style={{ fontSize: '40px', marginBottom: '12px' }}>🌱</div>
+                <p style={{ color: '#9ca3af' }}>{T.emptyTree.ta}</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {relationships.map((rel) => (
-                  <div key={rel.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                    <div className="flex items-center gap-3">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                {relationships.map((rel, i) => (
+                  <div key={rel.id} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '12px 0',
+                    borderBottom: i < relationships.length - 1 ? '1px solid var(--purple-100)' : 'none'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       {rel.to_user?.profile_photo ? (
-                        <img src={rel.to_user.profile_photo} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-purple-200" />
+                        <img src={rel.to_user.profile_photo} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--purple-200)' }} />
                       ) : (
-                        <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center text-sm font-bold text-purple-700">
-                          {rel.to_user?.name?.charAt(0).toUpperCase()}
-                        </div>
+                        <div style={{
+                          width: '40px', height: '40px', borderRadius: '50%',
+                          background: 'var(--gradient-btn)', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center',
+                          color: 'white', fontWeight: '700', fontSize: '16px'
+                        }}>{rel.to_user?.name?.charAt(0)}</div>
                       )}
                       <div>
-                        <p className="font-medium text-gray-800 text-sm">{rel.to_user?.name}</p>
-                        <p className="text-xs text-gray-500">{rel.relation_tamil} · {rel.relation_type}</p>
+                        <p style={{ fontWeight: '600', fontSize: '14px' }}>{rel.to_user?.name}</p>
+                        <p style={{ fontSize: '12px', color: '#9ca3af' }}>{rel.relation_tamil} · {rel.relation_type}</p>
                       </div>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      rel.verification_status === 'verified' ? 'bg-green-100 text-green-700' :
-                      rel.verification_status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
-                      {rel.verification_status === 'verified' ? T.verifiedBadge.ta :
-                       rel.verification_status === 'pending' ? T.pendingBadge.ta : T.rejectedBadge.ta}
+                    <span style={{
+                      fontSize: '11px', padding: '4px 10px', borderRadius: '999px', fontWeight: '600',
+                      background: rel.verification_status === 'verified' ? 'var(--green-100)' : 'var(--purple-100)',
+                      color: rel.verification_status === 'verified' ? 'var(--green-700)' : 'var(--purple-600)'
+                    }}>
+                      {rel.verification_status === 'verified' ? '✓ சரிபார்க்கப்பட்டது' : '⏳ நிலுவை'}
                     </span>
                   </div>
                 ))}
@@ -279,6 +271,32 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* FAB — Add Relative */}
+      <button className="fab" onClick={() => navigate('/add-relative')} title="Add Family Member">
+        +
+      </button>
+
+      {/* Bottom Navigation */}
+      <nav className="bottom-nav">
+        {[
+          { path: '/dashboard', icon: '🌳', label: 'மரம்' },
+          { path: '/directory', icon: '📚', label: 'அகராதி' },
+          { path: '/messages', icon: '💬', label: 'செய்தி' },
+          { path: '/locations', icon: '📍', label: 'இடம்' },
+          { path: '/birthdays', icon: '🎂', label: 'பிறந்தநாள்' },
+          { path: '/quiz', icon: '🧠', label: 'வினா' },
+        ].map(item => (
+          <button
+            key={item.path}
+            className={`bottom-nav-item ${window.location.pathname === item.path ? 'active' : ''}`}
+            onClick={() => navigate(item.path)}
+          >
+            <div className="nav-icon">{item.icon}</div>
+            <span style={{ fontFamily: 'var(--font-tamil)', fontSize: '9px' }}>{item.label}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
