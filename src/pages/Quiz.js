@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Box, VStack, HStack, Text, Heading, Button, Avatar, SimpleGrid } from '@chakra-ui/react';
 import api from '../services/api';
+
+const sectionBox = { w: '100%', bg: 'whiteAlpha.100', border: '1px solid', borderColor: 'whiteAlpha.200', borderRadius: '2xl', px: { base: 5, md: 8 }, py: { base: 4, md: 5 } };
 
 export default function Quiz() {
   const navigate = useNavigate();
@@ -18,404 +21,179 @@ export default function Quiz() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    loadQuiz();
-    loadLeaderboard();
+    api.get('/api/quiz/today').then(res => {
+      if (res.data.already_played) { setAlreadyPlayed(true); setTodayScore(res.data.today_score); setStreak(res.data.streak); }
+      else setQuestions(res.data.questions || []);
+    }).finally(() => setLoading(false));
+    api.get('/api/quiz/leaderboard').then(res => setLeaderboard(res.data.leaderboard || []));
   }, []);
 
-  const loadQuiz = async () => {
-    try {
-      const res = await api.get('/api/quiz/today');
-      if (res.data.already_played) {
-        setAlreadyPlayed(true);
-        setTodayScore(res.data.today_score);
-        setStreak(res.data.streak);
-      } else {
-        setQuestions(res.data.questions || []);
-      }
-    } catch (err) {
-      console.error('Quiz load failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadLeaderboard = async () => {
-    try {
-      const res = await api.get('/api/quiz/leaderboard');
-      setLeaderboard(res.data.leaderboard || []);
-    } catch (err) {
-      console.error('Leaderboard load failed');
-    }
-  };
-
-  const handleSelect = (option) => {
-    if (selected) return; // already answered
-    setSelected(option);
-  };
+  const handleSelect = (option) => { if (selected) return; setSelected(option); };
 
   const handleNext = () => {
     if (!selected) return;
     const newAnswers = [...answers, { question_id: currentQ, answer: selected }];
     setAnswers(newAnswers);
     setSelected(null);
-
-    if (currentQ + 1 < questions.length) {
-      setCurrentQ(currentQ + 1);
-    } else {
-      // Submit quiz
-      submitQuiz(newAnswers);
-    }
+    if (currentQ + 1 < questions.length) setCurrentQ(currentQ + 1);
+    else submitQuiz(newAnswers);
   };
 
   const submitQuiz = async (finalAnswers) => {
     setSubmitting(true);
     try {
-      const res = await api.post('/api/quiz/submit', {
-        answers: finalAnswers,
-        questions: questions
-      });
-      setQuizResult(res.data);
-      setShowResult(true);
-      loadLeaderboard();
-    } catch (err) {
-      console.error('Submit failed:', err.response?.data);
-    } finally {
-      setSubmitting(false);
-    }
+      const res = await api.post('/api/quiz/submit', { answers: finalAnswers, questions });
+      setQuizResult(res.data); setShowResult(true);
+      api.get('/api/quiz/leaderboard').then(r => setLeaderboard(r.data.leaderboard || []));
+    } catch (e) {} finally { setSubmitting(false); }
   };
 
   const getOptionStyle = (option) => {
-    if (!selected) {
-      return 'bg-white border-2 border-gray-200 text-gray-800 hover:border-purple-400 hover:bg-purple-50 cursor-pointer';
-    }
-    const currentQuestion = questions[currentQ];
-    if (option === currentQuestion.correct_answer) {
-      return 'bg-green-500 border-2 border-green-500 text-white';
-    }
-    if (option === selected && option !== currentQuestion.correct_answer) {
-      return 'bg-red-400 border-2 border-red-400 text-white';
-    }
-    return 'bg-white border-2 border-gray-200 text-gray-400';
+    if (!selected) return { bg: 'whiteAlpha.100', borderColor: 'whiteAlpha.200' };
+    if (option === questions[currentQ]?.correct_answer) return { bg: 'green.800', borderColor: 'green.400' };
+    if (option === selected) return { bg: 'red.800', borderColor: 'red.400' };
+    return { bg: 'whiteAlpha.50', borderColor: 'whiteAlpha.100' };
   };
 
-  const getScoreEmoji = (score, total) => {
-    const pct = score / total;
-    if (pct === 1) return '🏆';
-    if (pct >= 0.8) return '🌟';
-    if (pct >= 0.6) return '👍';
-    if (pct >= 0.4) return '💪';
-    return '🌱';
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-3">🧠</div>
-          <p className="text-purple-600">Loading quiz...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)" display="flex" alignItems="center" justifyContent="center"><VStack><Text fontSize="4xl">🧠</Text><Text color="whiteAlpha.600">ஏற்றுகிறோம்...</Text></VStack></Box>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-purple-700 text-white px-4 py-4">
-        <div className="max-w-lg mx-auto flex items-center gap-3">
-          <button onClick={() => navigate('/dashboard')} className="text-purple-200 hover:text-white">← Back</button>
-          <div>
-            <h1 className="text-lg font-bold">🧠 குடும்ப வினாடி வினா</h1>
-            <p className="text-purple-300 text-xs">Daily Family Quiz</p>
-          </div>
-          {streak > 0 && (
-            <div className="ml-auto flex items-center gap-1 bg-purple-600 px-2 py-1 rounded-lg">
-              <span className="text-orange-300">🔥</span>
-              <span className="text-xs font-bold">{streak}</span>
-            </div>
-          )}
-        </div>
-      </div>
+    <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)" px={{ base: 4, md: 8 }} py={6} pb={24}>
+      <VStack w="100%" maxW="900px" mx="auto" spacing={4} align="stretch">
 
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+        <Box {...sectionBox}>
+          <HStack justify="space-between">
+            <HStack spacing={3}>
+              <Box as="button" onClick={() => navigate('/dashboard')} color="whiteAlpha.600" fontSize="xl" _hover={{ color: 'white' }}>←</Box>
+              <Box>
+                <Heading fontSize={{ base: 'xl', md: '2xl' }} color="white">🧠 வினாடி வினா</Heading>
+                <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.500">Daily Family Quiz</Text>
+              </Box>
+            </HStack>
+            {streak > 0 && <HStack bg="orange.800" borderRadius="full" px={3} py={1}><Text fontSize="sm" color="orange.200">🔥 {streak}</Text></HStack>}
+          </HStack>
+        </Box>
 
-        {/* Already played today */}
+        {/* Already played */}
         {alreadyPlayed && !showResult && (
-          <div className="space-y-4">
-            <div className="card text-center py-8">
-              <div className="text-5xl mb-3">{getScoreEmoji(todayScore, 5)}</div>
-              <h2 className="text-xl font-bold text-gray-800 mb-1">
-                இன்று விளையாடியாயிற்று!
-              </h2>
-              <p className="text-gray-500 text-sm mb-3">Today's quiz completed!</p>
-              <div className="bg-purple-50 rounded-xl p-4 mb-4">
-                <p className="text-3xl font-bold text-purple-700">{todayScore}/5</p>
-                <p className="text-gray-500 text-sm">இன்றைய மதிப்பெண் / Today's score</p>
-              </div>
-              {streak > 1 && (
-                <div className="flex items-center justify-center gap-2 bg-orange-50 rounded-xl p-3">
-                  <span className="text-2xl">🔥</span>
-                  <div>
-                    <p className="font-bold text-orange-700">{streak} நாள் தொடர்ச்சி!</p>
-                    <p className="text-orange-500 text-xs">{streak} day streak!</p>
-                  </div>
-                </div>
-              )}
-              <p className="text-gray-400 text-xs mt-4">
-                நாளை மீண்டும் வாருங்கள் / Come back tomorrow for a new quiz!
-              </p>
-            </div>
-
-            {/* Leaderboard */}
+          <>
+            <Box {...sectionBox} textAlign="center">
+              <Text fontSize="5xl" mb={3}>{todayScore === 5 ? '🏆' : todayScore >= 3 ? '🌟' : '💪'}</Text>
+              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="white" mb={2}>இன்று விளையாடியாயிற்று!</Heading>
+              <Text fontSize={{ base: '3xl', md: '4xl' }} fontWeight="800" color="purple.300">{todayScore}/5</Text>
+              <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.500">இன்றைய மதிப்பெண் / Today's score</Text>
+              {streak > 1 && <HStack justify="center" mt={3}><Text fontSize="2xl">🔥</Text><Text fontWeight="700" color="orange.300">{streak} நாள் தொடர்ச்சி!</Text></HStack>}
+              <Text fontSize="sm" color="whiteAlpha.400" mt={4}>நாளை மீண்டும் வாருங்கள் / Come back tomorrow!</Text>
+            </Box>
             {leaderboard.length > 0 && (
-              <div className="card">
-                <h2 className="font-bold text-gray-800 mb-3">
-                  🏆 இந்த வார சாம்பியன்கள்
-                  <span className="text-gray-400 font-normal text-sm ml-1">/ This Week's Champions</span>
-                </h2>
-                <div className="space-y-2">
-                  {leaderboard.map((entry, idx) => (
-                    <div key={entry.user?.id} className={`flex items-center gap-3 p-3 rounded-xl ${
-                      idx === 0 ? 'bg-amber-50 border border-amber-200' :
-                      idx === 1 ? 'bg-gray-50 border border-gray-200' :
-                      idx === 2 ? 'bg-orange-50 border border-orange-100' :
-                      'bg-white border border-gray-100'
-                    }`}>
-                      <span className="text-xl w-8 text-center">
-                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`}
-                      </span>
-                      {entry.user?.profile_photo ? (
-                        <img src={entry.user.profile_photo} alt=""
-                          className="w-8 h-8 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-xs font-bold text-purple-700">
-                          {entry.user?.name?.charAt(0)}
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-800 text-sm">{entry.user?.name}</p>
-                        <p className="text-xs text-gray-400">
-                          {entry.games_played} விளையாட்டு · 🔥{entry.max_streak} streak
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-purple-700">{entry.total_score}</p>
-                        <p className="text-xs text-gray-400">pts</p>
-                      </div>
-                    </div>
+              <Box {...sectionBox}>
+                <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" color="white" mb={3}>🏆 இந்த வார சாம்பியன்கள்</Text>
+                <VStack spacing={2} align="stretch">
+                  {leaderboard.map((e, i) => (
+                    <HStack key={e.user?.id} bg="whiteAlpha.100" borderRadius="xl" px={4} py={3} justify="space-between">
+                      <HStack spacing={3}>
+                        <Text fontSize="lg">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`}</Text>
+                        <Avatar size="sm" name={e.user?.name} src={e.user?.profile_photo} />
+                        <Text fontSize={{ base: 'sm', md: 'md' }} fontWeight="600" color="white">{e.user?.name}</Text>
+                      </HStack>
+                      <Text fontWeight="700" color="purple.300">{e.total_score} pts</Text>
+                    </HStack>
                   ))}
-                </div>
-              </div>
+                </VStack>
+              </Box>
             )}
-
-            {/* Coming soon rewards */}
-            <div className="card bg-gradient-to-r from-purple-600 to-pink-500 text-white text-center py-6">
-              <div className="text-3xl mb-2">🎁</div>
-              <p className="font-bold">பரிசுகள் வரும்! / Rewards Coming Soon!</p>
-              <p className="text-purple-200 text-xs mt-1">
-                தினமும் விளையாடி புள்ளிகள் சேர்த்து பரிசு வெல்லுங்கள்
-              </p>
-              <p className="text-purple-300 text-xs">
-                Play daily, earn points, win gifts!
-              </p>
-            </div>
-          </div>
+            <Box bgGradient="linear(to-r, purple.700, green.700)" borderRadius="2xl" px={{ base: 5, md: 8 }} py={5} textAlign="center">
+              <Text fontSize="3xl" mb={2}>🎁</Text>
+              <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" color="white">பரிசுகள் வரும்! / Rewards Coming Soon!</Text>
+              <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.600" mt={1}>தினமும் விளையாடி பரிசு வெல்லுங்கள்!</Text>
+            </Box>
+          </>
         )}
 
         {/* Quiz in progress */}
         {!alreadyPlayed && !showResult && questions.length > 0 && (
-          <div className="space-y-4">
-            {/* Progress */}
-            <div>
-              <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-                <span>கேள்வி {currentQ + 1} / {questions.length}</span>
-                <span>{currentQ} சரி / correct</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-purple-500 h-2 rounded-full transition-all"
-                  style={{ width: `${((currentQ) / questions.length) * 100}%` }}
-                />
-              </div>
-            </div>
+          <>
+            <Box {...sectionBox} py={3}>
+              <HStack justify="space-between" mb={2}>
+                <Text fontSize="sm" color="whiteAlpha.600">கேள்வி {currentQ + 1} / {questions.length}</Text>
+              </HStack>
+              <Box w="100%" bg="whiteAlpha.200" borderRadius="full" h="6px">
+                <Box bg="purple.400" borderRadius="full" h="6px" w={`${((currentQ) / questions.length) * 100}%`} transition="all 0.3s" />
+              </Box>
+            </Box>
 
-            {/* Question Card */}
-            <div className="card">
-              {/* Question type badge */}
-              <div className="flex items-center gap-2 mb-4">
-                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                  questions[currentQ]?.type === 'photo_name' ? 'bg-blue-100 text-blue-700' :
-                  questions[currentQ]?.type === 'tamil_word' ? 'bg-green-100 text-green-700' :
-                  'bg-purple-100 text-purple-700'
-                }`}>
-                  {questions[currentQ]?.type === 'photo_name' ? '📷 புகைப்படம்' :
-                   questions[currentQ]?.type === 'tamil_word' ? '📚 தமிழ் சொல்' :
-                   '🌳 உறவு'}
-                </span>
-              </div>
-
-              {/* Photo question */}
-              {questions[currentQ]?.photo && (
-                <div className="flex justify-center mb-4">
-                  <img
-                    src={questions[currentQ].photo}
-                    alt="Who is this?"
-                    className="w-24 h-24 rounded-full object-cover border-4 border-purple-200 shadow-md"
-                  />
-                </div>
-              )}
-
-              {/* Question text */}
-              <p className="text-gray-800 font-semibold text-base text-center mb-5 leading-relaxed">
-                {questions[currentQ]?.question}
-              </p>
-
-              {/* Options */}
-              <div className="space-y-2">
-                {questions[currentQ]?.options?.map((option, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleSelect(option)}
-                    className={`w-full py-3 px-4 rounded-xl text-sm font-medium transition-all text-left ${getOptionStyle(option)}`}
-                  >
-                    <span className="text-gray-400 mr-2">{['A', 'B', 'C', 'D'][idx]}.</span>
-                    {option}
-                    {selected && option === questions[currentQ]?.correct_answer && (
-                      <span className="float-right">✓</span>
-                    )}
-                    {selected && option === selected && option !== questions[currentQ]?.correct_answer && (
-                      <span className="float-right">✗</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              {/* Feedback */}
-              {selected && (
-                <div className={`mt-4 p-3 rounded-xl text-sm font-medium text-center ${
-                  selected === questions[currentQ]?.correct_answer
-                    ? 'bg-green-50 text-green-700'
-                    : 'bg-red-50 text-red-700'
-                }`}>
-                  {selected === questions[currentQ]?.correct_answer
-                    ? '✅ சரியான பதில்! / Correct!'
-                    : `❌ தவறு! சரி: ${questions[currentQ]?.correct_answer} / Wrong! Correct: ${questions[currentQ]?.correct_answer}`}
-                </div>
-              )}
-            </div>
-
-            {/* Next button */}
-            <button
-              onClick={handleNext}
-              disabled={!selected || submitting}
-              className="btn-primary"
-            >
-              {submitting ? 'சமர்ப்பிக்கிறோம்...' :
-               currentQ + 1 === questions.length ? '🏁 முடிக்கவும் / Finish' : 'அடுத்தது / Next →'}
-            </button>
-          </div>
-        )}
-
-        {/* Quiz Result */}
-        {showResult && quizResult && (
-          <div className="space-y-4">
-            <div className="card text-center py-8">
-              <div className="text-6xl mb-3">{getScoreEmoji(quizResult.score, quizResult.total)}</div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                {quizResult.score === 5 ? 'அருமை! 🎉' : 'நல்ல முயற்சி!'}
-              </h2>
-              <div className="bg-purple-50 rounded-xl p-4 mb-4">
-                <p className="text-5xl font-bold text-purple-700">{quizResult.score}/{quizResult.total}</p>
-                <p className="text-gray-500 text-sm mt-1">மதிப்பெண் / Score</p>
-              </div>
-
-              {quizResult.streak > 1 && (
-                <div className="flex items-center justify-center gap-2 bg-orange-50 rounded-xl p-3 mb-4">
-                  <span className="text-2xl">🔥</span>
-                  <div>
-                    <p className="font-bold text-orange-700">{quizResult.streak} நாள் தொடர்ச்சி!</p>
-                    <p className="text-orange-500 text-xs">{quizResult.streak} day streak!</p>
-                  </div>
-                </div>
-              )}
-
-              <p className="text-gray-600 text-sm mb-4">{quizResult.message}</p>
-
-              {/* Results breakdown */}
-              <div className="text-left space-y-2">
-                {quizResult.results?.map((r, i) => (
-                  <div key={i} className={`flex items-start gap-2 p-2 rounded-lg text-xs ${
-                    r.is_correct ? 'bg-green-50' : 'bg-red-50'
-                  }`}>
-                    <span>{r.is_correct ? '✅' : '❌'}</span>
-                    <div>
-                      <p className="font-medium text-gray-700">{r.question}</p>
-                      {!r.is_correct && (
-                        <p className="text-red-600">சரி: {r.correct_answer}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Leaderboard */}
-            {leaderboard.length > 0 && (
-              <div className="card">
-                <h2 className="font-bold text-gray-800 mb-3">🏆 இந்த வார சாம்பியன்கள்</h2>
-                <div className="space-y-2">
-                  {leaderboard.map((entry, idx) => (
-                    <div key={entry.user?.id} className={`flex items-center gap-3 p-3 rounded-xl ${
-                      idx === 0 ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50'
-                    }`}>
-                      <span className="text-lg w-8 text-center">
-                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`}
-                      </span>
-                      {entry.user?.profile_photo ? (
-                        <img src={entry.user.profile_photo} alt="" className="w-8 h-8 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-xs font-bold text-purple-700">
-                          {entry.user?.name?.charAt(0)}
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-800 text-sm">{entry.user?.name}</p>
-                        <p className="text-xs text-gray-400">🔥{entry.max_streak} streak</p>
-                      </div>
-                      <p className="font-bold text-purple-700">{entry.total_score} pts</p>
-                    </div>
+            <Box {...sectionBox}>
+              <VStack spacing={5} align="stretch">
+                <Text fontSize="xs" color="purple.300" fontWeight="600">
+                  {questions[currentQ]?.type === 'photo_name' ? '📷 புகைப்படம்' : questions[currentQ]?.type === 'tamil_word' ? '📚 தமிழ் சொல்' : '🌳 உறவு'}
+                </Text>
+                {questions[currentQ]?.photo && (
+                  <HStack justify="center">
+                    <Avatar size="2xl" src={questions[currentQ].photo} border="4px solid" borderColor="purple.400" />
+                  </HStack>
+                )}
+                <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="600" color="white" textAlign="center">
+                  {questions[currentQ]?.question}
+                </Text>
+                <VStack spacing={2} align="stretch">
+                  {questions[currentQ]?.options?.map((option, i) => (
+                    <Box key={i} as="button" onClick={() => handleSelect(option)}
+                      border="1px solid" borderRadius="xl" px={4} py={3}
+                      textAlign="left" transition="all 0.2s" cursor={selected ? 'default' : 'pointer'}
+                      {...getOptionStyle(option)}
+                    >
+                      <Text fontSize={{ base: 'sm', md: 'md' }} color="white">
+                        <Text as="span" color="whiteAlpha.500" mr={2}>{['A','B','C','D'][i]}.</Text>
+                        {option}
+                        {selected && option === questions[currentQ]?.correct_answer && ' ✓'}
+                        {selected && option === selected && option !== questions[currentQ]?.correct_answer && ' ✗'}
+                      </Text>
+                    </Box>
                   ))}
-                </div>
-              </div>
-            )}
-
-            {/* Rewards teaser */}
-            <div className="card bg-gradient-to-r from-purple-600 to-pink-500 text-white text-center py-5">
-              <div className="text-3xl mb-2">🎁</div>
-              <p className="font-bold">பரிசுகள் வரும்! / Rewards Coming Soon!</p>
-              <p className="text-purple-200 text-xs mt-1">தினமும் விளையாடி பரிசு வெல்லுங்கள்!</p>
-            </div>
-
-            <button onClick={() => navigate('/dashboard')} className="btn-primary">
-              ← Dashboard-க்கு திரும்பு / Back to Dashboard
-            </button>
-          </div>
+                </VStack>
+                {selected && (
+                  <Box bg={selected === questions[currentQ]?.correct_answer ? 'green.900' : 'red.900'} borderRadius="xl" px={4} py={3} textAlign="center">
+                    <Text color={selected === questions[currentQ]?.correct_answer ? 'green.200' : 'red.200'} fontSize={{ base: 'sm', md: 'md' }}>
+                      {selected === questions[currentQ]?.correct_answer ? '✅ சரியான பதில்! / Correct!' : `❌ தவறு! சரி: ${questions[currentQ]?.correct_answer}`}
+                    </Text>
+                  </Box>
+                )}
+                <Button w="100%" h={{ base: '50px', md: '56px' }} bgGradient="linear(to-r, purple.600, green.500)" color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
+                  isDisabled={!selected} isLoading={submitting}
+                  onClick={handleNext}
+                  _hover={{ transform: 'translateY(-2px)' }} _disabled={{ opacity: 0.4, cursor: 'not-allowed' }}>
+                  {currentQ + 1 === questions.length ? '🏁 முடிக்கவும்' : 'அடுத்தது →'}
+                </Button>
+              </VStack>
+            </Box>
+          </>
         )}
 
-        {/* No questions available */}
+        {/* Result */}
+        {showResult && quizResult && (
+          <>
+            <Box {...sectionBox} textAlign="center">
+              <Text fontSize="5xl" mb={3}>{quizResult.score === 5 ? '🏆' : quizResult.score >= 3 ? '🌟' : '💪'}</Text>
+              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="white" mb={2}>{quizResult.score === 5 ? 'அருமை! 🎉' : 'நல்ல முயற்சி!'}</Heading>
+              <Text fontSize={{ base: '3xl', md: '4xl' }} fontWeight="800" color="purple.300">{quizResult.score}/{quizResult.total}</Text>
+              {quizResult.streak > 1 && <HStack justify="center" mt={3}><Text fontSize="2xl">🔥</Text><Text fontWeight="700" color="orange.300">{quizResult.streak} நாள் தொடர்ச்சி!</Text></HStack>}
+              <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.600" mt={3}>{quizResult.message}</Text>
+            </Box>
+            <Button w="100%" maxW="900px" mx="auto" h={{ base: '50px', md: '56px' }} bgGradient="linear(to-r, purple.600, green.500)" color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl" onClick={() => navigate('/dashboard')}>
+              ← Dashboard-க்கு திரும்பு
+            </Button>
+          </>
+        )}
+
         {!alreadyPlayed && !showResult && questions.length === 0 && !loading && (
-          <div className="card text-center py-12">
-            <div className="text-5xl mb-3">🌱</div>
-            <p className="text-gray-600 font-medium">வினாடி வினா தயார் இல்லை</p>
-            <p className="text-gray-400 text-sm mt-1">Quiz not available yet</p>
-            <p className="text-gray-400 text-xs mt-2">
-              குடும்பத்தினரை சேர்த்து சரிபார்க்கவும்
-            </p>
-            <p className="text-gray-400 text-xs">Add and verify family members to start</p>
-          </div>
+          <Box {...sectionBox} textAlign="center" py={10}>
+            <Text fontSize="4xl" mb={3}>🌱</Text>
+            <Text fontSize={{ base: 'md', md: 'lg' }} color="whiteAlpha.600">வினாடி வினா தயார் இல்லை</Text>
+            <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.400">குடும்பத்தினரை சேர்த்து சரிபார்க்கவும்</Text>
+          </Box>
         )}
 
-      </div>
-    </div>
+      </VStack>
+    </Box>
   );
 }

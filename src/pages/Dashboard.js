@@ -1,12 +1,33 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box, VStack, HStack, Text, Heading, Button,
+  SimpleGrid, Avatar, Badge, Spinner
+} from '@chakra-ui/react';
 import { getMyRelationships, verifyRelationship, rejectRelationship } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import FamilyTree from '../components/FamilyTree';
-import ProfilePhoto from '../components/ProfilePhoto';
 import ShareTree from '../components/ShareTree';
 import BirthdayBanner from '../components/BirthdayBanner';
-import { T } from '../utils/strings';
+
+const navItems = [
+  { path: '/dashboard',  icon: '🌳', ta: 'மரம்'      },
+  { path: '/directory',  icon: '📚', ta: 'அகராதி'    },
+  { path: '/messages',   icon: '💬', ta: 'செய்தி'    },
+  { path: '/locations',  icon: '📍', ta: 'இடம்'      },
+  { path: '/birthdays',  icon: '🎂', ta: 'பிறந்தநாள்' },
+  { path: '/quiz',       icon: '🧠', ta: 'வினா'      },
+];
+
+const sectionBox = {
+  w: '100%',
+  bg: 'whiteAlpha.100',
+  border: '1px solid',
+  borderColor: 'whiteAlpha.200',
+  borderRadius: '2xl',
+  px: { base: 4, md: 6 },
+  py: { base: 4, md: 5 },
+};
 
 export default function Dashboard() {
   const { user, login, logout } = useAuth();
@@ -15,288 +36,268 @@ export default function Dashboard() {
   const [pending, setPending] = useState([]);
   const [summary, setSummary] = useState({});
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState('');
   const [activeTab, setActiveTab] = useState('tree');
-  const treeContainerRef = useRef(null);
+  const [actionLoading, setActionLoading] = useState('');
+  const treeRef = useRef(null);
 
   useEffect(() => {
-    if (user && user.id) fetchRelationships();
+    if (user?.id) fetchData();
   }, [user]);
 
-  const fetchRelationships = async () => {
+  const fetchData = async () => {
     try {
       const res = await getMyRelationships();
-      const { my_relationships, pending_verification, summary } = res.data;
-      setRelationships(my_relationships || []);
-      setPending(pending_verification || []);
-      setSummary(summary || {});
-    } catch (err) {
+      setRelationships(res.data.my_relationships || []);
+      setPending(res.data.pending_verification || []);
+      setSummary(res.data.summary || {});
+    } catch (e) {
       setRelationships([]); setPending([]); setSummary({});
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleVerify = async (id) => {
     setActionLoading(id);
-    try { await verifyRelationship(id); await fetchRelationships(); }
-    catch (err) { alert(err.response?.data?.error || 'தோல்வி'); }
+    try { await verifyRelationship(id); await fetchData(); } catch (e) {}
     finally { setActionLoading(''); }
   };
 
   const handleReject = async (id) => {
     setActionLoading(id);
-    try { await rejectRelationship(id); await fetchRelationships(); }
-    catch (err) { alert(err.response?.data?.error || 'தோல்வி'); }
+    try { await rejectRelationship(id); await fetchData(); } catch (e) {}
     finally { setActionLoading(''); }
-  };
-
-  const handlePhotoUpdated = (photoUrl) => {
-    login(localStorage.getItem('pmf_token'), { ...user, profile_photo: photoUrl });
   };
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--gradient-hero)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div className="animate-float" style={{ fontSize: '64px', marginBottom: '16px' }}>🌳</div>
-          <p style={{ color: '#a7f3d0', fontFamily: 'var(--font-tamil)', fontSize: '16px' }}>குடும்ப மரம் ஏற்றுகிறோம்...</p>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginTop: '4px' }}>Loading your family tree</p>
-        </div>
-      </div>
+      <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)"
+        display="flex" alignItems="center" justifyContent="center">
+        <VStack spacing={4}>
+          <Text fontSize="5xl">🌳</Text>
+          <Spinner color="purple.300" size="lg" />
+          <Text color="whiteAlpha.600" fontSize="md">குடும்ப மரம் ஏற்றுகிறோம்...</Text>
+        </VStack>
+      </Box>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8f4ff', paddingBottom: '80px' }}>
+    <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)"
+      pb={24} px={{ base: 4, md: 8 }} py={6}>
+      <VStack w="100%" maxW="900px" mx="auto" spacing={4} align="stretch">
 
-      {/* Header */}
-      <div style={{
-        background: 'var(--gradient-hero)', padding: '20px 20px 28px',
-        position: 'relative', overflow: 'hidden'
-      }}>
-        <div style={{
-          position: 'absolute', top: '-50px', right: '-50px',
-          width: '200px', height: '200px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(16,185,129,0.2) 0%, transparent 70%)'
-        }} />
+        {/* Section 1 — Header */}
+        <Box {...sectionBox}>
+          <HStack justify="space-between" align="center">
+            <HStack spacing={3}>
+              <Avatar
+                size="md"
+                name={user?.name}
+                src={user?.profile_photo}
+                border="2px solid"
+                borderColor="purple.400"
+              />
+              <Box>
+                <Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight="700" color="white">{user?.name}</Text>
+                <Text fontSize="xs" color="whiteAlpha.500">{user?.phone}</Text>
+              </Box>
+            </HStack>
+            <HStack spacing={2}>
+              <Button size="sm" variant="ghost" color="whiteAlpha.600"
+                _hover={{ color: 'white' }} onClick={() => navigate('/profile')}>
+                ⚙️
+              </Button>
+              <Button size="sm" variant="ghost" color="whiteAlpha.600"
+                _hover={{ color: 'red.300' }}
+                onClick={() => { logout(); window.location.href = '/'; }}>
+                வெளியேறு
+              </Button>
+            </HStack>
+          </HStack>
+        </Box>
 
-        <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <ProfilePhoto user={user} onPhotoUpdated={handlePhotoUpdated} />
-            <div>
-              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', fontFamily: 'var(--font-tamil)' }}>வணக்கம்!</p>
-              <h2 style={{ color: 'white', fontSize: '20px', fontWeight: '700', letterSpacing: '-0.5px' }}>{user?.name}</h2>
-              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>{user?.phone}</p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              background: 'rgba(255,255,255,0.1)', borderRadius: '12px',
-              padding: '8px 14px', cursor: 'pointer'
-            }} onClick={() => navigate('/profile')}>
-              <span style={{ fontSize: '20px' }}>⚙️</span>
-            </div>
-            <button onClick={() => { logout(); window.location.href = '/'; }} style={{
-              background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '12px',
-              padding: '8px 14px', color: 'white', cursor: 'pointer', fontSize: '12px',
-              fontFamily: 'var(--font-display)', fontWeight: '600'
-            }}>
-              வெளியேறு
-            </button>
-          </div>
-        </div>
-
-        {/* Stats Row */}
-        <div style={{ maxWidth: '600px', margin: '16px auto 0', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+        {/* Section 2 — Stats */}
+        <SimpleGrid columns={3} spacing={3}>
           {[
-            { value: summary.total_verified || 0, ta: 'சரிபார்க்கப்பட்டது', en: 'Verified', color: '#34d399' },
-            { value: summary.pending_sent || 0, ta: 'அனுப்பியது', en: 'Sent', color: '#fbbf24' },
-            { value: summary.pending_my_action || 0, ta: 'உறுதிப்படுத்தவும்', en: 'To Confirm', color: '#c084fc' },
+            { label: 'சரிபார்க்கப்பட்டது', value: summary.total_verified || 0, color: 'green.300' },
+            { label: 'அனுப்பியது', value: summary.pending_sent || 0, color: 'yellow.300' },
+            { label: 'உறுதிப்படுத்தவும்', value: summary.pending_my_action || 0, color: 'purple.300' },
           ].map((s, i) => (
-            <div key={i} className="glass" style={{ borderRadius: '14px', padding: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', fontWeight: '800', color: s.color }}>{s.value}</div>
-              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontFamily: 'var(--font-tamil)', marginTop: '2px' }}>{s.ta}</div>
-            </div>
+            <Box key={i} bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.200"
+              borderRadius="2xl" px={4} py={4} textAlign="center">
+              <Text fontSize={{ base: '2xl', md: '3xl' }} fontWeight="800" color={s.color}>{s.value}</Text>
+              <Text fontSize={{ base: '9px', md: 'xs' }} color="whiteAlpha.600" mt={1}>{s.label}</Text>
+            </Box>
           ))}
-        </div>
-      </div>
+        </SimpleGrid>
 
-      <div style={{ maxWidth: '600px', margin: '0 auto', padding: '16px 16px 0' }}>
-
-        {/* Birthday Banner */}
+        {/* Section 3 — Birthday Banner */}
         <BirthdayBanner />
 
-        {/* Pending Verifications */}
+        {/* Section 4 — Pending Verifications */}
         {pending.length > 0 && (
-          <div className="card animate-fadeInUp" style={{ marginBottom: '12px', borderLeft: '4px solid var(--gold)', marginTop: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <span style={{ fontSize: '20px' }}>⚠️</span>
-              <div>
-                <p style={{ fontWeight: '700', fontSize: '14px', color: '#92400e' }}>{T.confirmThese.ta} ({pending.length})</p>
-                <p style={{ fontSize: '11px', color: '#b45309' }}>{T.confirmThese.en}</p>
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <Box {...sectionBox} borderColor="yellow.600" borderLeftWidth="4px">
+            <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" color="yellow.300" mb={3}>
+              ⚠️ உறுதிப்படுத்தல் தேவை ({pending.length})
+            </Text>
+            <VStack spacing={2} align="stretch">
               {pending.map(rel => (
-                <div key={rel.id} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  background: '#fffbeb', borderRadius: '12px', padding: '10px 12px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {rel.to_user?.profile_photo ? (
-                      <img src={rel.to_user.profile_photo} alt="" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
-                    ) : (
-                      <div style={{
-                        width: '36px', height: '36px', borderRadius: '50%',
-                        background: 'var(--gradient-btn)', display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', color: 'white', fontWeight: '700', fontSize: '14px'
-                      }}>{rel.to_user?.name?.charAt(0)}</div>
-                    )}
-                    <div>
-                      <p style={{ fontWeight: '600', fontSize: '13px' }}>{rel.to_user?.name}</p>
-                      <p style={{ fontSize: '11px', color: '#92400e' }}>
-                        {T.saysYouAreTheir.ta} <strong style={{ color: 'var(--purple-600)' }}>{rel.relation_tamil}</strong>
-                      </p>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => handleVerify(rel.id)} disabled={actionLoading === rel.id}
-                      style={{ background: 'var(--gradient-green)', color: 'white', border: 'none', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>
-                      ✓ ஆம்
-                    </button>
-                    <button onClick={() => handleReject(rel.id)} disabled={actionLoading === rel.id}
-                      style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>
-                      ✗
-                    </button>
-                  </div>
-                </div>
+                <HStack key={rel.id} justify="space-between" bg="whiteAlpha.100"
+                  borderRadius="xl" px={4} py={3}>
+                  <HStack spacing={3}>
+                    <Avatar size="sm" name={rel.to_user?.name} src={rel.to_user?.profile_photo} />
+                    <Box>
+                      <Text fontSize="sm" fontWeight="600" color="white">{rel.to_user?.name}</Text>
+                      <Text fontSize="xs" color="whiteAlpha.500">
+                        உங்கள் <Text as="span" color="purple.300">{rel.relation_tamil}</Text> என்று சொல்கிறார்
+                      </Text>
+                    </Box>
+                  </HStack>
+                  <HStack spacing={2}>
+                    <Button size="sm" colorScheme="green" borderRadius="lg"
+                      isLoading={actionLoading === rel.id}
+                      onClick={() => handleVerify(rel.id)}>✓</Button>
+                    <Button size="sm" colorScheme="red" variant="outline" borderRadius="lg"
+                      isLoading={actionLoading === rel.id}
+                      onClick={() => handleReject(rel.id)}>✗</Button>
+                  </HStack>
+                </HStack>
               ))}
-            </div>
-          </div>
+            </VStack>
+          </Box>
         )}
 
-        {/* Share Button */}
-        {relationships.length > 0 && (
-          <div style={{ marginTop: pending.length > 0 ? '0' : '12px', marginBottom: '12px' }}>
-            <ShareTree treeRef={treeContainerRef} userName={user?.name} memberCount={relationships.length} />
-          </div>
-        )}
+        {/* Section 5 — Quick Actions */}
+        <Box {...sectionBox}>
+          <SimpleGrid columns={{ base: 3, sm: 6 }} spacing={3}>
+            {navItems.map((item, i) => (
+              <VStack key={i} spacing={1} align="center" cursor="pointer"
+                onClick={() => navigate(item.path)}
+                bg={window.location.pathname === item.path ? 'purple.800' : 'whiteAlpha.50'}
+                border="1px solid"
+                borderColor={window.location.pathname === item.path ? 'purple.400' : 'whiteAlpha.100'}
+                borderRadius="xl" py={3}
+                _hover={{ bg: 'purple.800', borderColor: 'purple.400' }}
+                transition="all 0.2s"
+              >
+                <Text fontSize="xl">{item.icon}</Text>
+                <Text fontSize={{ base: '9px', md: 'xs' }} color="whiteAlpha.700" fontWeight="600">{item.ta}</Text>
+              </VStack>
+            ))}
+          </SimpleGrid>
+        </Box>
 
-        {/* Tab Toggle */}
-        <div style={{
-          display: 'flex', background: 'white', borderRadius: '14px', padding: '4px',
-          marginBottom: '12px', boxShadow: 'var(--shadow-sm)'
-        }}>
-          {[
-            { key: 'tree', label: '🌳 குடும்ப மரம்' },
-            { key: 'list', label: '📋 பட்டியல்' }
-          ].map(tab => (
-            <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
-              flex: 1, padding: '10px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-              fontFamily: 'var(--font-display)', fontWeight: '600', fontSize: '13px',
-              transition: 'all 0.2s ease',
-              background: activeTab === tab.key ? 'var(--gradient-btn)' : 'transparent',
-              color: activeTab === tab.key ? 'white' : '#9ca3af',
-              boxShadow: activeTab === tab.key ? 'var(--shadow-sm)' : 'none'
-            }}>
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {/* Section 6 — Family Tree */}
+        <Box {...sectionBox}>
+          <HStack justify="space-between" mb={4}>
+            <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" color="white">
+              🌳 குடும்ப மரம் / Family Tree
+            </Text>
+            <HStack spacing={2}>
+              {relationships.length > 0 && (
+                <ShareTree treeRef={treeRef} userName={user?.name} memberCount={relationships.length} />
+              )}
+              <Button size="sm" bgGradient="linear(to-r, purple.600, green.500)"
+                color="white" borderRadius="xl" onClick={() => navigate('/add-relative')}>
+                + சேர்
+              </Button>
+            </HStack>
+          </HStack>
 
-        {/* Tree View */}
-        {activeTab === 'tree' && (
-          <div className="card">
-            {relationships.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 20px' }}>
-                <div className="animate-float" style={{ fontSize: '56px', marginBottom: '16px' }}>🌱</div>
-                <p style={{ fontWeight: '700', fontSize: '16px', color: 'var(--purple-700)', fontFamily: 'var(--font-tamil)' }}>{T.emptyTree.ta}</p>
-                <p style={{ color: '#9ca3af', fontSize: '13px', marginTop: '4px' }}>{T.emptyTree.en}</p>
-                <button onClick={() => navigate('/add-relative')} className="btn-primary" style={{ marginTop: '20px', maxWidth: '240px' }}>
+          {/* Tab Toggle */}
+          <HStack bg="whiteAlpha.100" borderRadius="xl" p={1} mb={4}>
+            {[{ key: 'tree', label: '🌳 மரம்' }, { key: 'list', label: '📋 பட்டியல்' }].map(t => (
+              <Button key={t.key} flex={1} size="sm"
+                bg={activeTab === t.key ? 'purple.600' : 'transparent'}
+                color={activeTab === t.key ? 'white' : 'whiteAlpha.600'}
+                borderRadius="lg" onClick={() => setActiveTab(t.key)}
+                _hover={{ bg: activeTab === t.key ? 'purple.600' : 'whiteAlpha.100' }}
+              >
+                {t.label}
+              </Button>
+            ))}
+          </HStack>
+
+          {activeTab === 'tree' && (
+            relationships.length === 0 ? (
+              <VStack py={10} spacing={3}>
+                <Text fontSize="4xl">🌱</Text>
+                <Text fontSize={{ base: 'md', md: 'lg' }} color="whiteAlpha.600">
+                  குடும்ப மரம் காலி / Family tree is empty
+                </Text>
+                <Button bgGradient="linear(to-r, purple.600, green.500)" color="white"
+                  borderRadius="xl" onClick={() => navigate('/add-relative')}>
                   + குடும்பத்தினரை சேர்
-                </button>
-              </div>
+                </Button>
+              </VStack>
             ) : (
-              <div ref={treeContainerRef}>
+              <Box ref={treeRef} overflowX="auto">
                 <FamilyTree relationships={relationships} currentUser={user} />
-              </div>
-            )}
-          </div>
-        )}
+              </Box>
+            )
+          )}
 
-        {/* List View */}
-        {activeTab === 'list' && (
-          <div className="card">
-            {relationships.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px' }}>
-                <div style={{ fontSize: '40px', marginBottom: '12px' }}>🌱</div>
-                <p style={{ color: '#9ca3af' }}>{T.emptyTree.ta}</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-                {relationships.map((rel, i) => (
-                  <div key={rel.id} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '12px 0',
-                    borderBottom: i < relationships.length - 1 ? '1px solid var(--purple-100)' : 'none'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      {rel.to_user?.profile_photo ? (
-                        <img src={rel.to_user.profile_photo} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--purple-200)' }} />
-                      ) : (
-                        <div style={{
-                          width: '40px', height: '40px', borderRadius: '50%',
-                          background: 'var(--gradient-btn)', display: 'flex',
-                          alignItems: 'center', justifyContent: 'center',
-                          color: 'white', fontWeight: '700', fontSize: '16px'
-                        }}>{rel.to_user?.name?.charAt(0)}</div>
-                      )}
-                      <div>
-                        <p style={{ fontWeight: '600', fontSize: '14px' }}>{rel.to_user?.name}</p>
-                        <p style={{ fontSize: '12px', color: '#9ca3af' }}>{rel.relation_tamil} · {rel.relation_type}</p>
-                      </div>
-                    </div>
-                    <span style={{
-                      fontSize: '11px', padding: '4px 10px', borderRadius: '999px', fontWeight: '600',
-                      background: rel.verification_status === 'verified' ? 'var(--green-100)' : 'var(--purple-100)',
-                      color: rel.verification_status === 'verified' ? 'var(--green-700)' : 'var(--purple-600)'
-                    }}>
-                      {rel.verification_status === 'verified' ? '✓ சரிபார்க்கப்பட்டது' : '⏳ நிலுவை'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+          {activeTab === 'list' && (
+            <VStack spacing={2} align="stretch">
+              {relationships.length === 0 ? (
+                <Text color="whiteAlpha.500" textAlign="center" py={6}>
+                  குடும்பத்தினர் இல்லை / No family members yet
+                </Text>
+              ) : relationships.map(rel => (
+                <HStack key={rel.id} bg="whiteAlpha.100" borderRadius="xl" px={4} py={3} justify="space-between">
+                  <HStack spacing={3}>
+                    <Avatar size="sm" name={rel.to_user?.name} src={rel.to_user?.profile_photo} />
+                    <Box>
+                      <Text fontSize="sm" fontWeight="600" color="white">{rel.to_user?.name}</Text>
+                      <Text fontSize="xs" color="whiteAlpha.500">{rel.relation_tamil}</Text>
+                    </Box>
+                  </HStack>
+                  <Badge
+                    colorScheme={rel.verification_status === 'verified' ? 'green' : 'yellow'}
+                    borderRadius="full" px={2}
+                  >
+                    {rel.verification_status === 'verified' ? '✓ சரிபார்க்கப்பட்டது' : '⏳ நிலுவை'}
+                  </Badge>
+                </HStack>
+              ))}
+            </VStack>
+          )}
+        </Box>
 
-      {/* FAB — Add Relative */}
-      <button className="fab" onClick={() => navigate('/add-relative')} title="Add Family Member">
-        +
-      </button>
+      </VStack>
 
-      {/* Bottom Navigation */}
-      <nav className="bottom-nav">
-        {[
-          { path: '/dashboard', icon: '🌳', label: 'மரம்' },
-          { path: '/directory', icon: '📚', label: 'அகராதி' },
-          { path: '/messages', icon: '💬', label: 'செய்தி' },
-          { path: '/locations', icon: '📍', label: 'இடம்' },
-          { path: '/birthdays', icon: '🎂', label: 'பிறந்தநாள்' },
-          { path: '/quiz', icon: '🧠', label: 'வினா' },
-        ].map(item => (
-          <button
-            key={item.path}
-            className={`bottom-nav-item ${window.location.pathname === item.path ? 'active' : ''}`}
-            onClick={() => navigate(item.path)}
-          >
-            <div className="nav-icon">{item.icon}</div>
-            <span style={{ fontFamily: 'var(--font-tamil)', fontSize: '9px' }}>{item.label}</span>
-          </button>
-        ))}
-      </nav>
-    </div>
+      {/* FAB */}
+      <Box position="fixed" bottom={6} right={6} zIndex={100}>
+        <Button
+          w="56px" h="56px" borderRadius="full"
+          bgGradient="linear(to-r, purple.600, green.500)"
+          color="white" fontSize="2xl"
+          boxShadow="0 8px 24px rgba(128,0,255,0.4)"
+          onClick={() => navigate('/add-relative')}
+          _hover={{ transform: 'scale(1.1)', boxShadow: '0 12px 28px rgba(128,0,255,0.5)' }}
+          transition="all 0.2s"
+        >
+          +
+        </Button>
+      </Box>
+
+      {/* Bottom Nav */}
+      <Box position="fixed" bottom={0} left={0} right={0} zIndex={50}
+        bg="rgba(15,12,41,0.95)" backdropFilter="blur(20px)"
+        borderTop="1px solid" borderColor="whiteAlpha.100" py={2}>
+        <HStack justify="space-around" maxW="900px" mx="auto">
+          {navItems.map((item, i) => (
+            <VStack key={i} spacing={0} align="center" cursor="pointer"
+              onClick={() => navigate(item.path)}
+              color={window.location.pathname === item.path ? 'purple.300' : 'whiteAlpha.500'}
+              _hover={{ color: 'white' }} transition="all 0.2s" py={2} px={3}
+            >
+              <Text fontSize="xl">{item.icon}</Text>
+              <Text fontSize="9px" fontWeight="600">{item.ta}</Text>
+            </VStack>
+          ))}
+        </HStack>
+      </Box>
+
+    </Box>
   );
 }
