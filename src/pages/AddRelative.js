@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, VStack, HStack, Text, Heading, Button, Input,
-  Select, FormControl, FormLabel, SimpleGrid
+  Select, FormControl, FormLabel, SimpleGrid, InputGroup, InputLeftAddon
 } from '@chakra-ui/react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -134,19 +134,15 @@ export default function AddRelative() {
             <FormControl>
               <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>தொலைபேசி எண் / Phone *</FormLabel>
               <InputGroup size="lg">
-                <Box
-                  display="flex" alignItems="center" px={4}
+                <InputLeftAddon
                   bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
-                  borderRightRadius={0} borderLeftRadius="xl"
-                  color="white" fontSize="sm" fontWeight="600" whiteSpace="nowrap"
-                  h={{ base: '50px', md: '56px' }}
-                >
+                  color="white" fontSize="sm" fontWeight="600" h={{ base: '50px', md: '56px' }} px={4}>
                   🇮🇳 +91
-                </Box>
+                </InputLeftAddon>
                 <Input
                   type="tel" maxLength={10} placeholder="9999999999"
                   value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
-                  {...inputStyle} borderLeftRadius={0}
+                  {...inputStyle}
                 />
               </InputGroup>
             </FormControl>
