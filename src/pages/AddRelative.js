@@ -55,7 +55,7 @@ export default function AddRelative() {
     try {
       // Add relationship
       await api.post('/api/relationships', {
-        phone,
+        to_user_phone: phone,
         relation_type: relationType,
         relation_tamil: selectedRelation?.tamil,
       });
