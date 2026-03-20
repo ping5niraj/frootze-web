@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, VStack, HStack, Text, Heading, Button, Input,
-  Select, FormControl, FormLabel, SimpleGrid, InputGroup, InputLeftAddon
+  Select, FormControl, FormLabel, SimpleGrid,
+  InputGroup, InputLeftAddon
 } from '@chakra-ui/react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -11,14 +12,20 @@ import axios from 'axios';
 const BASE_URL = process.env.REACT_APP_PMF_API || 'https://pingmyfamily-backend-production.up.railway.app';
 
 const RELATIONS = [
-  { value: 'father',   tamil: 'அப்பா',     english: 'Father'   },
-  { value: 'mother',   tamil: 'அம்மா',     english: 'Mother'   },
-  { value: 'spouse',   tamil: 'மனைவி/கணவன்', english: 'Spouse' },
-  { value: 'brother',  tamil: 'அண்ணன்/தம்பி', english: 'Brother' },
-  { value: 'sister',   tamil: 'அக்கா/தங்கை', english: 'Sister'  },
-  { value: 'son',      tamil: 'மகன்',      english: 'Son'      },
-  { value: 'daughter', tamil: 'மகள்',      english: 'Daughter' },
+  { value: 'father',   tamil: 'அப்பா',        english: 'Father'   },
+  { value: 'mother',   tamil: 'அம்மா',        english: 'Mother'   },
+  { value: 'spouse',   tamil: 'மனைவி/கணவன்',  english: 'Spouse'   },
+  { value: 'brother',  tamil: 'அண்ணன்/தம்பி', english: 'Brother'  },
+  { value: 'sister',   tamil: 'அக்கா/தங்கை',  english: 'Sister'   },
+  { value: 'son',      tamil: 'மகன்',          english: 'Son'      },
+  { value: 'daughter', tamil: 'மகள்',          english: 'Daughter' },
 ];
+
+const sectionBox = {
+  w: '100%', bg: 'whiteAlpha.100', border: '1px solid',
+  borderColor: 'whiteAlpha.200', borderRadius: '2xl',
+  px: { base: 5, md: 8 },
+};
 
 const inputStyle = {
   bg: 'whiteAlpha.100', border: '1px solid', borderColor: 'whiteAlpha.300', color: 'white',
@@ -27,100 +34,83 @@ const inputStyle = {
   _focus: { borderColor: 'purple.400', boxShadow: '0 0 0 3px rgba(128,0,255,0.2)' },
 };
 
-const sectionBox = {
-  w: '100%', bg: 'whiteAlpha.100', border: '1px solid', borderColor: 'whiteAlpha.200',
-  borderRadius: '2xl', px: { base: 5, md: 8 },
-};
-
 export default function AddRelative() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [phone, setPhone] = useState('');
   const [relationType, setRelationType] = useState('');
   const [email, setEmail] = useState('');
-  const [telegramUsername, setTelegramUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showInvitePrompt, setShowInvitePrompt] = useState(false);
   const [notifStatus, setNotifStatus] = useState({ whatsapp: false, email: false, telegram: false });
+  const [whatsappLink, setWhatsappLink] = useState('');
 
   const selectedRelation = RELATIONS.find(r => r.value === relationType);
 
   const handleAdd = async () => {
-    setError(''); setSuccess('');
+    setError(''); setSuccess(''); setShowInvitePrompt(false);
     if (!phone || phone.length < 10) { setError('சரியான 10 இலக்க எண் உள்ளிடவும்'); return; }
-    if (!relationType) { setError('உறவை தேர்வு செய்யவும் / Select relation'); return; }
+    if (!relationType) { setError('உறவை தேர்வு செய்யவும்'); return; }
     setLoading(true);
 
     try {
-      // Try to add relationship
-      await api.post('/api/relationships', {
+      const res = await api.post('/api/relationships', {
         to_user_phone: phone,
         relation_type: relationType,
         relation_tamil: selectedRelation?.tamil,
       });
 
-      const inviteLink = `https://frootze.com?invite=${user?.id}`;
-      const notifResults = { whatsapp: false, email: false, telegram: false };
+      const notifResults = {
+        whatsapp: false,
+        email: res.data.notifications?.email || false,
+        telegram: res.data.notifications?.telegram || false,
+      };
 
-      // Send Email notification
-      if (email) {
+      setNotifStatus(notifResults);
+      setWhatsappLink(res.data.whatsapp_link || '');
+      setSuccess(`✅ கோரிக்கை அனுப்பப்பட்டது! ${selectedRelation?.tamil} உங்கள் கோரிக்கையை Dashboard-ல் காண்பார்.`);
+
+      // Auto open WhatsApp
+      if (res.data.whatsapp_link) {
+        window.open(res.data.whatsapp_link, '_blank');
+        notifResults.whatsapp = true;
+        setNotifStatus({ ...notifResults });
+      }
+
+      // Send email if provided and not already sent
+      if (email && !notifResults.email) {
         try {
           await axios.post(`${BASE_URL}/api/auth/send-invite-email`, {
             to_email: email,
             from_name: user?.name,
             relation_tamil: selectedRelation?.tamil,
-            invite_link: inviteLink,
+            invite_link: 'https://frootze.com',
           }, { headers: { Authorization: `Bearer ${localStorage.getItem('pmf_token')}` } });
           notifResults.email = true;
-        } catch (e) { console.log('Email failed:', e.message); }
+          setNotifStatus({ ...notifResults });
+        } catch (e) {}
       }
-
-      // Send Telegram notification
-      if (telegramUsername) {
-        try {
-          const res = await axios.post(`${BASE_URL}/api/messages/send-telegram`, {
-            to_username: telegramUsername,
-            from_name: user?.name,
-            relation_tamil: selectedRelation?.tamil,
-            invite_link: inviteLink,
-          }, { headers: { Authorization: `Bearer ${localStorage.getItem('pmf_token')}` } });
-          if (res.data.success) notifResults.telegram = true;
-        } catch (e) { console.log('Telegram failed:', e.message); }
-      }
-
-      setNotifStatus(notifResults);
-      setSuccess(`✅ ${selectedRelation?.tamil} சேர்க்கப்பட்டார்! / Added successfully!`);
-
-      // Open WhatsApp
-      const waMessage = encodeURIComponent(
-        `🌳 வணக்கம்!\n\n${user?.name} உங்களை frootze குடும்ப மரத்தில் ${selectedRelation?.tamil} ஆக சேர்க்க அழைக்கிறார்.\n\nகீழே உள்ள link-ஐ கிளிக் செய்து சேரவும்:\n${inviteLink}\n\n🆓 இலவசம் · frootze.com`
-      );
-      window.open(`https://wa.me/?text=${waMessage}`, '_blank');
-      notifResults.whatsapp = true;
-      setNotifStatus({ ...notifResults });
 
     } catch (err) {
       const errorMsg = err.response?.data?.error || '';
-
-      // Handle unregistered user — offer to send invite
-      if (errorMsg.includes('No user found') || errorMsg.includes('not found') || errorMsg.includes('register')) {
+      if (errorMsg.includes('No user found') || errorMsg.includes('register')) {
         setShowInvitePrompt(true);
       } else {
-        setError(errorMsg || 'சேர்க்க தோல்வி / Failed to add');
+        setError(errorMsg || 'சேர்க்க தோல்வி / Failed');
       }
     } finally { setLoading(false); }
   };
 
   const handleSendInvite = () => {
     setShowInvitePrompt(false);
-    const inviteLink = `https://frootze.com`;
     const notifResults = { whatsapp: false, email: false, telegram: false };
+    const inviteLink = 'https://frootze.com';
 
     // WhatsApp invite
     const waMessage = encodeURIComponent(
-      `🌳 வணக்கம்!\n\n${user?.name} உங்களை frootze குடும்ப மரத்தில் ${selectedRelation?.tamil || 'குடும்பத்தினர்'} ஆக சேர்க்க அழைக்கிறார்.\n\nமுதலில் பதிவு செய்யவும்:\n${inviteLink}\n\nபதிவு செய்த பிறகு ${user?.name} உங்களை குடும்ப மரத்தில் சேர்ப்பார்.\n\n🆓 இலவசம் · frootze.com`
+      `🌳 வணக்கம்!\n\n${user?.name} உங்களை frootze குடும்ப மரத்தில் ${selectedRelation?.tamil || 'குடும்பத்தினர்'} ஆக சேர்க்க அழைக்கிறார்.\n\nமுதலில் பதிவு செய்யவும்:\n${inviteLink}\n\nபதிவு செய்த பிறகு ${user?.name} உங்களை சேர்ப்பார்.\n\n🆓 இலவசம் · frootze.com`
     );
     window.open(`https://wa.me/91${phone}?text=${waMessage}`, '_blank');
     notifResults.whatsapp = true;
@@ -128,29 +118,15 @@ export default function AddRelative() {
     // Email invite
     if (email) {
       axios.post(`${BASE_URL}/api/auth/send-invite-email`, {
-        to_email: email,
-        from_name: user?.name,
-        relation_tamil: selectedRelation?.tamil,
-        invite_link: inviteLink,
+        to_email: email, from_name: user?.name,
+        relation_tamil: selectedRelation?.tamil, invite_link: inviteLink,
       }, { headers: { Authorization: `Bearer ${localStorage.getItem('pmf_token')}` } })
         .then(() => { notifResults.email = true; setNotifStatus({ ...notifResults }); })
-        .catch(e => console.log('Email failed:', e.message));
-    }
-
-    // Telegram invite
-    if (telegramUsername) {
-      axios.post(`${BASE_URL}/api/messages/send-telegram`, {
-        to_username: telegramUsername,
-        from_name: user?.name,
-        relation_tamil: selectedRelation?.tamil,
-        invite_link: inviteLink,
-      }, { headers: { Authorization: `Bearer ${localStorage.getItem('pmf_token')}` } })
-        .then(res => { if (res.data.success) { notifResults.telegram = true; setNotifStatus({ ...notifResults }); } })
-        .catch(e => console.log('Telegram failed:', e.message));
+        .catch(() => {});
     }
 
     setNotifStatus({ ...notifResults });
-    setSuccess('📨 அழைப்பு அனுப்பப்பட்டது! / Invite sent! Ask them to register on frootze.com first.');
+    setSuccess('📨 அழைப்பு அனுப்பப்பட்டது! frootze.com-ல் பதிவு செய்த பிறகு மீண்டும் சேர்க்கவும்.');
   };
 
   return (
@@ -169,33 +145,37 @@ export default function AddRelative() {
           </HStack>
         </Box>
 
-        {/* Section 2 — Required Fields */}
+        {/* Section 2 — Form */}
         <Box {...sectionBox} py={{ base: 6, md: 8 }}>
           <VStack spacing={5} align="stretch">
             <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="600" color="whiteAlpha.800">
-              அடிப்படை விவரம் / Basic Details *
+              அடிப்படை விவரம் / Basic Details
             </Text>
 
             <FormControl>
-              <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>தொலைபேசி எண் / Phone *</FormLabel>
+              <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
+                தொலைபேசி எண் / Phone *
+              </FormLabel>
               <InputGroup size="lg">
                 <InputLeftAddon
                   bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
-                  color="white" fontSize="sm" fontWeight="600" h={{ base: '50px', md: '56px' }} px={4}>
+                  color="white" fontSize="sm" fontWeight="600"
+                  h={{ base: '50px', md: '56px' }} px={4}>
                   🇮🇳 +91
                 </InputLeftAddon>
-                <Input
-                  type="tel" maxLength={10} placeholder="9999999999"
+                <Input type="tel" maxLength={10} placeholder="9999999999"
                   value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
-                  {...inputStyle}
-                />
+                  {...inputStyle} />
               </InputGroup>
             </FormControl>
 
             <FormControl>
-              <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>உறவு / Relation *</FormLabel>
-              <Select placeholder="உறவை தேர்வு செய்யவும்" value={relationType}
-                onChange={e => setRelationType(e.target.value)} {...inputStyle}>
+              <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
+                உறவு / Relation *
+              </FormLabel>
+              <Select placeholder="உறவை தேர்வு செய்யவும்"
+                value={relationType} onChange={e => setRelationType(e.target.value)}
+                {...inputStyle}>
                 {RELATIONS.map(r => (
                   <option key={r.value} value={r.value} style={{ background: '#1e1b4b' }}>
                     {r.tamil} / {r.english}
@@ -203,86 +183,49 @@ export default function AddRelative() {
                 ))}
               </Select>
             </FormControl>
-          </VStack>
-        </Box>
-
-        {/* Section 3 — Notification Options */}
-        <Box {...sectionBox} py={{ base: 5, md: 6 }}>
-          <VStack spacing={4} align="stretch">
-            <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="600" color="whiteAlpha.800">
-              அறிவிப்பு / Notifications (optional)
-            </Text>
-            <Text fontSize={{ base: 'xs', md: 'sm' }} color="whiteAlpha.500">
-              WhatsApp automatically opens. Add email/telegram for extra notifications.
-            </Text>
 
             <FormControl>
               <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
-                📧 Email (optional)
+                📧 Email (optional — for extra notification)
               </FormLabel>
-              <Input
-                type="email" placeholder="relative@email.com"
+              <Input type="email" placeholder="relative@email.com"
                 value={email} onChange={e => setEmail(e.target.value)}
-                {...inputStyle}
-              />
+                {...inputStyle} />
             </FormControl>
 
-            <FormControl>
-              <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
-                ✈️ Telegram Username (optional)
-              </FormLabel>
-              <Input
-                placeholder="@username or chat_id"
-                value={telegramUsername} onChange={e => setTelegramUsername(e.target.value)}
-                {...inputStyle}
-              />
-            </FormControl>
-
-            {/* Notification status */}
-            {success && (
-              <SimpleGrid columns={3} spacing={3}>
-                {[
-                  { key: 'whatsapp', icon: '📱', label: 'WhatsApp' },
-                  { key: 'email',    icon: '📧', label: 'Email'    },
-                  { key: 'telegram', icon: '✈️', label: 'Telegram' },
-                ].map(n => (
-                  <Box key={n.key} bg={notifStatus[n.key] ? 'green.900' : 'whiteAlpha.100'}
-                    border="1px solid" borderColor={notifStatus[n.key] ? 'green.500' : 'whiteAlpha.200'}
-                    borderRadius="xl" px={3} py={3} textAlign="center">
-                    <Text fontSize="xl">{n.icon}</Text>
-                    <Text fontSize="xs" color={notifStatus[n.key] ? 'green.300' : 'whiteAlpha.400'} mt={1}>
-                      {notifStatus[n.key] ? '✓ Sent' : n.label}
-                    </Text>
-                  </Box>
-                ))}
-              </SimpleGrid>
-            )}
+            <Box bg="purple.900" border="1px solid" borderColor="purple.600" borderRadius="xl" px={4} py={3}>
+              <Text fontSize="xs" color="purple.300" fontWeight="600" mb={1}>💡 குறிப்பு / Note</Text>
+              <Text fontSize="xs" color="purple.200">
+                கோரிக்கை அனுப்பியதும் WhatsApp தானாக திறக்கும். அவர் frootze Dashboard-ல் ஏற்கலாம்.
+              </Text>
+              <Text fontSize="xs" color="purple.400" mt={1}>
+                WhatsApp will open automatically. They can accept from their Dashboard.
+              </Text>
+            </Box>
           </VStack>
         </Box>
 
-        {/* Section 4 — Submit */}
+        {/* Section 3 — Result */}
         <Box {...sectionBox} py={{ base: 5, md: 6 }}>
           <VStack spacing={4} align="stretch">
 
-            {/* Unregistered user prompt */}
+            {/* Unregistered prompt */}
             {showInvitePrompt && (
-              <Box bg="yellow.900" border="1px solid" borderColor="yellow.500"
-                borderRadius="xl" px={4} py={4}>
-                <Text color="yellow.200" fontSize={{ base: 'sm', md: 'md' }} fontWeight="600" mb={2}>
+              <Box bg="yellow.900" border="1px solid" borderColor="yellow.500" borderRadius="xl" px={4} py={4}>
+                <Text color="yellow.200" fontSize={{ base: 'sm', md: 'md' }} fontWeight="700" mb={1}>
                   ⚠️ இந்த எண் frootze-ல் பதிவு செய்யப்படவில்லை
                 </Text>
                 <Text color="yellow.300" fontSize="sm" mb={4}>
-                  This number is not registered on frootze yet. Would you like to send them an invite?
+                  This number is not on frootze yet. Send them an invite to join?
                 </Text>
                 <HStack spacing={3}>
-                  <Button flex={1} h="44px"
-                    bgGradient="linear(to-r, purple.600, green.500)"
+                  <Button flex={1} h="44px" bgGradient="linear(to-r, purple.600, green.500)"
                     color="white" fontSize="sm" fontWeight="700" borderRadius="xl"
                     onClick={handleSendInvite}>
                     📨 அழைப்பு அனுப்பு / Send Invite
                   </Button>
-                  <Button flex={1} h="44px" variant="ghost"
-                    color="whiteAlpha.600" fontSize="sm" borderRadius="xl"
+                  <Button flex={1} h="44px" variant="ghost" color="whiteAlpha.500"
+                    fontSize="sm" borderRadius="xl"
                     onClick={() => setShowInvitePrompt(false)}
                     _hover={{ color: 'white' }}>
                     ரத்து / Cancel
@@ -291,7 +234,12 @@ export default function AddRelative() {
               </Box>
             )}
 
-            {error && <Box bg="red.900" border="1px solid" borderColor="red.500" borderRadius="xl" px={4} py={3}><Text color="red.200" fontSize="sm">{error}</Text></Box>}
+            {error && (
+              <Box bg="red.900" border="1px solid" borderColor="red.500" borderRadius="xl" px={4} py={3}>
+                <Text color="red.200" fontSize="sm">{error}</Text>
+              </Box>
+            )}
+
             {success && (
               <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={3}>
                 <Text color="green.200" fontSize={{ base: 'sm', md: 'md' }}>{success}</Text>
@@ -299,7 +247,7 @@ export default function AddRelative() {
             )}
 
             {/* Notification status */}
-            {(success || showInvitePrompt) && notifStatus && (
+            {success && (
               <SimpleGrid columns={3} spacing={3}>
                 {[
                   { key: 'whatsapp', icon: '📱', label: 'WhatsApp' },
@@ -320,7 +268,7 @@ export default function AddRelative() {
               </SimpleGrid>
             )}
 
-            {!showInvitePrompt && !success && (
+            {!success && !showInvitePrompt && (
               <Button w="100%" h={{ base: '50px', md: '56px' }}
                 bgGradient="linear(to-r, purple.600, green.500)"
                 color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
@@ -329,15 +277,23 @@ export default function AddRelative() {
                 onClick={handleAdd}
                 _hover={{ bgGradient: 'linear(to-r, purple.700, green.600)', transform: 'translateY(-2px)' }}
                 _disabled={{ opacity: 0.4, cursor: 'not-allowed' }}>
-                👨‍👩‍👧 சேர் + அறிவிப்பு / Add & Notify
+                👨‍👩‍👧 கோரிக்கை அனுப்பு + WhatsApp / Send Request
               </Button>
             )}
 
             {success && (
-              <Button w="100%" variant="ghost" color="whiteAlpha.600"
-                onClick={() => navigate('/dashboard')} _hover={{ color: 'white' }}>
-                ← Dashboard-க்கு திரும்பு
-              </Button>
+              <HStack spacing={3}>
+                {whatsappLink && (
+                  <Button flex={1} h="50px" colorScheme="whatsapp" borderRadius="xl"
+                    onClick={() => window.open(whatsappLink, '_blank')}>
+                    📱 WhatsApp மீண்டும் திற
+                  </Button>
+                )}
+                <Button flex={1} h="50px" variant="ghost" color="whiteAlpha.600" borderRadius="xl"
+                  onClick={() => navigate('/dashboard')} _hover={{ color: 'white' }}>
+                  ← Dashboard
+                </Button>
+              </HStack>
             )}
 
           </VStack>
