@@ -42,6 +42,7 @@ export default function AddRelative() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showInvitePrompt, setShowInvitePrompt] = useState(false);
   const [notifStatus, setNotifStatus] = useState({ whatsapp: false, email: false, telegram: false });
 
   const selectedRelation = RELATIONS.find(r => r.value === relationType);
@@ -53,7 +54,7 @@ export default function AddRelative() {
     setLoading(true);
 
     try {
-      // Add relationship
+      // Try to add relationship
       await api.post('/api/relationships', {
         to_user_phone: phone,
         relation_type: relationType,
@@ -71,9 +72,7 @@ export default function AddRelative() {
             from_name: user?.name,
             relation_tamil: selectedRelation?.tamil,
             invite_link: inviteLink,
-          }, {
-            headers: { Authorization: `Bearer ${localStorage.getItem('pmf_token')}` }
-          });
+          }, { headers: { Authorization: `Bearer ${localStorage.getItem('pmf_token')}` } });
           notifResults.email = true;
         } catch (e) { console.log('Email failed:', e.message); }
       }
@@ -81,13 +80,12 @@ export default function AddRelative() {
       // Send Telegram notification
       if (telegramUsername) {
         try {
-          const token = localStorage.getItem('pmf_token');
           const res = await axios.post(`${BASE_URL}/api/messages/send-telegram`, {
             to_username: telegramUsername,
             from_name: user?.name,
             relation_tamil: selectedRelation?.tamil,
             invite_link: inviteLink,
-          }, { headers: { Authorization: `Bearer ${token}` } });
+          }, { headers: { Authorization: `Bearer ${localStorage.getItem('pmf_token')}` } });
           if (res.data.success) notifResults.telegram = true;
         } catch (e) { console.log('Telegram failed:', e.message); }
       }
@@ -95,7 +93,7 @@ export default function AddRelative() {
       setNotifStatus(notifResults);
       setSuccess(`✅ ${selectedRelation?.tamil} சேர்க்கப்பட்டார்! / Added successfully!`);
 
-      // Open WhatsApp automatically
+      // Open WhatsApp
       const waMessage = encodeURIComponent(
         `🌳 வணக்கம்!\n\n${user?.name} உங்களை frootze குடும்ப மரத்தில் ${selectedRelation?.tamil} ஆக சேர்க்க அழைக்கிறார்.\n\nகீழே உள்ள link-ஐ கிளிக் செய்து சேரவும்:\n${inviteLink}\n\n🆓 இலவசம் · frootze.com`
       );
@@ -104,8 +102,55 @@ export default function AddRelative() {
       setNotifStatus({ ...notifResults });
 
     } catch (err) {
-      setError(err.response?.data?.error || 'சேர்க்க தோல்வி / Failed to add');
+      const errorMsg = err.response?.data?.error || '';
+
+      // Handle unregistered user — offer to send invite
+      if (errorMsg.includes('No user found') || errorMsg.includes('not found') || errorMsg.includes('register')) {
+        setShowInvitePrompt(true);
+      } else {
+        setError(errorMsg || 'சேர்க்க தோல்வி / Failed to add');
+      }
     } finally { setLoading(false); }
+  };
+
+  const handleSendInvite = () => {
+    setShowInvitePrompt(false);
+    const inviteLink = `https://frootze.com`;
+    const notifResults = { whatsapp: false, email: false, telegram: false };
+
+    // WhatsApp invite
+    const waMessage = encodeURIComponent(
+      `🌳 வணக்கம்!\n\n${user?.name} உங்களை frootze குடும்ப மரத்தில் ${selectedRelation?.tamil || 'குடும்பத்தினர்'} ஆக சேர்க்க அழைக்கிறார்.\n\nமுதலில் பதிவு செய்யவும்:\n${inviteLink}\n\nபதிவு செய்த பிறகு ${user?.name} உங்களை குடும்ப மரத்தில் சேர்ப்பார்.\n\n🆓 இலவசம் · frootze.com`
+    );
+    window.open(`https://wa.me/91${phone}?text=${waMessage}`, '_blank');
+    notifResults.whatsapp = true;
+
+    // Email invite
+    if (email) {
+      axios.post(`${BASE_URL}/api/auth/send-invite-email`, {
+        to_email: email,
+        from_name: user?.name,
+        relation_tamil: selectedRelation?.tamil,
+        invite_link: inviteLink,
+      }, { headers: { Authorization: `Bearer ${localStorage.getItem('pmf_token')}` } })
+        .then(() => { notifResults.email = true; setNotifStatus({ ...notifResults }); })
+        .catch(e => console.log('Email failed:', e.message));
+    }
+
+    // Telegram invite
+    if (telegramUsername) {
+      axios.post(`${BASE_URL}/api/messages/send-telegram`, {
+        to_username: telegramUsername,
+        from_name: user?.name,
+        relation_tamil: selectedRelation?.tamil,
+        invite_link: inviteLink,
+      }, { headers: { Authorization: `Bearer ${localStorage.getItem('pmf_token')}` } })
+        .then(res => { if (res.data.success) { notifResults.telegram = true; setNotifStatus({ ...notifResults }); } })
+        .catch(e => console.log('Telegram failed:', e.message));
+    }
+
+    setNotifStatus({ ...notifResults });
+    setSuccess('📨 அழைப்பு அனுப்பப்பட்டது! / Invite sent! Ask them to register on frootze.com first.');
   };
 
   return (
@@ -219,19 +264,74 @@ export default function AddRelative() {
         <Box {...sectionBox} py={{ base: 5, md: 6 }}>
           <VStack spacing={4} align="stretch">
 
-            {error && <Box bg="red.900" border="1px solid" borderColor="red.500" borderRadius="xl" px={4} py={3}><Text color="red.200" fontSize="sm">{error}</Text></Box>}
-            {success && <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={3}><Text color="green.200" fontSize={{ base: 'sm', md: 'md' }}>{success}</Text></Box>}
+            {/* Unregistered user prompt */}
+            {showInvitePrompt && (
+              <Box bg="yellow.900" border="1px solid" borderColor="yellow.500"
+                borderRadius="xl" px={4} py={4}>
+                <Text color="yellow.200" fontSize={{ base: 'sm', md: 'md' }} fontWeight="600" mb={2}>
+                  ⚠️ இந்த எண் frootze-ல் பதிவு செய்யப்படவில்லை
+                </Text>
+                <Text color="yellow.300" fontSize="sm" mb={4}>
+                  This number is not registered on frootze yet. Would you like to send them an invite?
+                </Text>
+                <HStack spacing={3}>
+                  <Button flex={1} h="44px"
+                    bgGradient="linear(to-r, purple.600, green.500)"
+                    color="white" fontSize="sm" fontWeight="700" borderRadius="xl"
+                    onClick={handleSendInvite}>
+                    📨 அழைப்பு அனுப்பு / Send Invite
+                  </Button>
+                  <Button flex={1} h="44px" variant="ghost"
+                    color="whiteAlpha.600" fontSize="sm" borderRadius="xl"
+                    onClick={() => setShowInvitePrompt(false)}
+                    _hover={{ color: 'white' }}>
+                    ரத்து / Cancel
+                  </Button>
+                </HStack>
+              </Box>
+            )}
 
-            <Button w="100%" h={{ base: '50px', md: '56px' }}
-              bgGradient="linear(to-r, purple.600, green.500)"
-              color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
-              isLoading={loading} loadingText="சேர்க்கிறோம்..."
-              isDisabled={phone.length < 10 || !relationType}
-              onClick={handleAdd}
-              _hover={{ bgGradient: 'linear(to-r, purple.700, green.600)', transform: 'translateY(-2px)' }}
-              _disabled={{ opacity: 0.4, cursor: 'not-allowed' }}>
-              📱 சேர் + WhatsApp அனுப்பு / Add & Notify
-            </Button>
+            {error && <Box bg="red.900" border="1px solid" borderColor="red.500" borderRadius="xl" px={4} py={3}><Text color="red.200" fontSize="sm">{error}</Text></Box>}
+            {success && (
+              <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={3}>
+                <Text color="green.200" fontSize={{ base: 'sm', md: 'md' }}>{success}</Text>
+              </Box>
+            )}
+
+            {/* Notification status */}
+            {(success || showInvitePrompt) && notifStatus && (
+              <SimpleGrid columns={3} spacing={3}>
+                {[
+                  { key: 'whatsapp', icon: '📱', label: 'WhatsApp' },
+                  { key: 'email',    icon: '📧', label: 'Email'    },
+                  { key: 'telegram', icon: '✈️', label: 'Telegram' },
+                ].map(n => (
+                  <Box key={n.key}
+                    bg={notifStatus[n.key] ? 'green.900' : 'whiteAlpha.100'}
+                    border="1px solid"
+                    borderColor={notifStatus[n.key] ? 'green.500' : 'whiteAlpha.200'}
+                    borderRadius="xl" px={3} py={3} textAlign="center">
+                    <Text fontSize="xl">{n.icon}</Text>
+                    <Text fontSize="xs" color={notifStatus[n.key] ? 'green.300' : 'whiteAlpha.400'} mt={1}>
+                      {notifStatus[n.key] ? '✓ Sent' : n.label}
+                    </Text>
+                  </Box>
+                ))}
+              </SimpleGrid>
+            )}
+
+            {!showInvitePrompt && !success && (
+              <Button w="100%" h={{ base: '50px', md: '56px' }}
+                bgGradient="linear(to-r, purple.600, green.500)"
+                color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
+                isLoading={loading} loadingText="சேர்க்கிறோம்..."
+                isDisabled={phone.length < 10 || !relationType}
+                onClick={handleAdd}
+                _hover={{ bgGradient: 'linear(to-r, purple.700, green.600)', transform: 'translateY(-2px)' }}
+                _disabled={{ opacity: 0.4, cursor: 'not-allowed' }}>
+                👨‍👩‍👧 சேர் + அறிவிப்பு / Add & Notify
+              </Button>
+            )}
 
             {success && (
               <Button w="100%" variant="ghost" color="whiteAlpha.600"
