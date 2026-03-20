@@ -1,388 +1,326 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  Box, VStack, HStack, Text, Heading, Button, Input,
+  Select, Textarea, FormControl, FormLabel, Avatar, Badge, SimpleGrid
+} from '@chakra-ui/react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
-const MESSAGE_TYPE_LABELS = {
-  personal:     { ta: 'தனிப்பட்ட',    en: 'Personal',      color: 'bg-blue-100 text-blue-700' },
-  group:        { ta: 'குழு',          en: 'Group',         color: 'bg-purple-100 text-purple-700' },
-  broadcast:    { ta: 'அனைவருக்கும்',  en: 'Broadcast',     color: 'bg-green-100 text-green-700' },
-  announcement: { ta: 'அறிவிப்பு',     en: 'Announcement',  color: 'bg-amber-100 text-amber-700' },
+const sectionBox = {
+  w: '100%', bg: 'whiteAlpha.100', border: '1px solid',
+  borderColor: 'whiteAlpha.200', borderRadius: '2xl',
+  px: { base: 5, md: 8 },
+};
+
+const inputStyle = {
+  bg: 'whiteAlpha.100', border: '1px solid', borderColor: 'whiteAlpha.300', color: 'white',
+  fontSize: { base: 'md', md: 'lg' },
+  _placeholder: { color: 'whiteAlpha.400' },
+  _focus: { borderColor: 'purple.400', boxShadow: '0 0 0 3px rgba(128,0,255,0.2)' },
 };
 
 export default function Messages() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('inbox');
   const [inbox, setInbox] = useState([]);
   const [sent, setSent] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [familyMembers, setFamilyMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMessage, setSelectedMessage] = useState(null);
-
-  // Compose state
   const [showCompose, setShowCompose] = useState(false);
-  const [members, setMembers] = useState([]);
-  const [compose, setCompose] = useState({
-    message_type: 'personal',
-    subject: '',
-    content: '',
-    to_user_ids: []
-  });
+
+  // Compose form
+  const [toIds, setToIds] = useState([]);
+  const [subject, setSubject] = useState('');
+  const [content, setContent] = useState('');
+  const [msgType, setMsgType] = useState('personal');
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
   const [sendSuccess, setSendSuccess] = useState('');
 
-  useEffect(() => {
-    loadInbox();
-    loadSent();
-    loadMembers();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
-  const loadInbox = async () => {
+  const loadData = async () => {
     try {
-      const res = await api.get('/api/messages/inbox');
-      setInbox(res.data.messages || []);
-      setUnreadCount(res.data.unread_count || 0);
-    } catch (err) {
-      console.error('Inbox load failed');
-    } finally {
-      setLoading(false);
-    }
+      const [inboxRes, sentRes, membersRes] = await Promise.all([
+        api.get('/api/messages/inbox'),
+        api.get('/api/messages/sent'),
+        api.get('/api/messages/family-members'),
+      ]);
+      setInbox(inboxRes.data.messages || []);
+      setSent(sentRes.data.messages || []);
+      setFamilyMembers(membersRes.data.members || []);
+    } catch (e) {
+      console.error('Load failed:', e.message);
+    } finally { setLoading(false); }
   };
 
-  const loadSent = async () => {
+  const handleMarkRead = async (id) => {
     try {
-      const res = await api.get('/api/messages/sent');
-      setSent(res.data.messages || []);
-    } catch (err) {
-      console.error('Sent load failed');
-    }
-  };
-
-  const loadMembers = async () => {
-    try {
-      const res = await api.get('/api/messages/family-members');
-      setMembers(res.data.members || []);
-    } catch (err) {
-      console.error('Members load failed');
-    }
-  };
-
-  const handleOpenMessage = async (item) => {
-    setSelectedMessage(item);
-    if (!item.is_read) {
-      try {
-        await api.put(`/api/messages/${item.message.id}/read`);
-        setUnreadCount(prev => Math.max(0, prev - 1));
-        setInbox(prev => prev.map(m =>
-          m.message.id === item.message.id ? { ...m, is_read: true } : m
-        ));
-      } catch (err) {
-        console.error('Mark read failed');
-      }
-    }
-  };
-
-  const handleSend = async () => {
-    if (!compose.content.trim()) return;
-    setSending(true);
-    try {
-      const payload = {
-        message_type: compose.message_type,
-        content: compose.content,
-        subject: compose.subject,
-      };
-      if (['personal', 'group'].includes(compose.message_type)) {
-        payload.to_user_ids = compose.to_user_ids;
-      }
-      const res = await api.post('/api/messages/send', payload);
-      setSendSuccess(res.data.message);
-      setCompose({ message_type: 'personal', subject: '', content: '', to_user_ids: [] });
-      setTimeout(() => {
-        setSendSuccess('');
-        setShowCompose(false);
-        loadSent();
-      }, 2000);
-    } catch (err) {
-      alert(err.response?.data?.error || 'Send failed');
-    } finally {
-      setSending(false);
-    }
+      await api.put(`/api/messages/${id}/read`);
+      setInbox(prev => prev.map(m => m.id === id ? { ...m, is_read: true } : m));
+    } catch (e) {}
   };
 
   const toggleRecipient = (id) => {
-    setCompose(prev => ({
-      ...prev,
-      to_user_ids: prev.to_user_ids.includes(id)
-        ? prev.to_user_ids.filter(x => x !== id)
-        : [...prev.to_user_ids, id]
-    }));
+    setToIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
-  const formatTime = (dateStr) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('ta-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const handleSend = async () => {
+    setSendError(''); setSendSuccess('');
+    if (!content.trim()) { setSendError('செய்தி உள்ளிடவும் / Enter message'); return; }
+    if (msgType === 'personal' && toIds.length === 0) { setSendError('பெறுநரை தேர்வு செய்யவும் / Select recipient'); return; }
+    setSending(true);
+    try {
+      const recipients = msgType === 'broadcast' || msgType === 'announcement'
+        ? familyMembers.map(m => m.id)
+        : msgType === 'group' ? familyMembers.map(m => m.id)
+        : toIds;
+
+      await api.post('/api/messages/send', {
+        to_user_ids: recipients,
+        subject, content,
+        message_type: msgType,
+      });
+      setSendSuccess('✅ செய்தி அனுப்பப்பட்டது / Message sent!');
+      setContent(''); setSubject(''); setToIds([]);
+      await loadData();
+      setTimeout(() => { setShowCompose(false); setSendSuccess(''); }, 2000);
+    } catch (e) {
+      setSendError(e.response?.data?.error || 'அனுப்ப தோல்வி / Failed to send');
+    } finally { setSending(false); }
   };
+
+  const getMsgTypeColor = (type) => {
+    if (type === 'announcement') return 'red';
+    if (type === 'broadcast') return 'orange';
+    if (type === 'group') return 'blue';
+    return 'purple';
+  };
+
+  const unreadCount = inbox.filter(m => !m.is_read).length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-purple-700 text-white px-4 py-4">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/dashboard')} className="text-purple-200 hover:text-white">← Back</button>
-            <div>
-              <h1 className="text-lg font-bold">செய்திகள்</h1>
-              <p className="text-purple-300 text-xs">Messages</p>
-            </div>
-          </div>
-          <button onClick={() => setShowCompose(true)}
-            className="bg-white text-purple-700 text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-purple-50">
-            ✏️ எழுது / Compose
-          </button>
-        </div>
-      </div>
+    <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)"
+      px={{ base: 4, md: 8 }} py={6} pb={24}>
+      <VStack w="100%" maxW="900px" mx="auto" spacing={4} align="stretch">
 
-      <div className="max-w-2xl mx-auto px-4 py-4">
-
-        {/* Tabs */}
-        <div className="flex bg-gray-100 rounded-xl p-1 mb-4">
-          <button onClick={() => setActiveTab('inbox')}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all relative ${activeTab === 'inbox' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500'}`}>
-            📥 இன்பாக்ஸ் / Inbox
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-          <button onClick={() => setActiveTab('sent')}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'sent' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500'}`}>
-            📤 அனுப்பியது / Sent
-          </button>
-        </div>
-
-        {/* Message Detail */}
-        {selectedMessage && (
-          <div className="card mb-4 border-l-4 border-purple-400">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-2">
-                {selectedMessage.message?.from_user?.profile_photo ? (
-                  <img src={selectedMessage.message.from_user.profile_photo} alt=""
-                    className="w-8 h-8 rounded-full object-cover" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-sm font-bold text-purple-700">
-                    {selectedMessage.message?.from_user?.name?.charAt(0)}
-                  </div>
-                )}
-                <div>
-                  <p className="font-semibold text-sm">{selectedMessage.message?.from_user?.name}</p>
-                  <p className="text-xs text-gray-400">{formatTime(selectedMessage.message?.created_at)}</p>
-                </div>
-              </div>
-              <button onClick={() => setSelectedMessage(null)} className="text-gray-400 hover:text-gray-600">✕</button>
-            </div>
-            {selectedMessage.message?.subject && (
-              <p className="font-semibold text-gray-800 mb-2">{selectedMessage.message.subject}</p>
-            )}
-            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
-              {selectedMessage.message?.content}
-            </p>
-          </div>
-        )}
-
-        {/* Inbox */}
-        {activeTab === 'inbox' && (
-          <div className="space-y-2">
-            {loading ? (
-              <div className="text-center py-8 text-gray-400">Loading...</div>
-            ) : inbox.length === 0 ? (
-              <div className="card text-center py-12">
-                <div className="text-4xl mb-2">📭</div>
-                <p className="text-gray-500 text-sm">இன்பாக்ஸ் காலியாக உள்ளது</p>
-                <p className="text-gray-400 text-xs">Inbox is empty</p>
-              </div>
-            ) : inbox.map(item => (
-              <div key={item.id}
-                onClick={() => handleOpenMessage(item)}
-                className={`card cursor-pointer hover:shadow-md transition-all ${!item.is_read ? 'border-l-4 border-purple-500' : ''}`}>
-                <div className="flex items-start gap-3">
-                  {item.message?.from_user?.profile_photo ? (
-                    <img src={item.message.from_user.profile_photo} alt=""
-                      className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-sm font-bold text-purple-700 flex-shrink-0">
-                      {item.message?.from_user?.name?.charAt(0)}
-                    </div>
+        {/* Section 1 — Header */}
+        <Box {...sectionBox} py={5}>
+          <HStack justify="space-between">
+            <HStack spacing={3}>
+              <Box as="button" onClick={() => navigate('/dashboard')} color="whiteAlpha.600" fontSize="xl" _hover={{ color: 'white' }}>←</Box>
+              <Box>
+                <HStack spacing={2}>
+                  <Heading fontSize={{ base: 'xl', md: '2xl' }} color="white">💬 செய்திகள்</Heading>
+                  {unreadCount > 0 && (
+                    <Badge colorScheme="purple" borderRadius="full" px={2}>{unreadCount}</Badge>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className={`text-sm ${!item.is_read ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
-                        {item.message?.from_user?.name}
-                      </p>
-                      <p className="text-xs text-gray-400">{formatTime(item.message?.created_at)}</p>
-                    </div>
-                    {item.message?.subject && (
-                      <p className="text-sm font-medium text-gray-800 truncate">{item.message.subject}</p>
-                    )}
-                    <p className="text-xs text-gray-500 truncate">{item.message?.content}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${MESSAGE_TYPE_LABELS[item.message?.message_type]?.color}`}>
-                      {MESSAGE_TYPE_LABELS[item.message?.message_type]?.ta}
-                    </span>
-                  </div>
-                  {!item.is_read && (
-                    <div className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0 mt-2"></div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                </HStack>
+                <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.500">Messages</Text>
+              </Box>
+            </HStack>
+            <Button size="sm" h="40px"
+              bgGradient="linear(to-r, purple.600, green.500)"
+              color="white" borderRadius="xl" fontWeight="600"
+              onClick={() => { setShowCompose(!showCompose); setSendError(''); setSendSuccess(''); }}>
+              {showCompose ? '✕ மூடு' : '+ புதிய செய்தி'}
+            </Button>
+          </HStack>
+        </Box>
 
-        {/* Sent */}
-        {activeTab === 'sent' && (
-          <div className="space-y-2">
-            {sent.length === 0 ? (
-              <div className="card text-center py-12">
-                <div className="text-4xl mb-2">📤</div>
-                <p className="text-gray-500 text-sm">செய்திகள் அனுப்பவில்லை</p>
-                <p className="text-gray-400 text-xs">No sent messages</p>
-              </div>
-            ) : sent.map(msg => (
-              <div key={msg.id} className="card">
-                <div className="flex items-start justify-between mb-2">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${MESSAGE_TYPE_LABELS[msg.message_type]?.color}`}>
-                    {MESSAGE_TYPE_LABELS[msg.message_type]?.ta} / {MESSAGE_TYPE_LABELS[msg.message_type]?.en}
-                  </span>
-                  <p className="text-xs text-gray-400">{formatTime(msg.created_at)}</p>
-                </div>
-                {msg.subject && <p className="font-semibold text-gray-800 text-sm mb-1">{msg.subject}</p>}
-                <p className="text-sm text-gray-600 truncate mb-2">{msg.content}</p>
-                <div className="flex items-center gap-2 text-xs text-gray-400">
-                  <span>📨 {msg.recipients?.length || 0} பேருக்கு / recipients</span>
-                  <span>·</span>
-                  <span>✓ {msg.recipients?.filter(r => r.is_read).length || 0} படித்தனர் / read</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+        {/* Section 2 — Compose */}
+        {showCompose && (
+          <Box {...sectionBox} py={{ base: 5, md: 6 }}>
+            <VStack spacing={4} align="stretch">
+              <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" color="white">
+                ✍️ புதிய செய்தி / New Message
+              </Text>
 
-      {/* Compose Modal */}
-      {showCompose && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-end justify-center z-50">
-          <div className="bg-white rounded-t-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="bg-purple-700 text-white px-4 py-3 rounded-t-2xl flex items-center justify-between">
-              <h3 className="font-bold">✏️ புதிய செய்தி / New Message</h3>
-              <button onClick={() => setShowCompose(false)} className="text-purple-200 hover:text-white">✕</button>
-            </div>
+              {/* Message Type */}
+              <FormControl>
+                <FormLabel color="whiteAlpha.700" fontSize="sm">வகை / Type</FormLabel>
+                <Select value={msgType} onChange={e => setMsgType(e.target.value)}
+                  {...inputStyle} h="44px">
+                  <option value="personal" style={{ background: '#1e1b4b' }}>👤 Personal</option>
+                  <option value="group" style={{ background: '#1e1b4b' }}>👥 Group</option>
+                  <option value="broadcast" style={{ background: '#1e1b4b' }}>📢 Broadcast</option>
+                  <option value="announcement" style={{ background: '#1e1b4b' }}>🔔 Announcement</option>
+                </Select>
+              </FormControl>
 
-            <div className="p-4 space-y-4">
-              {/* Message type */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-2">செய்தி வகை / Message Type</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(MESSAGE_TYPE_LABELS).map(([type, info]) => (
-                    <button key={type}
-                      onClick={() => setCompose(prev => ({ ...prev, message_type: type, to_user_ids: [] }))}
-                      className={`py-2 px-3 rounded-xl border text-xs font-medium transition-all text-left ${
-                        compose.message_type === type
-                          ? 'bg-purple-600 text-white border-purple-600'
-                          : 'bg-white text-gray-700 border-gray-200'
-                      }`}>
-                      <div>{info.ta}</div>
-                      <div className="opacity-70">{info.en}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Recipient selection for personal/group */}
-              {['personal', 'group'].includes(compose.message_type) && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-2">
-                    பெறுநர்கள் / Recipients
-                    {compose.message_type === 'personal' && ' (1 மட்டும் / only 1)'}
-                  </label>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {members.length === 0 ? (
-                      <p className="text-xs text-gray-400">சரிபார்க்கப்பட்ட குடும்பத்தினர் இல்லை / No verified members</p>
-                    ) : members.map(m => (
-                      <div key={m.id}
-                        onClick={() => {
-                          if (compose.message_type === 'personal') {
-                            setCompose(prev => ({ ...prev, to_user_ids: [m.id] }));
-                          } else {
-                            toggleRecipient(m.id);
-                          }
-                        }}
-                        className={`flex items-center gap-2 p-2 rounded-xl cursor-pointer transition-all ${
-                          compose.to_user_ids.includes(m.id)
-                            ? 'bg-purple-50 border border-purple-300'
-                            : 'bg-gray-50 border border-transparent hover:border-gray-200'
-                        }`}>
-                        {m.profile_photo ? (
-                          <img src={m.profile_photo} alt="" className="w-8 h-8 rounded-full object-cover" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-xs font-bold text-purple-700">
-                            {m.name?.charAt(0)}
-                          </div>
-                        )}
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-800">{m.name}</p>
-                          <p className="text-xs text-gray-400">{m.relation_tamil}</p>
-                        </div>
-                        {compose.to_user_ids.includes(m.id) && (
-                          <span className="text-green-500 text-sm">✓</span>
-                        )}
-                      </div>
+              {/* Recipients — only for personal */}
+              {msgType === 'personal' && (
+                <FormControl>
+                  <FormLabel color="whiteAlpha.700" fontSize="sm">பெறுநர் / To *</FormLabel>
+                  <VStack spacing={2} align="stretch" maxH="180px" overflowY="auto">
+                    {familyMembers.length === 0 ? (
+                      <Text color="whiteAlpha.400" fontSize="sm">குடும்பத்தினர் இல்லை</Text>
+                    ) : familyMembers.map(m => (
+                      <HStack key={m.id} cursor="pointer"
+                        bg={toIds.includes(m.id) ? 'purple.800' : 'whiteAlpha.100'}
+                        border="1px solid"
+                        borderColor={toIds.includes(m.id) ? 'purple.400' : 'whiteAlpha.200'}
+                        borderRadius="xl" px={3} py={2}
+                        onClick={() => toggleRecipient(m.id)}
+                        transition="all 0.2s">
+                        <Avatar size="sm" name={m.name} src={m.profile_photo} />
+                        <Box flex={1}>
+                          <Text fontSize="sm" fontWeight="600" color="white">{m.name}</Text>
+                          <Text fontSize="xs" color="whiteAlpha.500">{m.relation_tamil}</Text>
+                        </Box>
+                        <Text color={toIds.includes(m.id) ? 'purple.300' : 'whiteAlpha.300'}>
+                          {toIds.includes(m.id) ? '✓' : '○'}
+                        </Text>
+                      </HStack>
                     ))}
-                  </div>
-                </div>
+                  </VStack>
+                </FormControl>
               )}
 
-              {/* Broadcast/Announcement notice */}
-              {['broadcast', 'announcement'].includes(compose.message_type) && (
-                <div className="bg-green-50 border border-green-200 rounded-xl p-3">
-                  <p className="text-xs text-green-700">
-                    ✅ இது உங்கள் அனைத்து சரிபார்க்கப்பட்ட குடும்பத்தினருக்கும் அனுப்பப்படும்
-                  </p>
-                  <p className="text-xs text-green-600">This will be sent to all your verified family members</p>
-                </div>
+              {msgType !== 'personal' && (
+                <Box bg="whiteAlpha.100" borderRadius="xl" px={3} py={2}>
+                  <Text fontSize="sm" color="whiteAlpha.600">
+                    {msgType === 'broadcast' ? '📢 அனைவருக்கும் / To all family members' :
+                     msgType === 'group' ? '👥 குழுவிற்கு / To group' :
+                     '🔔 அறிவிப்பு / Announcement to all'}
+                  </Text>
+                </Box>
               )}
 
               {/* Subject */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">தலைப்பு / Subject (optional)</label>
-                <input type="text" value={compose.subject}
-                  onChange={e => setCompose(prev => ({ ...prev, subject: e.target.value }))}
-                  className="input-field" placeholder="செய்தி தலைப்பு..." />
-              </div>
+              <FormControl>
+                <FormLabel color="whiteAlpha.700" fontSize="sm">தலைப்பு / Subject (optional)</FormLabel>
+                <Input placeholder="செய்தி தலைப்பு..." value={subject}
+                  onChange={e => setSubject(e.target.value)} {...inputStyle} h="44px" />
+              </FormControl>
 
-              {/* Content */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">செய்தி / Message *</label>
-                <textarea value={compose.content}
-                  onChange={e => setCompose(prev => ({ ...prev, content: e.target.value }))}
-                  className="input-field resize-none" rows={4}
-                  placeholder="உங்கள் செய்தியை இங்கே எழுதவும்..." />
-              </div>
+              {/* Message */}
+              <FormControl>
+                <FormLabel color="whiteAlpha.700" fontSize="sm">செய்தி / Message *</FormLabel>
+                <Textarea
+                  placeholder="உங்கள் செய்தியை இங்கே எழுதுங்கள்..."
+                  value={content} onChange={e => setContent(e.target.value)}
+                  rows={4} resize="none"
+                  bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.300" color="white"
+                  fontSize={{ base: 'md', md: 'lg' }}
+                  _placeholder={{ color: 'whiteAlpha.400' }}
+                  _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 3px rgba(128,0,255,0.2)' }}
+                />
+              </FormControl>
 
-              {sendSuccess && (
-                <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
-                  <p className="text-green-700 text-sm">✅ {sendSuccess}</p>
-                </div>
-              )}
+              {sendError && <Box bg="red.900" border="1px solid" borderColor="red.500" borderRadius="xl" px={4} py={3}><Text color="red.200" fontSize="sm">{sendError}</Text></Box>}
+              {sendSuccess && <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={3}><Text color="green.200" fontSize="sm">{sendSuccess}</Text></Box>}
 
-              <button onClick={handleSend}
-                disabled={sending || !compose.content.trim() ||
-                  (['personal','group'].includes(compose.message_type) && compose.to_user_ids.length === 0)}
-                className="btn-primary">
-                {sending ? 'அனுப்புகிறோம்...' : '📤 அனுப்பு / Send'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+              <Button w="100%" h={{ base: '50px', md: '56px' }}
+                bgGradient="linear(to-r, purple.600, green.500)"
+                color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
+                isLoading={sending} loadingText="அனுப்புகிறோம்..."
+                isDisabled={!content.trim()}
+                onClick={handleSend}
+                _hover={{ bgGradient: 'linear(to-r, purple.700, green.600)', transform: 'translateY(-2px)' }}
+                _disabled={{ opacity: 0.4, cursor: 'not-allowed' }}>
+                📨 அனுப்பு / Send
+              </Button>
+            </VStack>
+          </Box>
+        )}
+
+        {/* Section 3 — Tabs */}
+        <Box {...sectionBox} py={3}>
+          <HStack bg="whiteAlpha.100" borderRadius="xl" p={1}>
+            {[
+              { key: 'inbox', label: `📥 இன்பாக்ஸ் ${unreadCount > 0 ? `(${unreadCount})` : ''}` },
+              { key: 'sent',  label: '📤 அனுப்பியது' },
+            ].map(t => (
+              <Button key={t.key} flex={1} size="sm" h="40px"
+                bg={activeTab === t.key ? 'purple.600' : 'transparent'}
+                color={activeTab === t.key ? 'white' : 'whiteAlpha.600'}
+                borderRadius="lg" fontWeight="600"
+                onClick={() => setActiveTab(t.key)}
+                _hover={{ bg: activeTab === t.key ? 'purple.600' : 'whiteAlpha.100' }}>
+                {t.label}
+              </Button>
+            ))}
+          </HStack>
+        </Box>
+
+        {/* Section 4 — Messages List */}
+        <Box {...sectionBox} py={{ base: 4, md: 5 }}>
+          {loading ? (
+            <Text color="whiteAlpha.500" textAlign="center" py={6}>ஏற்றுகிறோம்...</Text>
+          ) : activeTab === 'inbox' ? (
+            inbox.length === 0 ? (
+              <VStack py={10} spacing={2}>
+                <Text fontSize="3xl">💬</Text>
+                <Text color="whiteAlpha.500" textAlign="center">செய்திகள் இல்லை / No messages</Text>
+              </VStack>
+            ) : (
+              <VStack spacing={3} align="stretch">
+                {inbox.map(m => (
+                  <Box key={m.id}
+                    bg={m.is_read ? 'whiteAlpha.50' : 'whiteAlpha.150'}
+                    border="1px solid"
+                    borderColor={m.is_read ? 'whiteAlpha.100' : 'purple.500'}
+                    borderRadius="xl" px={4} py={3}
+                    cursor="pointer"
+                    onClick={() => handleMarkRead(m.id)}
+                    transition="all 0.2s"
+                    _hover={{ bg: 'whiteAlpha.200' }}
+                  >
+                    <HStack justify="space-between" mb={1}>
+                      <HStack spacing={2}>
+                        <Avatar size="sm" name={m.message?.from_user?.name} src={m.message?.from_user?.profile_photo} />
+                        <Text fontSize={{ base: 'sm', md: 'md' }} fontWeight={m.is_read ? '500' : '700'} color="white">
+                          {m.message?.from_user?.name}
+                        </Text>
+                        <Badge colorScheme={getMsgTypeColor(m.message?.message_type)} borderRadius="full" px={2} fontSize="10px">
+                          {m.message?.message_type}
+                        </Badge>
+                      </HStack>
+                      {!m.is_read && <Box w="8px" h="8px" borderRadius="full" bg="purple.400" />}
+                    </HStack>
+                    {m.message?.subject && (
+                      <Text fontSize="sm" fontWeight="600" color="whiteAlpha.800" mb={1}>{m.message.subject}</Text>
+                    )}
+                    <Text fontSize="sm" color="whiteAlpha.600" noOfLines={2}>{m.message?.content}</Text>
+                    <Text fontSize="xs" color="whiteAlpha.400" mt={1}>
+                      {new Date(m.message?.created_at).toLocaleString('ta-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </Box>
+                ))}
+              </VStack>
+            )
+          ) : (
+            sent.length === 0 ? (
+              <VStack py={10} spacing={2}>
+                <Text fontSize="3xl">📤</Text>
+                <Text color="whiteAlpha.500" textAlign="center">அனுப்பிய செய்திகள் இல்லை</Text>
+              </VStack>
+            ) : (
+              <VStack spacing={3} align="stretch">
+                {sent.map(m => (
+                  <Box key={m.id} bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.200"
+                    borderRadius="xl" px={4} py={3}>
+                    <HStack justify="space-between" mb={1}>
+                      <Badge colorScheme={getMsgTypeColor(m.message_type)} borderRadius="full" px={2} fontSize="10px">
+                        {m.message_type}
+                      </Badge>
+                      <Text fontSize="xs" color="whiteAlpha.400">
+                        {new Date(m.created_at).toLocaleString('ta-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </HStack>
+                    {m.subject && <Text fontSize="sm" fontWeight="600" color="whiteAlpha.800" mb={1}>{m.subject}</Text>}
+                    <Text fontSize="sm" color="whiteAlpha.600" noOfLines={2}>{m.content}</Text>
+                  </Box>
+                ))}
+              </VStack>
+            )
+          )}
+        </Box>
+
+      </VStack>
+    </Box>
   );
 }
