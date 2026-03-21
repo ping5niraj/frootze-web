@@ -33,10 +33,12 @@ export default function Dashboard() {
   const { user, login, logout } = useAuth();
   const navigate = useNavigate();
   const [relationships, setRelationships] = useState([]);
+  const [extendedRelationships, setExtendedRelationships] = useState([]);
   const [pending, setPending] = useState([]);
   const [summary, setSummary] = useState({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('tree');
+  const [treeMode, setTreeMode] = useState('direct'); // 'direct' or 'extended'
   const [actionLoading, setActionLoading] = useState('');
   const treeRef = useRef(null);
 
@@ -50,10 +52,6 @@ export default function Dashboard() {
       setRelationships(res.data.my_relationships || []);
       setPending(res.data.pending_verification || []);
       setSummary(res.data.summary || {});
-      // Merge kutham into user for FamilyTree color coding
-      if (res.data.current_user_kutham && user) {
-        user.kutham = res.data.current_user_kutham;
-      }
     } catch (e) {
       setRelationships([]); setPending([]); setSummary({});
     } finally { setLoading(false); }
@@ -207,6 +205,23 @@ export default function Dashboard() {
             </HStack>
           </HStack>
 
+          {/* Tree Mode Toggle */}
+          <HStack bg="whiteAlpha.100" borderRadius="xl" p={1} mb={4}>
+            {[
+              { key: 'direct',   label: '👤 நேரடி / Direct'          },
+              { key: 'extended', label: '🌳 விரிவான / Extended Family' },
+            ].map(t => (
+              <Button key={t.key} flex={1} size="sm"
+                bg={treeMode === t.key ? 'purple.600' : 'transparent'}
+                color={treeMode === t.key ? 'white' : 'whiteAlpha.600'}
+                borderRadius="lg"
+                onClick={() => setTreeMode(t.key)}
+                _hover={{ bg: treeMode === t.key ? 'purple.600' : 'whiteAlpha.100' }}>
+                {t.label}
+              </Button>
+            ))}
+          </HStack>
+
           {/* Tab Toggle */}
           <HStack bg="whiteAlpha.100" borderRadius="xl" p={1} mb={4}>
             {[{ key: 'tree', label: '🌳 மரம்' }, { key: 'list', label: '📋 பட்டியல்' }].map(t => (
@@ -235,7 +250,17 @@ export default function Dashboard() {
               </VStack>
             ) : (
               <Box ref={treeRef} overflowX="auto">
-                <FamilyTree relationships={relationships} currentUser={user} />
+                <FamilyTree
+                  relationships={treeMode === 'extended' && extendedRelationships.length > 0
+                    ? extendedRelationships
+                    : relationships}
+                  currentUser={user}
+                />
+                {treeMode === 'extended' && extendedRelationships.length === 0 && (
+                  <Text color="whiteAlpha.400" fontSize="sm" textAlign="center" py={4}>
+                    விரிவான குடும்பம் இல்லை / No extended family found yet
+                  </Text>
+                )}
               </Box>
             )
           )}
