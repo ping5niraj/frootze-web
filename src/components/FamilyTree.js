@@ -71,12 +71,17 @@ const RELATION_META = {
 };
 
 function drawNode(g, node, photoMap) {
-  const isYou    = node.isYou;
-  const isSpouse = node.relationType === 'spouse';
-  const isRight  = node.col === 'right';
+  const isYou     = node.isYou;
+  const isSpouse  = node.relationType === 'spouse';
+  const isRight   = node.col === 'right';
+  const isOffline = node.isOffline === true;
 
-  const fill   = isYou ? C.youFill : isSpouse ? C.spouseFill : isRight ? C.derivedFill : C.bloodFill;
-  const stroke = isYou ? C.youStroke : isSpouse ? C.spouseStroke : isRight ? C.derivedStroke : C.bloodStroke;
+  // Offline/deceased nodes get grey faded style
+  const fill   = isOffline ? '#E5E7EB' : isYou ? C.youFill : isSpouse ? C.spouseFill : isRight ? C.derivedFill : C.bloodFill;
+  const stroke  = isOffline ? '#9CA3AF' : isYou ? C.youStroke : isSpouse ? C.spouseStroke : isRight ? C.derivedStroke : C.bloodStroke;
+  const opacity = isOffline ? 0.65 : 1;
+
+  g.attr('opacity', opacity);
 
   g.append('rect').attr('x', 2).attr('y', 3)
     .attr('width', NODE_W).attr('height', NODE_H)
@@ -84,7 +89,8 @@ function drawNode(g, node, photoMap) {
 
   g.append('rect').attr('width', NODE_W).attr('height', NODE_H)
     .attr('rx', 12).attr('fill', fill)
-    .attr('stroke', stroke).attr('stroke-width', isYou ? 2.5 : 1.5);
+    .attr('stroke', stroke).attr('stroke-width', isYou ? 2.5 : 1.5)
+    .attr('stroke-dasharray', isOffline ? '4,3' : 'none');
 
   g.append('rect').attr('width', NODE_W).attr('height', 7)
     .attr('rx', 12).attr('fill', stroke).attr('opacity', 0.75);
@@ -93,7 +99,7 @@ function drawNode(g, node, photoMap) {
   const photoX = NODE_W / 2 - photoSize / 2;
   const photoY = 14;
 
-  const base64Photo = photoMap?.[node.id];
+  const base64Photo = !isOffline ? photoMap?.[node.id] : null;
 
   if (base64Photo) {
     const clipId = `clip-${(node.id || '').replace(/-/g, '').substring(0, 12)}`;
@@ -118,21 +124,22 @@ function drawNode(g, node, photoMap) {
     g.append('circle')
       .attr('cx', NODE_W / 2).attr('cy', photoY + photoSize / 2)
       .attr('r', photoSize / 2)
-      .attr('fill', isYou ? '#5B21B6' : isRight ? '#FEF3C7' : '#DDD6FE');
+      .attr('fill', isOffline ? '#D1D5DB' : isYou ? '#5B21B6' : isRight ? '#FEF3C7' : '#DDD6FE');
 
+    // Offline: show dove emoji, others: show initial
     g.append('text')
       .attr('x', NODE_W / 2).attr('y', photoY + photoSize / 2)
       .attr('text-anchor', 'middle').attr('dominant-baseline', 'central')
-      .attr('font-size', '14px').attr('font-weight', 'bold')
-      .attr('fill', isYou ? 'white' : stroke)
-      .text(node.name ? node.name.charAt(0).toUpperCase() : '?');
+      .attr('font-size', isOffline ? '16px' : '14px').attr('font-weight', 'bold')
+      .attr('fill', isOffline ? '#6B7280' : isYou ? 'white' : stroke)
+      .text(isOffline ? '🕊️' : (node.name ? node.name.charAt(0).toUpperCase() : '?'));
   }
 
   g.append('text')
     .attr('x', NODE_W / 2).attr('y', photoY + photoSize + 14)
     .attr('text-anchor', 'middle')
     .attr('font-size', '8px').attr('font-weight', '700')
-    .attr('fill', isYou ? '#DDD6FE' : isRight ? C.derivedText : C.bloodText)
+    .attr('fill', isOffline ? '#6B7280' : isYou ? '#DDD6FE' : isRight ? C.derivedText : C.bloodText)
     .text(node.tamil || '');
 
   const name = (node.name || '');
@@ -141,10 +148,11 @@ function drawNode(g, node, photoMap) {
     .attr('x', NODE_W / 2).attr('y', photoY + photoSize + 28)
     .attr('text-anchor', 'middle')
     .attr('font-size', '9px').attr('font-weight', '600')
-    .attr('fill', isYou ? '#FFFFFF' : '#374151')
+    .attr('fill', isOffline ? '#6B7280' : isYou ? '#FFFFFF' : '#374151')
     .text(displayName);
 
-  if (!isYou) {
+  // No verification badge for offline or self
+  if (!isYou && !isOffline) {
     g.append('circle')
       .attr('cx', NODE_W - 8).attr('cy', 8).attr('r', 7)
       .attr('fill', node.verified ? C.verified : C.pending)
@@ -176,6 +184,7 @@ function buildTree(relationships, currentUser, photoMap, svgRef) {
       tamil: rel.relation_tamil,
       relationType: rel.relation_type,
       verified: rel.verification_status === 'verified',
+      isOffline: rel.to_user?.is_offline === true,
       gen: meta.gen, col: meta.col,
       order: meta.order, addedIdx: idx,
     };

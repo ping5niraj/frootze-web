@@ -37,9 +37,20 @@ const inputStyle = {
 export default function AddRelative() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Online/offline toggle
+  const [isOffline, setIsOffline] = useState(false);
+
+  // Online fields
   const [phone, setPhone] = useState('');
-  const [relationType, setRelationType] = useState('');
   const [email, setEmail] = useState('');
+
+  // Offline fields
+  const [offlineName, setOfflineName] = useState('');
+  const [offlineGender, setOfflineGender] = useState('');
+
+  // Common
+  const [relationType, setRelationType] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -51,46 +62,66 @@ export default function AddRelative() {
 
   const handleAdd = async () => {
     setError(''); setSuccess(''); setShowInvitePrompt(false);
-    if (!phone || phone.length < 10) { setError('சரியான 10 இலக்க எண் உள்ளிடவும்'); return; }
     if (!relationType) { setError('உறவை தேர்வு செய்யவும்'); return; }
+
+    // Offline validation
+    if (isOffline) {
+      if (!offlineName.trim()) { setError('பெயர் உள்ளிடவும் / Enter name'); return; }
+      if (!offlineGender) { setError('பாலினம் தேர்வு செய்யவும் / Select gender'); return; }
+    } else {
+      if (!phone || phone.length < 10) { setError('சரியான 10 இலக்க எண் உள்ளிடவும்'); return; }
+    }
+
     setLoading(true);
 
     try {
-      const res = await api.post('/api/relationships', {
-        to_user_phone: phone,
-        relation_type: relationType,
-        relation_tamil: selectedRelation?.tamil,
-      });
+      if (isOffline) {
+        // Offline / deceased member — add directly
+        await api.post('/api/relationships', {
+          relation_type: relationType,
+          relation_tamil: selectedRelation?.tamil,
+          is_offline: true,
+          offline_name: offlineName.trim(),
+          offline_gender: offlineGender,
+        });
+        setSuccess(`🕊️ ${offlineName} குடும்ப மரத்தில் சேர்க்கப்பட்டார் / Added to family tree`);
 
-      const notifResults = {
-        whatsapp: false,
-        email: res.data.notifications?.email || false,
-        telegram: res.data.notifications?.telegram || false,
-      };
+      } else {
+        // Online member — send request
+        const res = await api.post('/api/relationships', {
+          to_user_phone: phone,
+          relation_type: relationType,
+          relation_tamil: selectedRelation?.tamil,
+          is_offline: false,
+        });
 
-      setNotifStatus(notifResults);
-      setWhatsappLink(res.data.whatsapp_link || '');
-      setSuccess(`✅ கோரிக்கை அனுப்பப்பட்டது! ${selectedRelation?.tamil} உங்கள் கோரிக்கையை Dashboard-ல் காண்பார்.`);
+        const notifResults = {
+          whatsapp: false,
+          email: res.data.notifications?.email || false,
+          telegram: res.data.notifications?.telegram || false,
+        };
 
-      // Auto open WhatsApp
-      if (res.data.whatsapp_link) {
-        window.open(res.data.whatsapp_link, '_blank');
-        notifResults.whatsapp = true;
-        setNotifStatus({ ...notifResults });
-      }
+        setNotifStatus(notifResults);
+        setWhatsappLink(res.data.whatsapp_link || '');
+        setSuccess(`✅ கோரிக்கை அனுப்பப்பட்டது! ${selectedRelation?.tamil} உங்கள் கோரிக்கையை Dashboard-ல் காண்பார்.`);
 
-      // Send email if provided and not already sent
-      if (email && !notifResults.email) {
-        try {
-          await axios.post(`${BASE_URL}/api/auth/send-invite-email`, {
-            to_email: email,
-            from_name: user?.name,
-            relation_tamil: selectedRelation?.tamil,
-            invite_link: 'https://frootze.com',
-          }, { headers: { Authorization: `Bearer ${localStorage.getItem('pmf_token')}` } });
-          notifResults.email = true;
+        if (res.data.whatsapp_link) {
+          window.open(res.data.whatsapp_link, '_blank');
+          notifResults.whatsapp = true;
           setNotifStatus({ ...notifResults });
-        } catch (e) {}
+        }
+
+        if (email && !notifResults.email) {
+          try {
+            await axios.post(`${BASE_URL}/api/auth/send-invite-email`, {
+              to_email: email, from_name: user?.name,
+              relation_tamil: selectedRelation?.tamil,
+              invite_link: 'https://frootze.com',
+            }, { headers: { Authorization: `Bearer ${localStorage.getItem('pmf_token')}` } });
+            notifResults.email = true;
+            setNotifStatus({ ...notifResults });
+          } catch (e) {}
+        }
       }
 
     } catch (err) {
@@ -105,27 +136,12 @@ export default function AddRelative() {
 
   const handleSendInvite = () => {
     setShowInvitePrompt(false);
-    const notifResults = { whatsapp: false, email: false, telegram: false };
     const inviteLink = 'https://frootze.com';
-
-    // WhatsApp invite
     const waMessage = encodeURIComponent(
-      `🌳 வணக்கம்!\n\n${user?.name} உங்களை frootze குடும்ப மரத்தில் ${selectedRelation?.tamil || 'குடும்பத்தினர்'} ஆக சேர்க்க அழைக்கிறார்.\n\nமுதலில் பதிவு செய்யவும்:\n${inviteLink}\n\nபதிவு செய்த பிறகு ${user?.name} உங்களை சேர்ப்பார்.\n\n🆓 இலவசம் · frootze.com`
+      `🌳 வணக்கம்!\n\n${user?.name} உங்களை frootze குடும்ப மரத்தில் ${selectedRelation?.tamil || 'குடும்பத்தினர்'} ஆக சேர்க்க அழைக்கிறார்.\n\nமுதலில் பதிவு செய்யவும்:\n${inviteLink}\n\n🆓 இலவசம் · frootze.com`
     );
     window.open(`https://wa.me/91${phone}?text=${waMessage}`, '_blank');
-    notifResults.whatsapp = true;
-
-    // Email invite
-    if (email) {
-      axios.post(`${BASE_URL}/api/auth/send-invite-email`, {
-        to_email: email, from_name: user?.name,
-        relation_tamil: selectedRelation?.tamil, invite_link: inviteLink,
-      }, { headers: { Authorization: `Bearer ${localStorage.getItem('pmf_token')}` } })
-        .then(() => { notifResults.email = true; setNotifStatus({ ...notifResults }); })
-        .catch(() => {});
-    }
-
-    setNotifStatus({ ...notifResults });
+    setNotifStatus({ whatsapp: true, email: false, telegram: false });
     setSuccess('📨 அழைப்பு அனுப்பப்பட்டது! frootze.com-ல் பதிவு செய்த பிறகு மீண்டும் சேர்க்கவும்.');
   };
 
@@ -134,7 +150,7 @@ export default function AddRelative() {
       px={{ base: 4, md: 8 }} py={6}>
       <VStack w="100%" maxW="900px" mx="auto" spacing={4} align="stretch">
 
-        {/* Section 1 — Header */}
+        {/* Header */}
         <Box {...sectionBox} py={5}>
           <HStack spacing={3}>
             <Box as="button" onClick={() => navigate('/dashboard')} color="whiteAlpha.600" fontSize="xl" _hover={{ color: 'white' }}>←</Box>
@@ -145,30 +161,43 @@ export default function AddRelative() {
           </HStack>
         </Box>
 
-        {/* Section 2 — Form */}
+        {/* Online / Offline Toggle */}
+        <Box {...sectionBox} py={4}>
+          <Text fontSize="sm" fontWeight="600" color="whiteAlpha.700" mb={3}>
+            இவர் frootze-ல் உள்ளாரா? / Are they on frootze?
+          </Text>
+          <HStack spacing={3}>
+            <Button flex={1} h="48px"
+              bg={!isOffline ? 'purple.600' : 'whiteAlpha.100'}
+              color={!isOffline ? 'white' : 'whiteAlpha.600'}
+              border="1px solid"
+              borderColor={!isOffline ? 'purple.400' : 'whiteAlpha.200'}
+              borderRadius="xl" fontSize="sm" fontWeight="700"
+              onClick={() => { setIsOffline(false); setError(''); setSuccess(''); }}
+              _hover={{ bg: !isOffline ? 'purple.700' : 'whiteAlpha.200' }}>
+              📱 ஆம் — frootze-ல் உள்ளார் / Yes
+            </Button>
+            <Button flex={1} h="48px"
+              bg={isOffline ? 'orange.700' : 'whiteAlpha.100'}
+              color={isOffline ? 'white' : 'whiteAlpha.600'}
+              border="1px solid"
+              borderColor={isOffline ? 'orange.400' : 'whiteAlpha.200'}
+              borderRadius="xl" fontSize="sm" fontWeight="700"
+              onClick={() => { setIsOffline(true); setError(''); setSuccess(''); }}
+              _hover={{ bg: isOffline ? 'orange.800' : 'whiteAlpha.200' }}>
+              🕊️ இல்லை — காலமானவர் / Deceased
+            </Button>
+          </HStack>
+        </Box>
+
+        {/* Form */}
         <Box {...sectionBox} py={{ base: 6, md: 8 }}>
           <VStack spacing={5} align="stretch">
             <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="600" color="whiteAlpha.800">
               அடிப்படை விவரம் / Basic Details
             </Text>
 
-            <FormControl>
-              <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
-                தொலைபேசி எண் / Phone *
-              </FormLabel>
-              <InputGroup size="lg">
-                <InputLeftAddon
-                  bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
-                  color="white" fontSize="sm" fontWeight="600"
-                  h={{ base: '50px', md: '56px' }} px={4}>
-                  🇮🇳 +91
-                </InputLeftAddon>
-                <Input type="tel" maxLength={10} placeholder="9999999999"
-                  value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
-                  {...inputStyle} />
-              </InputGroup>
-            </FormControl>
-
+            {/* Relation selector — always shown */}
             <FormControl>
               <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
                 உறவு / Relation *
@@ -184,32 +213,86 @@ export default function AddRelative() {
               </Select>
             </FormControl>
 
-            <FormControl>
-              <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
-                📧 Email (optional — for extra notification)
-              </FormLabel>
-              <Input type="email" placeholder="relative@email.com"
-                value={email} onChange={e => setEmail(e.target.value)}
-                {...inputStyle} />
-            </FormControl>
+            {/* ONLINE fields */}
+            {!isOffline && (
+              <>
+                <FormControl>
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
+                    தொலைபேசி எண் / Phone *
+                  </FormLabel>
+                  <InputGroup size="lg">
+                    <InputLeftAddon
+                      bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
+                      color="white" fontSize="sm" fontWeight="600"
+                      h={{ base: '50px', md: '56px' }} px={4}>
+                      🇮🇳 +91
+                    </InputLeftAddon>
+                    <Input type="tel" maxLength={10} placeholder="9999999999"
+                      value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
+                      {...inputStyle} />
+                  </InputGroup>
+                </FormControl>
 
-            <Box bg="purple.900" border="1px solid" borderColor="purple.600" borderRadius="xl" px={4} py={3}>
-              <Text fontSize="xs" color="purple.300" fontWeight="600" mb={1}>💡 குறிப்பு / Note</Text>
-              <Text fontSize="xs" color="purple.200">
-                கோரிக்கை அனுப்பியதும் WhatsApp தானாக திறக்கும். அவர் frootze Dashboard-ல் ஏற்கலாம்.
-              </Text>
-              <Text fontSize="xs" color="purple.400" mt={1}>
-                WhatsApp will open automatically. They can accept from their Dashboard.
-              </Text>
-            </Box>
+                <FormControl>
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
+                    📧 Email (optional)
+                  </FormLabel>
+                  <Input type="email" placeholder="relative@email.com"
+                    value={email} onChange={e => setEmail(e.target.value)}
+                    {...inputStyle} />
+                </FormControl>
+
+                <Box bg="purple.900" border="1px solid" borderColor="purple.600" borderRadius="xl" px={4} py={3}>
+                  <Text fontSize="xs" color="purple.300" fontWeight="600" mb={1}>💡 குறிப்பு / Note</Text>
+                  <Text fontSize="xs" color="purple.200">
+                    கோரிக்கை அனுப்பியதும் WhatsApp தானாக திறக்கும். அவர் frootze Dashboard-ல் ஏற்கலாம்.
+                  </Text>
+                </Box>
+              </>
+            )}
+
+            {/* OFFLINE / DECEASED fields */}
+            {isOffline && (
+              <>
+                <Box bg="orange.900" border="1px solid" borderColor="orange.600" borderRadius="xl" px={4} py={3}>
+                  <Text fontSize="xs" color="orange.300" fontWeight="600" mb={1}>🕊️ காலமானவர் / Deceased Member</Text>
+                  <Text fontSize="xs" color="orange.200">
+                    இவர் நேரடியாக குடும்ப மரத்தில் சேர்க்கப்படுவார். தொலைபேசி தேவையில்லை.
+                  </Text>
+                  <Text fontSize="xs" color="orange.400" mt={1}>
+                    Added directly to family tree. No phone needed.
+                  </Text>
+                </Box>
+
+                <FormControl>
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
+                    பெயர் / Name *
+                  </FormLabel>
+                  <Input placeholder="உதா: Raman Kumar"
+                    value={offlineName} onChange={e => setOfflineName(e.target.value)}
+                    {...inputStyle} />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
+                    பாலினம் / Gender *
+                  </FormLabel>
+                  <Select placeholder="தேர்வு செய்யவும்"
+                    value={offlineGender} onChange={e => setOfflineGender(e.target.value)}
+                    {...inputStyle}>
+                    <option value="male" style={{ background: '#1e1b4b' }}>ஆண் / Male</option>
+                    <option value="female" style={{ background: '#1e1b4b' }}>பெண் / Female</option>
+                  </Select>
+                </FormControl>
+              </>
+            )}
           </VStack>
         </Box>
 
-        {/* Section 3 — Result */}
+        {/* Result Section */}
         <Box {...sectionBox} py={{ base: 5, md: 6 }}>
           <VStack spacing={4} align="stretch">
 
-            {/* Unregistered prompt */}
             {showInvitePrompt && (
               <Box bg="yellow.900" border="1px solid" borderColor="yellow.500" borderRadius="xl" px={4} py={4}>
                 <Text color="yellow.200" fontSize={{ base: 'sm', md: 'md' }} fontWeight="700" mb={1}>
@@ -246,8 +329,7 @@ export default function AddRelative() {
               </Box>
             )}
 
-            {/* Notification status */}
-            {success && (
+            {!isOffline && success && (
               <SimpleGrid columns={3} spacing={3}>
                 {[
                   { key: 'whatsapp', icon: '📱', label: 'WhatsApp' },
@@ -270,20 +352,26 @@ export default function AddRelative() {
 
             {!success && !showInvitePrompt && (
               <Button w="100%" h={{ base: '50px', md: '56px' }}
-                bgGradient="linear(to-r, purple.600, green.500)"
+                bgGradient={isOffline
+                  ? 'linear(to-r, orange.600, orange.500)'
+                  : 'linear(to-r, purple.600, green.500)'}
                 color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
                 isLoading={loading} loadingText="சேர்க்கிறோம்..."
-                isDisabled={phone.length < 10 || !relationType}
+                isDisabled={isOffline
+                  ? (!offlineName.trim() || !offlineGender || !relationType)
+                  : (phone.length < 10 || !relationType)}
                 onClick={handleAdd}
-                _hover={{ bgGradient: 'linear(to-r, purple.700, green.600)', transform: 'translateY(-2px)' }}
+                _hover={{ transform: 'translateY(-2px)' }}
                 _disabled={{ opacity: 0.4, cursor: 'not-allowed' }}>
-                👨‍👩‍👧 கோரிக்கை அனுப்பு + WhatsApp / Send Request
+                {isOffline
+                  ? '🕊️ குடும்ப மரத்தில் சேர் / Add to Tree'
+                  : '👨‍👩‍👧 கோரிக்கை அனுப்பு + WhatsApp / Send Request'}
               </Button>
             )}
 
             {success && (
               <HStack spacing={3}>
-                {whatsappLink && (
+                {!isOffline && whatsappLink && (
                   <Button flex={1} h="50px" colorScheme="whatsapp" borderRadius="xl"
                     onClick={() => window.open(whatsappLink, '_blank')}>
                     📱 WhatsApp மீண்டும் திற
