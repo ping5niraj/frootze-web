@@ -53,7 +53,6 @@ export default function EditProfile() {
     px: { base: 5, md: 8 }, py: { base: 5, md: 6 }
   };
 
-  // ── Photo upload handler ──
   const handlePhotoChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -65,6 +64,7 @@ export default function EditProfile() {
 
     setPhotoLoading(true);
     setPhotoError('');
+    setSuccess('');
 
     try {
       const formData = new FormData();
@@ -75,17 +75,13 @@ export default function EditProfile() {
       });
 
       setProfilePhoto(res.data.photo_url);
-
-      // Update auth context with new photo
       const updatedUser = { ...user, profile_photo: res.data.photo_url };
       login(localStorage.getItem('pmf_token'), updatedUser);
-
       setSuccess('📸 புகைப்படம் புதுப்பிக்கப்பட்டது / Photo updated!');
     } catch (e) {
       setPhotoError(e.response?.data?.error || 'Photo upload failed');
     } finally {
       setPhotoLoading(false);
-      // Reset file input
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -125,7 +121,19 @@ export default function EditProfile() {
               📸 புகைப்படம் / Profile Photo
             </Text>
 
-            <Box position="relative">
+            {/* Hidden file input */}
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              id="photo-upload-input"
+              style={{ display: 'none' }}
+              onChange={handlePhotoChange}
+            />
+
+            {/* Clickable avatar — clicking photo itself opens file picker */}
+            <Box position="relative" cursor="pointer"
+              onClick={() => !photoLoading && fileInputRef.current?.click()}>
               <Avatar
                 size="2xl"
                 name={form.name || user?.name}
@@ -133,57 +141,59 @@ export default function EditProfile() {
                 border="3px solid"
                 borderColor="purple.400"
               />
-              {photoLoading && (
-                <Box position="absolute" top="0" left="0" right="0" bottom="0"
-                  bg="blackAlpha.600" borderRadius="full"
-                  display="flex" alignItems="center" justifyContent="center">
-                  <Spinner color="purple.300" size="md" />
-                </Box>
-              )}
+              {/* Camera overlay */}
+              <Box
+                position="absolute" bottom="0" right="0"
+                bg="purple.600" borderRadius="full"
+                w="32px" h="32px"
+                display="flex" alignItems="center" justifyContent="center"
+                border="2px solid white"
+                fontSize="14px">
+                {photoLoading ? <Spinner size="xs" color="white" /> : '📷'}
+              </Box>
             </Box>
 
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              style={{ display: 'none' }}
-              onChange={handlePhotoChange}
-            />
-
-            <HStack spacing={3}>
-              <Button
-                h="44px" px={6}
-                bgGradient="linear(to-r, purple.600, purple.500)"
-                color="white" fontSize="sm" fontWeight="700" borderRadius="xl"
-                isLoading={photoLoading}
-                onClick={() => fileInputRef.current?.click()}
-                _hover={{ bgGradient: 'linear(to-r, purple.700, purple.600)' }}>
-                📷 புகைப்படம் மாற்று / Change Photo
-              </Button>
-              {profilePhoto && (
-                <Button
-                  h="44px" px={4}
-                  variant="ghost" color="red.400" fontSize="sm" borderRadius="xl"
-                  onClick={async () => {
-                    try {
-                      await api.delete('/api/photos/remove');
-                      setProfilePhoto('');
-                      const updatedUser = { ...user, profile_photo: null };
-                      login(localStorage.getItem('pmf_token'), updatedUser);
-                    } catch (e) {}
-                  }}
-                  _hover={{ color: 'red.300', bg: 'red.900' }}>
-                  🗑️ நீக்கு
-                </Button>
-              )}
-            </HStack>
-
-            {photoError && (
-              <Text color="red.300" fontSize="sm">{photoError}</Text>
-            )}
-            <Text color="whiteAlpha.400" fontSize="xs">
-              JPG, PNG — அதிகபட்சம் 5MB / Max 5MB
+            <Text color="whiteAlpha.500" fontSize="xs">
+              புகைப்படத்தை கிளிக் செய்யவும் / Click photo to change
             </Text>
+
+            {/* Also a plain HTML label as fallback */}
+            <label htmlFor="photo-upload-input" style={{
+              display: 'inline-block',
+              padding: '10px 24px',
+              background: 'linear-gradient(to right, #7C3AED, #6D28D9)',
+              color: 'white',
+              borderRadius: '12px',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              border: 'none'
+            }}>
+              {photoLoading ? 'Uploading...' : '📷 புகைப்படம் மாற்று / Change Photo'}
+            </label>
+
+            {profilePhoto && !photoLoading && (
+              <Button size="sm" variant="ghost" color="red.400"
+                onClick={async () => {
+                  try {
+                    await api.delete('/api/photos/remove');
+                    setProfilePhoto('');
+                    login(localStorage.getItem('pmf_token'), { ...user, profile_photo: null });
+                  } catch (e) {}
+                }}
+                _hover={{ color: 'red.300', bg: 'red.900' }}>
+                🗑️ புகைப்படம் நீக்கு / Remove Photo
+              </Button>
+            )}
+
+            {photoError && <Text color="red.300" fontSize="sm">{photoError}</Text>}
+            {success && success.includes('Photo') && (
+              <Box bg="green.900" border="1px solid" borderColor="green.500"
+                borderRadius="xl" px={4} py={2}>
+                <Text color="green.200" fontSize="sm">{success}</Text>
+              </Box>
+            )}
+            <Text color="whiteAlpha.400" fontSize="xs">JPG, PNG — அதிகபட்சம் 5MB</Text>
           </VStack>
         </Box>
 
@@ -245,7 +255,7 @@ export default function EditProfile() {
                 <Text color="red.200" fontSize="sm">{error}</Text>
               </Box>
             )}
-            {success && (
+            {success && !success.includes('Photo') && (
               <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={3}>
                 <Text color="green.200" fontSize="sm">{success}</Text>
               </Box>
