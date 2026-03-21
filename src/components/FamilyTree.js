@@ -21,6 +21,24 @@ const C = {
   linePending:  '#D1D5DB',
 };
 
+// Kutham color palette — each unique kutham gets a color pair
+const KUTHAM_PALETTE = [
+  { fill: '#EDE9FE', stroke: '#7C3AED', text: '#5B21B6' }, // purple — default/self
+  { fill: '#FFF7ED', stroke: '#F59E0B', text: '#92400E' }, // amber — wife side
+  { fill: '#EFF6FF', stroke: '#3B82F6', text: '#1D4ED8' }, // blue
+  { fill: '#F0FDF4', stroke: '#22C55E', text: '#15803D' }, // green
+  { fill: '#FFF1F2', stroke: '#F43F5E', text: '#BE123C' }, // rose
+  { fill: '#F0F9FF', stroke: '#0EA5E9', text: '#0369A1' }, // sky
+  { fill: '#FDF4FF', stroke: '#A855F7', text: '#7E22CE' }, // violet
+  { fill: '#FFFBEB', stroke: '#EAB308', text: '#854D0E' }, // yellow
+];
+
+function getKuthamColor(kutham, kuthamMap) {
+  if (!kutham) return KUTHAM_PALETTE[0];
+  const idx = kuthamMap.get(kutham);
+  return KUTHAM_PALETTE[idx % KUTHAM_PALETTE.length] || KUTHAM_PALETTE[0];
+}
+
 const NODE_W  = 82;
 const NODE_H  = 90;
 const GAP_X   = 16;
@@ -70,15 +88,37 @@ const RELATION_META = {
   co_brother:              { gen: 'current',  col: 'right',  order: 2 },
 };
 
-function drawNode(g, node, photoMap) {
+function drawNode(g, node, photoMap, kuthamMap) {
   const isYou     = node.isYou;
   const isSpouse  = node.relationType === 'spouse';
   const isRight   = node.col === 'right';
   const isOffline = node.isOffline === true;
 
   // Offline/deceased nodes get grey faded style
-  const fill   = isOffline ? '#E5E7EB' : isYou ? C.youFill : isSpouse ? C.spouseFill : isRight ? C.derivedFill : C.bloodFill;
-  const stroke  = isOffline ? '#9CA3AF' : isYou ? C.youStroke : isSpouse ? C.spouseStroke : isRight ? C.derivedStroke : C.bloodStroke;
+  // Online nodes: color by kutham if available
+  const kuthamColor = (!isOffline && !isYou && node.kutham)
+    ? getKuthamColor(node.kutham, kuthamMap)
+    : null;
+
+  const fill   = isOffline ? '#E5E7EB'
+               : isYou     ? C.youFill
+               : kuthamColor ? kuthamColor.fill
+               : isSpouse  ? C.spouseFill
+               : isRight   ? C.derivedFill
+               : C.bloodFill;
+
+  const stroke  = isOffline ? '#9CA3AF'
+                : isYou     ? C.youStroke
+                : kuthamColor ? kuthamColor.stroke
+                : isSpouse  ? C.spouseStroke
+                : isRight   ? C.derivedStroke
+                : C.bloodStroke;
+
+  const textColor = isOffline ? '#6B7280'
+                  : isYou     ? '#DDD6FE'
+                  : kuthamColor ? kuthamColor.text
+                  : isRight   ? C.derivedText
+                  : C.bloodText;
   const opacity = isOffline ? 0.65 : 1;
 
   g.attr('opacity', opacity);
@@ -139,7 +179,7 @@ function drawNode(g, node, photoMap) {
     .attr('x', NODE_W / 2).attr('y', photoY + photoSize + 14)
     .attr('text-anchor', 'middle')
     .attr('font-size', '8px').attr('font-weight', '700')
-    .attr('fill', isOffline ? '#6B7280' : isYou ? '#DDD6FE' : isRight ? C.derivedText : C.bloodText)
+    .attr('fill', textColor)
     .text(node.tamil || '');
 
   const name = (node.name || '');
@@ -150,6 +190,44 @@ function drawNode(g, node, photoMap) {
     .attr('font-size', '9px').attr('font-weight', '600')
     .attr('fill', isOffline ? '#6B7280' : isYou ? '#FFFFFF' : '#374151')
     .text(displayName);
+
+  // Hover tooltip — show kutham name or prompt if empty
+  if (!isOffline && !isYou) {
+    const tooltipText = node.kutham
+      ? (node.kutham.length > 16 ? node.kutham.substring(0, 16) + '…' : node.kutham)
+      : 'Kutham?';
+    const tooltipFill = node.kutham ? stroke : '#9CA3AF';
+    const tooltipW = Math.min(tooltipText.length * 6 + 16, 130);
+
+    const tooltip = g.append('g')
+      .attr('class', 'kutham-tooltip')
+      .style('opacity', 0)
+      .style('pointer-events', 'none');
+
+    tooltip.append('rect')
+      .attr('x', NODE_W / 2 - tooltipW / 2)
+      .attr('y', -28)
+      .attr('width', tooltipW)
+      .attr('height', 22)
+      .attr('rx', 6)
+      .attr('fill', tooltipFill)
+      .attr('opacity', 0.9);
+
+    tooltip.append('text')
+      .attr('x', NODE_W / 2)
+      .attr('y', -13)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '8px')
+      .attr('font-weight', '700')
+      .attr('fill', 'white')
+      .text(tooltipText);
+
+    g.on('mouseenter', function() {
+      d3.select(this).select('.kutham-tooltip').style('opacity', 1);
+    }).on('mouseleave', function() {
+      d3.select(this).select('.kutham-tooltip').style('opacity', 0);
+    });
+  }
 
   // No verification badge for offline or self
   if (!isYou && !isOffline) {
@@ -185,6 +263,7 @@ function buildTree(relationships, currentUser, photoMap, svgRef) {
       relationType: rel.relation_type,
       verified: rel.verification_status === 'verified',
       isOffline: rel.to_user?.is_offline === true,
+      kutham: rel.to_user?.kutham || null,
       gen: meta.gen, col: meta.col,
       order: meta.order, addedIdx: idx,
     };
@@ -259,6 +338,7 @@ function buildTree(relationships, currentUser, photoMap, svgRef) {
   const youNode = {
     id: currentUser.id, name: currentUser.name,
     tamil: 'நீங்கள்', isYou: true, verified: true, col: 'center',
+    kutham: currentUser.kutham || null,
     x: centerX - (NODE_W / 2 + GAP_X / 2), y: youY,
   };
   positioned.push(youNode);
@@ -333,10 +413,19 @@ function buildTree(relationships, currentUser, photoMap, svgRef) {
   }
 
   const nodesG = svgEl.append('g');
+  // Build kutham color map — assign index per unique kutham
+  const kuthamMap = new Map();
+  let kuthamIdx = 0;
+  positioned.forEach(node => {
+    if (node.kutham && !kuthamMap.has(node.kutham)) {
+      kuthamMap.set(node.kutham, kuthamIdx++);
+    }
+  });
+
   positioned.forEach(node => {
     const g = nodesG.append('g')
       .attr('transform', `translate(${node.x - NODE_W / 2},${node.y - NODE_H / 2})`);
-    drawNode(g, node, photoMap);
+    drawNode(g, node, photoMap, kuthamMap);
   });
 }
 

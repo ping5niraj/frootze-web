@@ -50,6 +50,10 @@ export default function Dashboard() {
       setRelationships(res.data.my_relationships || []);
       setPending(res.data.pending_verification || []);
       setSummary(res.data.summary || {});
+      // Merge kutham into user for FamilyTree color coding
+      if (res.data.current_user_kutham && user) {
+        user.kutham = res.data.current_user_kutham;
+      }
     } catch (e) {
       setRelationships([]); setPending([]); setSummary({});
     } finally { setLoading(false); }
