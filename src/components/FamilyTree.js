@@ -100,24 +100,27 @@ function drawNode(g, node, photoMap, kuthamMap) {
     ? getKuthamColor(node.kutham, kuthamMap)
     : null;
 
-  const fill   = isOffline ? '#E5E7EB'
-               : isYou     ? C.youFill
+  // You node uses kutham color with white text + thick border
+  const youKuthamColor = (isYou && node.kutham) ? getKuthamColor(node.kutham, kuthamMap) : null;
+
+  const fill   = isOffline   ? '#E5E7EB'
+               : isYou       ? (youKuthamColor ? youKuthamColor.stroke : C.youFill)
                : kuthamColor ? kuthamColor.fill
-               : isSpouse  ? C.spouseFill
-               : isRight   ? C.derivedFill
+               : isSpouse    ? C.spouseFill
+               : isRight     ? C.derivedFill
                : C.bloodFill;
 
-  const stroke  = isOffline ? '#9CA3AF'
-                : isYou     ? C.youStroke
+  const stroke  = isOffline   ? '#9CA3AF'
+                : isYou       ? (youKuthamColor ? youKuthamColor.stroke : C.youStroke)
                 : kuthamColor ? kuthamColor.stroke
-                : isSpouse  ? C.spouseStroke
-                : isRight   ? C.derivedStroke
+                : isSpouse    ? C.spouseStroke
+                : isRight     ? C.derivedStroke
                 : C.bloodStroke;
 
-  const textColor = isOffline ? '#6B7280'
-                  : isYou     ? '#DDD6FE'
+  const textColor = isOffline   ? '#6B7280'
+                  : isYou       ? '#FFFFFF'
                   : kuthamColor ? kuthamColor.text
-                  : isRight   ? C.derivedText
+                  : isRight     ? C.derivedText
                   : C.bloodText;
   const opacity = isOffline ? 0.65 : 1;
 
