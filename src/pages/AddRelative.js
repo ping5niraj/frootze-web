@@ -42,10 +42,7 @@ const inputStyle = {
 export default function AddRelative() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [treeImageUrl, setTreeImageUrl] = useState(null);
   const [treeCapturing, setTreeCapturing] = useState(false);
-  const [includeTree, setIncludeTree] = useState(false);
-  const hasCachedTree = !!sessionStorage.getItem('pmf_tree_image');
 
   // Online/offline toggle
   const [isOffline, setIsOffline] = useState(false);
@@ -311,47 +308,21 @@ export default function AddRelative() {
                   This number is not on frootze yet. Send them an invite to join?
                 </Text>
 
-                {/* Tree attach checkbox — only show if cached */}
-                {hasCachedTree && (
-                  <Box bg="whiteAlpha.100" borderRadius="xl" px={3} py={3} mb={3}
-                    cursor="pointer" onClick={() => setIncludeTree(!includeTree)}
-                    border="1px solid" borderColor={includeTree ? 'green.400' : 'whiteAlpha.200'}>
-                    <HStack spacing={3}>
-                      <Box w="20px" h="20px" borderRadius="md" border="2px solid"
-                        borderColor={includeTree ? 'green.400' : 'whiteAlpha.400'}
-                        bg={includeTree ? 'green.500' : 'transparent'}
-                        display="flex" alignItems="center" justifyContent="center">
-                        {includeTree && <Text fontSize="xs" color="white">✓</Text>}
-                      </Box>
-                      <Box>
-                        <Text fontSize="sm" color="white" fontWeight="600">
-                          🌳 குடும்ப மரத்தை இணை / Include Family Tree
-                        </Text>
-                        <Text fontSize="xs" color="whiteAlpha.500">
-                          Tree image will download + attach hint in WhatsApp
-                        </Text>
-                      </Box>
-                    </HStack>
-                  </Box>
-                )}
-
-                {!hasCachedTree && (
-                  <Box bg="whiteAlpha.50" borderRadius="xl" px={3} py={2} mb={3}>
-                    <Text fontSize="xs" color="whiteAlpha.400">
-                      💡 Dashboard-ல் "Share My Family Tree" கிளிக் செய்தால் மரத்தை இணைக்கலாம்
-                    </Text>
-                    <Text fontSize="xs" color="whiteAlpha.300">
-                      Click "Share My Family Tree" on Dashboard to enable tree attachment
-                    </Text>
-                  </Box>
-                )}
+                <Box bg="whiteAlpha.100" borderRadius="xl" px={3} py={2} mb={3}>
+                  <Text fontSize="xs" color="green.300">
+                    🌳 குடும்ப மரம் தானாக உருவாக்கப்பட்டு அனுப்பப்படும்
+                  </Text>
+                  <Text fontSize="xs" color="whiteAlpha.400">
+                    Family tree image will be auto-generated and downloaded
+                  </Text>
+                </Box>
 
                 <HStack spacing={3}>
                   <Button flex={1} h="44px" bgGradient="linear(to-r, purple.600, green.500)"
                     color="white" fontSize="sm" fontWeight="700" borderRadius="xl"
-                    isLoading={treeCapturing} loadingText="அனுப்புகிறோம்..."
+                    isLoading={treeCapturing} loadingText="மரம் உருவாக்குகிறோம்..."
                     onClick={handleSendInvite}>
-                    📨 அழைப்பு அனுப்பு / Send Invite
+                    🌳 மரம் + அழைப்பு / Tree + Invite
                   </Button>
                   <Button flex={1} h="44px" variant="ghost" color="whiteAlpha.500"
                     fontSize="sm" borderRadius="xl"
