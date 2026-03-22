@@ -4,7 +4,7 @@ import {
   Box, VStack, HStack, Text, Heading, Button,
   SimpleGrid, Avatar, Badge, Spinner
 } from '@chakra-ui/react';
-import { getMyRelationships, verifyRelationship, rejectRelationship } from '../services/api';
+import api, { getMyRelationships, verifyRelationship, rejectRelationship } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import FamilyTree from '../components/FamilyTree';
 import ShareTree from '../components/ShareTree';
