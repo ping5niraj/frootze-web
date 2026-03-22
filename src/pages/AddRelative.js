@@ -43,6 +43,9 @@ export default function AddRelative() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [treeCapturing, setTreeCapturing] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareData, setShareData] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   // Online/offline toggle
   const [isOffline, setIsOffline] = useState(false);
@@ -330,9 +333,9 @@ export default function AddRelative() {
                 <HStack spacing={3}>
                   <Button flex={1} h="44px" bgGradient="linear(to-r, purple.600, green.500)"
                     color="white" fontSize="sm" fontWeight="700" borderRadius="xl"
-                    isLoading={treeCapturing} loadingText="மரம் உருவாக்குகிறோம்..."
+                    isLoading={treeCapturing} loadingText="உருவாக்குகிறோம்..."
                     onClick={handleSendInvite}>
-                    🌳 மரம் + அழைப்பு / Tree + Invite
+                    📤 பகிர் / Share Invite
                   </Button>
                   <Button flex={1} h="44px" variant="ghost" color="whiteAlpha.500"
                     fontSize="sm" borderRadius="xl"
@@ -416,5 +419,106 @@ export default function AddRelative() {
 
       </VStack>
     </Box>
+
+    {/* Share Modal */}
+    {showShareModal && shareData && (
+      <Box position="fixed" inset="0" bg="blackAlpha.800" zIndex={1000}
+        display="flex" alignItems="center" justifyContent="center" px={4}
+        onClick={() => setShowShareModal(false)}>
+        <Box bg="#1e1b4b" border="1px solid" borderColor="whiteAlpha.200"
+          borderRadius="2xl" w="100%" maxW="400px" overflow="hidden"
+          onClick={e => e.stopPropagation()}>
+
+          {/* Modal Header */}
+          <Box bgGradient="linear(to-r, purple.700, purple.900)" px={5} py={4}>
+            <HStack justify="space-between">
+              <Box>
+                <Text fontSize="lg" fontWeight="700" color="white">
+                  📤 அழைப்பை பகிர் / Share Invite
+                </Text>
+                <Text fontSize="xs" color="purple.200">
+                  தளத்தை தேர்வு செய்யவும் / Choose platform
+                </Text>
+              </Box>
+              <Box as="button" onClick={() => setShowShareModal(false)}
+                color="whiteAlpha.600" fontSize="xl" _hover={{ color: 'white' }}>✕</Box>
+            </HStack>
+          </Box>
+
+          {/* Share Buttons */}
+          <VStack spacing={3} px={5} py={5}>
+
+            {/* WhatsApp */}
+            <Button w="100%" h="52px" bg="#25D366" color="white"
+              fontSize="md" fontWeight="700" borderRadius="xl"
+              leftIcon={<Text fontSize="xl">📱</Text>}
+              onClick={() => handleShare('whatsapp')}
+              _hover={{ bg: '#1da851' }}>
+              WhatsApp
+            </Button>
+
+            {/* Telegram */}
+            <Button w="100%" h="52px" bg="#0088cc" color="white"
+              fontSize="md" fontWeight="700" borderRadius="xl"
+              leftIcon={<Text fontSize="xl">✈️</Text>}
+              onClick={() => handleShare('telegram')}
+              _hover={{ bg: '#0077b5' }}>
+              Telegram
+            </Button>
+
+            {/* Facebook */}
+            <Button w="100%" h="52px" bg="#1877F2" color="white"
+              fontSize="md" fontWeight="700" borderRadius="xl"
+              leftIcon={<Text fontSize="xl">📘</Text>}
+              onClick={() => handleShare('facebook')}
+              _hover={{ bg: '#1465d0' }}>
+              Facebook
+            </Button>
+
+            {/* Instagram */}
+            <Button w="100%" h="52px"
+              bgGradient="linear(to-r, #833ab4, #fd1d1d, #fcb045)"
+              color="white" fontSize="md" fontWeight="700" borderRadius="xl"
+              leftIcon={<Text fontSize="xl">📸</Text>}
+              onClick={() => handleShare('instagram')}
+              _hover={{ opacity: 0.9 }}>
+              Instagram (Copy + Open)
+            </Button>
+
+            {/* Email — only if email provided */}
+            {shareData.email && (
+              <Button w="100%" h="52px" bg="purple.600" color="white"
+                fontSize="md" fontWeight="700" borderRadius="xl"
+                leftIcon={<Text fontSize="xl">📧</Text>}
+                onClick={() => handleShare('email')}
+                _hover={{ bg: 'purple.700' }}>
+                Email
+              </Button>
+            )}
+
+            {/* Copy */}
+            <Button w="100%" h="52px"
+              bg={copied ? 'green.600' : 'whiteAlpha.200'}
+              color="white" fontSize="md" fontWeight="700" borderRadius="xl"
+              leftIcon={<Text fontSize="xl">{copied ? '✅' : '📋'}</Text>}
+              onClick={() => handleShare('copy')}
+              _hover={{ bg: copied ? 'green.600' : 'whiteAlpha.300' }}>
+              {copied ? 'நகலெடுக்கப்பட்டது! / Copied!' : 'செய்தியை நகலெடு / Copy Message'}
+            </Button>
+
+            {shareData.imageUrl && (
+              <Box bg="blue.900" border="1px solid" borderColor="blue.500"
+                borderRadius="xl" px={4} py={3} w="100%">
+                <Text fontSize="xs" color="blue.200" fontWeight="700">📎 படம் பதிவிறக்கம் ஆனது</Text>
+                <Text fontSize="xs" color="blue.300">
+                  Tree image downloaded — attach it manually in your message
+                </Text>
+              </Box>
+            )}
+
+          </VStack>
+        </Box>
+      </Box>
+    )}
   );
 }
