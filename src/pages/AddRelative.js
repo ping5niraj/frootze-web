@@ -308,12 +308,22 @@ export default function AddRelative() {
                   This number is not on frootze yet. Send them an invite to join?
                 </Text>
 
-                <Box bg="whiteAlpha.100" borderRadius="xl" px={3} py={2} mb={3}>
-                  <Text fontSize="xs" color="green.300">
-                    🌳 குடும்ப மரம் தானாக உருவாக்கப்பட்டு அனுப்பப்படும்
+                <Box bg="blue.900" border="1px solid" borderColor="blue.500"
+                  borderRadius="xl" px={3} py={3} mb={3}>
+                  <Text fontSize="xs" color="blue.200" fontWeight="700" mb={1}>
+                    📋 படிகள் / Steps:
                   </Text>
-                  <Text fontSize="xs" color="whiteAlpha.400">
-                    Family tree image will be auto-generated and downloaded
+                  <Text fontSize="xs" color="blue.300" mb={1}>
+                    1️⃣ குடும்ப மரம் தானாக பதிவிறக்கம் ஆகும்
+                  </Text>
+                  <Text fontSize="xs" color="blue.300" mb={1}>
+                    2️⃣ WhatsApp திறக்கும்
+                  </Text>
+                  <Text fontSize="xs" color="blue.300" mb={1}>
+                    3️⃣ 📎 கிளிக் செய்து படத்தை இணைக்கவும்
+                  </Text>
+                  <Text fontSize="xs" color="whiteAlpha.400" mt={1}>
+                    Tree downloads → WhatsApp opens → attach image via 📎
                   </Text>
                 </Box>
 
