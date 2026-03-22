@@ -18,7 +18,10 @@ export default function ShareTree({ treeRef, userName, memberCount }) {
         logging: false,
       });
       const branded = addBranding(canvas, userName, memberCount);
-      setPreviewUrl(branded.toDataURL('image/png'));
+      const dataUrl = branded.toDataURL('image/png');
+      setPreviewUrl(dataUrl);
+      // Save to sessionStorage so AddRelative can use it for invites
+      try { sessionStorage.setItem('pmf_tree_image', dataUrl); } catch(e) {}
       setShowModal(true);
     } catch (err) {
       console.error('Capture failed:', err);

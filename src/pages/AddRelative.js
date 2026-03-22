@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, VStack, HStack, Text, Heading, Button, Input,
   Select, FormControl, FormLabel, SimpleGrid,
-  InputGroup, InputLeftAddon
+  InputGroup, InputLeftAddon, Spinner
 } from '@chakra-ui/react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import html2canvas from 'html2canvas';
 
 const BASE_URL = process.env.REACT_APP_PMF_API || 'https://pingmyfamily-backend-production.up.railway.app';
 
@@ -41,6 +42,8 @@ const inputStyle = {
 export default function AddRelative() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [treeImageUrl, setTreeImageUrl] = useState(null);
+  const [treeCapturing, setTreeCapturing] = useState(false);
 
   // Online/offline toggle
   const [isOffline, setIsOffline] = useState(false);
@@ -308,8 +311,10 @@ export default function AddRelative() {
                 <HStack spacing={3}>
                   <Button flex={1} h="44px" bgGradient="linear(to-r, purple.600, green.500)"
                     color="white" fontSize="sm" fontWeight="700" borderRadius="xl"
+                    isLoading={treeCapturing}
+                    loadingText="மரம் பதிவிறக்கம்..."
                     onClick={handleSendInvite}>
-                    📨 அழைப்பு அனுப்பு / Send Invite
+                    🌳 மரம் பகிர் + அழைப்பு / Share Tree + Invite
                   </Button>
                   <Button flex={1} h="44px" variant="ghost" color="whiteAlpha.500"
                     fontSize="sm" borderRadius="xl"
