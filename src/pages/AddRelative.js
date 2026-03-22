@@ -155,6 +155,7 @@ export default function AddRelative() {
   };
 
   return (
+    <>
     <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)"
       px={{ base: 4, md: 8 }} py={6}>
       <VStack w="100%" maxW="900px" mx="auto" spacing={4} align="stretch">
@@ -422,6 +423,7 @@ export default function AddRelative() {
 
     {/* Share Modal */}
     {showShareModal && shareData && (
+
       <Box position="fixed" inset="0" bg="blackAlpha.800" zIndex={1000}
         display="flex" alignItems="center" justifyContent="center" px={4}
         onClick={() => setShowShareModal(false)}>
@@ -520,5 +522,6 @@ export default function AddRelative() {
         </Box>
       </Box>
     )}
+    </>
   );
 }
