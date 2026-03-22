@@ -64,77 +64,144 @@ export default function AddRelative() {
 
   const selectedRelation = RELATIONS.find(r => r.value === relationType);
 
-  // ── Generate simple tree image ──
-  const generateTreeImage = async () => {
+  // ── Generate beautiful invite image ──
+  const generateInviteImage = async () => {
     try {
       const res = await api.get('/api/relationships/mine');
       const members = res.data.my_relationships || [];
+
+      const W = 800;
+      const H = 1000;
       const canvas = document.createElement('canvas');
-      const W = 800; const HEADER = 90; const FOOTER = 70; const ROW_H = 100;
-      const NODE_W = 110; const NODE_H = 75;
-      const genMap = { 'past-2': [], 'past-1': [], 'current': [], 'future-1': [] };
-      const GEN_FOR = {
-        grandfather_paternal: 'past-2', grandmother_paternal: 'past-2',
-        grandfather_maternal: 'past-2', grandmother_maternal: 'past-2',
-        father: 'past-1', mother: 'past-1',
-        brother: 'current', sister: 'current', spouse: 'current',
-        son: 'future-1', daughter: 'future-1',
-      };
-      members.forEach(m => { const g = GEN_FOR[m.relation_type]; if (g) genMap[g].push(m); });
-      const activeGens = Object.values(genMap).filter(a => a.length > 0).length;
-      canvas.width = W;
-      canvas.height = HEADER + FOOTER + (activeGens + 1) * ROW_H + ROW_H;
+      canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#0f0c29'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      const grad = ctx.createLinearGradient(0, 0, W, HEADER);
-      grad.addColorStop(0, '#7C3AED'); grad.addColorStop(1, '#5B21B6');
-      ctx.fillStyle = grad; ctx.fillRect(0, 0, W, HEADER);
-      ctx.fillStyle = '#fff'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center';
-      ctx.fillText('🌳 frootze — குடும்ப மரம்', W / 2, 35);
-      ctx.font = '16px Arial'; ctx.fillStyle = '#DDD6FE';
-      ctx.fillText(`${user?.name}'s Family Tree · ${members.length} members`, W / 2, 65);
-      const drawNode = (x, y, name, label, isYou) => {
-        ctx.fillStyle = isYou ? '#7C3AED' : '#2D2B5E';
-        ctx.beginPath(); ctx.roundRect(x - NODE_W/2, y - NODE_H/2, NODE_W, NODE_H, 10); ctx.fill();
-        ctx.strokeStyle = isYou ? '#A78BFA' : '#4C4A8A'; ctx.lineWidth = 1.5; ctx.stroke();
-        ctx.fillStyle = isYou ? '#5B21B6' : '#3D3B7E';
-        ctx.beginPath(); ctx.arc(x, y - NODE_H/2 + 18, 12, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center';
-        ctx.fillText((name||'?').charAt(0).toUpperCase(), x, y - NODE_H/2 + 22);
-        ctx.font = 'bold 8px Arial'; ctx.fillStyle = '#C4B5FD';
-        ctx.fillText(label||'', x, y - NODE_H/2 + 40);
-        const dn = (name||'').length > 10 ? (name||'').substring(0,10)+'…' : (name||'');
-        ctx.font = '8px Arial'; ctx.fillStyle = '#E0E0E0';
-        ctx.fillText(dn, x, y - NODE_H/2 + 54);
-      };
-      let rowY = HEADER + ROW_H;
-      const youX = W / 2 - 65;
-      ['past-2','past-1','current','future-1'].forEach(genKey => {
-        const nodes = genMap[genKey];
-        if (nodes.length === 0 && genKey !== 'current') return;
-        if (genKey === 'current') {
-          drawNode(youX, rowY, user?.name, 'நீங்கள்', true);
-          nodes.filter(n => n.relation_type === 'spouse').forEach((n,i) => {
-            drawNode(youX + NODE_W + 15, rowY, n.to_user?.name || n.offline_name, n.relation_tamil, false);
-          });
-          nodes.filter(n => ['brother','sister'].includes(n.relation_type)).forEach((n,i) => {
-            drawNode(youX - (NODE_W+15)*(i+1), rowY, n.to_user?.name || n.offline_name, n.relation_tamil, false);
-          });
-        } else {
-          const total = nodes.length;
-          const startX = W/2 - (total * NODE_W + (total-1)*15)/2 + NODE_W/2;
-          nodes.forEach((n,i) => drawNode(startX + i*(NODE_W+15), rowY, n.to_user?.name || n.offline_name, n.relation_tamil, false));
-        }
-        rowY += ROW_H;
+
+      // Background gradient
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+      bgGrad.addColorStop(0, '#0f0c29');
+      bgGrad.addColorStop(0.5, '#1e1b4b');
+      bgGrad.addColorStop(1, '#0f0c29');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Decorative circles
+      ctx.fillStyle = 'rgba(124,58,237,0.15)';
+      ctx.beginPath(); ctx.arc(700, 100, 200, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(100, 800, 150, 0, Math.PI*2); ctx.fill();
+
+      // Header band
+      const headerGrad = ctx.createLinearGradient(0, 0, W, 130);
+      headerGrad.addColorStop(0, '#7C3AED');
+      headerGrad.addColorStop(1, '#5B21B6');
+      ctx.fillStyle = headerGrad;
+      ctx.beginPath();
+      ctx.roundRect(30, 30, W-60, 130, 20);
+      ctx.fill();
+
+      // frootze logo text
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 42px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('🌳 frootze', W/2, 85);
+      ctx.font = '18px Arial';
+      ctx.fillStyle = '#DDD6FE';
+      ctx.fillText('உங்கள் குடும்பம் · உங்கள் வேர்கள்', W/2, 120);
+
+      // Invitation title
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 30px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${user?.name}`, W/2, 210);
+      ctx.font = '20px Arial';
+      ctx.fillStyle = '#C4B5FD';
+      ctx.fillText('உங்களை குடும்ப மரத்தில் சேர அழைக்கிறார்', W/2, 248);
+      ctx.fillStyle = '#A78BFA';
+      ctx.font = '16px Arial';
+      ctx.fillText('is inviting you to join their family tree', W/2, 275);
+
+      // Divider
+      ctx.strokeStyle = 'rgba(167,139,250,0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(60, 300); ctx.lineTo(W-60, 300); ctx.stroke();
+
+      // Family members section
+      ctx.fillStyle = '#A78BFA';
+      ctx.font = 'bold 18px Arial';
+      ctx.textAlign = 'left';
+      ctx.fillText('👨‍👩‍👧 குடும்பத்தினர் / Family Members', 60, 340);
+
+      // Draw member cards
+      const displayMembers = members.slice(0, 6);
+      const cols = 3;
+      const cardW = 210; const cardH = 80;
+      const startX = 55; const startY = 360;
+      const gap = 15;
+
+      displayMembers.forEach((m, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x = startX + col * (cardW + gap);
+        const y = startY + row * (cardH + gap);
+
+        // Card background
+        ctx.fillStyle = 'rgba(124,58,237,0.25)';
+        ctx.beginPath(); ctx.roundRect(x, y, cardW, cardH, 12); ctx.fill();
+        ctx.strokeStyle = 'rgba(167,139,250,0.4)';
+        ctx.lineWidth = 1; ctx.stroke();
+
+        // Avatar circle
+        ctx.fillStyle = '#5B21B6';
+        ctx.beginPath(); ctx.arc(x+30, y+40, 20, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
+        const nm = m.to_user?.name || m.offline_name || '?';
+        ctx.fillText(nm.charAt(0).toUpperCase(), x+30, y+46);
+
+        // Name and relation
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 13px Arial'; ctx.textAlign = 'left';
+        const shortName = nm.length > 12 ? nm.substring(0,12)+'…' : nm;
+        ctx.fillText(shortName, x+58, y+34);
+        ctx.fillStyle = '#C4B5FD';
+        ctx.font = '11px Arial';
+        ctx.fillText(m.relation_tamil || '', x+58, y+54);
       });
-      ctx.fillStyle = '#1a1740'; ctx.fillRect(0, canvas.height - FOOTER, W, FOOTER);
-      ctx.fillStyle = '#7C3AED'; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center';
-      ctx.fillText('Join our family tree: www.frootze.com', W/2, canvas.height - FOOTER + 28);
-      ctx.fillStyle = '#A78BFA'; ctx.font = '12px Arial';
-      ctx.fillText('Build your family tree free — frootze.com 🌳', W/2, canvas.height - FOOTER + 50);
+
+      if (members.length > 6) {
+        ctx.fillStyle = '#A78BFA';
+        ctx.font = '14px Arial'; ctx.textAlign = 'center';
+        ctx.fillText(`+ ${members.length - 6} more members`, W/2, startY + 3*(cardH+gap) + 20);
+      }
+
+      // Call to action box
+      const ctaY = 700;
+      const ctaGrad = ctx.createLinearGradient(0, ctaY, W, ctaY+160);
+      ctaGrad.addColorStop(0, '#7C3AED');
+      ctaGrad.addColorStop(1, '#059669');
+      ctx.fillStyle = ctaGrad;
+      ctx.beginPath(); ctx.roundRect(30, ctaY, W-60, 160, 20); ctx.fill();
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 28px Arial'; ctx.textAlign = 'center';
+      ctx.fillText('இப்போதே சேருங்கள்! Join Now! 🌟', W/2, ctaY+50);
+      ctx.font = 'bold 36px Arial';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText('www.frootze.com', W/2, ctaY+105);
+      ctx.font = '16px Arial';
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.fillText('Free · குடும்ப மரம் · Family Tree', W/2, ctaY+140);
+
+      // Footer
+      ctx.fillStyle = 'rgba(167,139,250,0.5)';
+      ctx.font = '13px Arial'; ctx.textAlign = 'center';
+      ctx.fillText('frootze.com — உங்கள் குடும்பம், உங்கள் வேர்கள் 🌳', W/2, H-30);
+
       return canvas.toDataURL('image/png');
-    } catch (e) { console.error('Tree gen failed:', e); return null; }
+    } catch(e) { console.error('Invite image gen failed:', e); return null; }
   };
+
+  // ── Generate simple tree image (kept for reference) ──
+  const generateTreeImage = generateInviteImage;
 
   // ── Handle share platform ──
   const handleShare = (platform) => {
