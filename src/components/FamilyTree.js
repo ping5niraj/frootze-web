@@ -34,9 +34,10 @@ const KUTHAM_PALETTE = [
 ];
 
 function getKuthamColor(kutham, kuthamMap) {
-  if (!kutham) return KUTHAM_PALETTE[0];
+  if (!kutham || kutham.trim() === '') return null;
   const idx = kuthamMap.get(kutham);
-  return KUTHAM_PALETTE[idx % KUTHAM_PALETTE.length] || KUTHAM_PALETTE[0];
+  if (idx === undefined) return null;
+  return KUTHAM_PALETTE[idx % KUTHAM_PALETTE.length] || null;
 }
 
 const NODE_W  = 82;
@@ -103,24 +104,25 @@ function drawNode(g, node, photoMap, kuthamMap) {
   // You node uses kutham color with white text + thick border
   const youKuthamColor = (isYou && node.kutham) ? getKuthamColor(node.kutham, kuthamMap) : null;
 
-  const fill   = isOffline   ? '#E5E7EB'
-               : isYou       ? (youKuthamColor ? youKuthamColor.stroke : C.youFill)
-               : kuthamColor ? kuthamColor.fill
-               : isSpouse    ? C.spouseFill
-               : isRight     ? C.derivedFill
+  // Unknown kutham = grey neutral style
+  const unknownKutham = !isOffline && !isYou && !node.kutham;
+
+  const fill   = isOffline     ? '#E5E7EB'
+               : isYou         ? (youKuthamColor ? youKuthamColor.stroke : C.youFill)
+               : unknownKutham ? '#F3F4F6'
+               : kuthamColor   ? kuthamColor.fill
                : C.bloodFill;
 
-  const stroke  = isOffline   ? '#9CA3AF'
-                : isYou       ? (youKuthamColor ? youKuthamColor.stroke : C.youStroke)
-                : kuthamColor ? kuthamColor.stroke
-                : isSpouse    ? C.spouseStroke
-                : isRight     ? C.derivedStroke
+  const stroke  = isOffline     ? '#9CA3AF'
+                : isYou         ? (youKuthamColor ? youKuthamColor.stroke : C.youStroke)
+                : unknownKutham ? '#9CA3AF'
+                : kuthamColor   ? kuthamColor.stroke
                 : C.bloodStroke;
 
-  const textColor = isOffline   ? '#6B7280'
-                  : isYou       ? '#FFFFFF'
-                  : kuthamColor ? kuthamColor.text
-                  : isRight     ? C.derivedText
+  const textColor = isOffline     ? '#6B7280'
+                  : isYou         ? '#FFFFFF'
+                  : unknownKutham ? '#6B7280'
+                  : kuthamColor   ? kuthamColor.text
                   : C.bloodText;
   const opacity = isOffline ? 0.65 : 1;
 
@@ -167,7 +169,11 @@ function drawNode(g, node, photoMap, kuthamMap) {
     g.append('circle')
       .attr('cx', NODE_W / 2).attr('cy', photoY + photoSize / 2)
       .attr('r', photoSize / 2)
-      .attr('fill', isOffline ? '#D1D5DB' : isYou ? '#5B21B6' : isRight ? '#FEF3C7' : '#DDD6FE');
+      .attr('fill', isOffline ? '#D1D5DB'
+                  : isYou ? '#5B21B6'
+                  : unknownKutham ? '#E5E7EB'
+                  : kuthamColor ? kuthamColor.fill
+                  : '#DDD6FE');
 
     // Offline: show dove emoji, others: show initial
     g.append('text')
@@ -416,11 +422,11 @@ function buildTree(relationships, currentUser, photoMap, svgRef) {
   }
 
   const nodesG = svgEl.append('g');
-  // Build kutham color map — assign index per unique kutham
+  // Build kutham color map — assign index per unique NON-NULL kutham only
   const kuthamMap = new Map();
   let kuthamIdx = 0;
   positioned.forEach(node => {
-    if (node.kutham && !kuthamMap.has(node.kutham)) {
+    if (node.kutham && node.kutham.trim() !== '' && !kuthamMap.has(node.kutham)) {
       kuthamMap.set(node.kutham, kuthamIdx++);
     }
   });
@@ -458,13 +464,13 @@ export default function FamilyTree({ relationships, currentUser }) {
     <div className="w-full">
       <div className="flex flex-wrap gap-4 mb-4 text-xs text-gray-500 px-1">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-purple-200 border border-purple-500 inline-block"></span> My Blood
+          <span className="w-3 h-3 rounded bg-purple-500 inline-block"></span> Same Kutham
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-purple-500 inline-block"></span> Direct Line
+          <span className="w-3 h-3 rounded bg-gray-200 border border-gray-400 inline-block"></span> Kutham Unknown
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-amber-100 border border-amber-400 inline-block"></span> Wife's Relations
+          <span className="w-3 h-3 rounded bg-gray-200 border border-gray-400 inline-block" style={{opacity:0.6}}></span> 🕊️ Deceased
         </span>
         <span className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Verified
