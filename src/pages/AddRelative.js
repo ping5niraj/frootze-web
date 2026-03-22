@@ -12,13 +12,17 @@ import axios from 'axios';
 const BASE_URL = process.env.REACT_APP_PMF_API || 'https://pingmyfamily-backend-production.up.railway.app';
 
 const RELATIONS = [
-  { value: 'father',   tamil: 'அப்பா',        english: 'Father'   },
-  { value: 'mother',   tamil: 'அம்மா',        english: 'Mother'   },
-  { value: 'spouse',   tamil: 'மனைவி/கணவன்',  english: 'Spouse'   },
-  { value: 'brother',  tamil: 'அண்ணன்/தம்பி', english: 'Brother'  },
-  { value: 'sister',   tamil: 'அக்கா/தங்கை',  english: 'Sister'   },
-  { value: 'son',      tamil: 'மகன்',          english: 'Son'      },
-  { value: 'daughter', tamil: 'மகள்',          english: 'Daughter' },
+  { value: 'father',               tamil: 'அப்பா',           english: 'Father'             },
+  { value: 'mother',               tamil: 'அம்மா',           english: 'Mother'             },
+  { value: 'spouse',               tamil: 'மனைவி/கணவன்',    english: 'Spouse'             },
+  { value: 'brother',              tamil: 'அண்ணன்/தம்பி',   english: 'Brother'            },
+  { value: 'sister',               tamil: 'அக்கா/தங்கை',    english: 'Sister'             },
+  { value: 'son',                  tamil: 'மகன்',             english: 'Son'                },
+  { value: 'daughter',             tamil: 'மகள்',             english: 'Daughter'           },
+  { value: 'grandfather_paternal', tamil: 'தாத்தா (அப்பா பக்கம்)', english: "Grandfather (Father's side)" },
+  { value: 'grandmother_paternal', tamil: 'பாட்டி (அப்பா பக்கம்)', english: "Grandmother (Father's side)" },
+  { value: 'grandfather_maternal', tamil: 'தாத்தா (அம்மா பக்கம்)', english: "Grandfather (Mother's side)" },
+  { value: 'grandmother_maternal', tamil: 'பாட்டி (அம்மா பக்கம்)', english: "Grandmother (Mother's side)" },
 ];
 
 const sectionBox = {
