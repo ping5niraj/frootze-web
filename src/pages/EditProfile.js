@@ -7,6 +7,10 @@ import {
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
+const ADMIN_WHATSAPP = '919513430615';
+const ADMIN_EMAIL    = 'support@nalamini.com';
+const ADMIN_TELEGRAM = 'FamilyRootsTeleBot';
+
 export default function EditProfile() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
@@ -16,6 +20,8 @@ export default function EditProfile() {
     name: '', gender: '', date_of_birth: '',
     kutham: '', address: '', pincode: '', district: '', city: ''
   });
+  const [kuthams, setKuthams] = useState([]);
+  const [showContactAdmin, setShowContactAdmin] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState('');
   const [photoLoading, setPhotoLoading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -24,6 +30,7 @@ export default function EditProfile() {
   const [photoError, setPhotoError] = useState('');
 
   useEffect(() => {
+    // Load profile
     api.get('/api/users/me').then(res => {
       const u = res.data.user;
       setForm({
@@ -38,6 +45,11 @@ export default function EditProfile() {
       });
       setProfilePhoto(u.profile_photo || '');
     });
+
+    // Load kutham list
+    api.get('/api/kuthams').then(res => {
+      setKuthams(res.data.kuthams || []);
+    }).catch(() => setKuthams([]));
   }, []);
 
   const inputStyle = {
@@ -56,27 +68,16 @@ export default function EditProfile() {
   const handlePhotoChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      setPhotoError('Photo must be under 5MB');
-      return;
-    }
-
-    setPhotoLoading(true);
-    setPhotoError('');
-    setSuccess('');
-
+    if (file.size > 5 * 1024 * 1024) { setPhotoError('Photo must be under 5MB'); return; }
+    setPhotoLoading(true); setPhotoError(''); setSuccess('');
     try {
       const formData = new FormData();
       formData.append('photo', file);
-
       const res = await api.post('/api/photos/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-
       setProfilePhoto(res.data.photo_url);
-      const updatedUser = { ...user, profile_photo: res.data.photo_url };
-      login(localStorage.getItem('pmf_token'), updatedUser);
+      login(localStorage.getItem('pmf_token'), { ...user, profile_photo: res.data.photo_url });
       setSuccess('📸 புகைப்படம் புதுப்பிக்கப்பட்டது / Photo updated!');
     } catch (e) {
       setPhotoError(e.response?.data?.error || 'Photo upload failed');
@@ -97,6 +98,10 @@ export default function EditProfile() {
     } finally { setLoading(false); }
   };
 
+  const adminMessage = encodeURIComponent(
+    `வணக்கம்!\n\nfrootze-ல் என் குலப்பெயரை சேர்க்க கோருகிறேன்.\n\nபெயர்: ${form.name}\nதொலைபேசி: ${user?.phone}\nகுலப்பெயர்: [உங்கள் குலப்பெயர்]\n\nHi, I would like to add my kutham/family name to frootze.\nName: ${form.name}\nPhone: ${user?.phone}\nKutham: [your kutham name]`
+  );
+
   return (
     <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)"
       px={{ base: 4, md: 8 }} py={6}>
@@ -114,64 +119,34 @@ export default function EditProfile() {
           </HStack>
         </Box>
 
-        {/* Photo Upload Section */}
+        {/* Photo Section */}
         <Box {...sectionBox}>
           <VStack spacing={4} align="center">
             <Text fontSize="md" fontWeight="600" color="whiteAlpha.800" alignSelf="flex-start">
               📸 புகைப்படம் / Profile Photo
             </Text>
-
-            {/* Hidden file input */}
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              id="photo-upload-input"
-              style={{ display: 'none' }}
-              onChange={handlePhotoChange}
-            />
-
-            {/* Clickable avatar — clicking photo itself opens file picker */}
+            <input type="file" accept="image/*" ref={fileInputRef}
+              id="photo-upload-input" style={{ display: 'none' }}
+              onChange={handlePhotoChange} />
             <Box position="relative" cursor="pointer"
               onClick={() => !photoLoading && fileInputRef.current?.click()}>
-              <Avatar
-                size="2xl"
-                name={form.name || user?.name}
-                src={profilePhoto}
-                border="3px solid"
-                borderColor="purple.400"
-              />
-              {/* Camera overlay */}
-              <Box
-                position="absolute" bottom="0" right="0"
-                bg="purple.600" borderRadius="full"
-                w="32px" h="32px"
+              <Avatar size="2xl" name={form.name || user?.name} src={profilePhoto}
+                border="3px solid" borderColor="purple.400" />
+              <Box position="absolute" bottom="0" right="0" bg="purple.600"
+                borderRadius="full" w="32px" h="32px"
                 display="flex" alignItems="center" justifyContent="center"
-                border="2px solid white"
-                fontSize="14px">
+                border="2px solid white" fontSize="14px">
                 {photoLoading ? <Spinner size="xs" color="white" /> : '📷'}
               </Box>
             </Box>
-
-            <Text color="whiteAlpha.500" fontSize="xs">
-              புகைப்படத்தை கிளிக் செய்யவும் / Click photo to change
-            </Text>
-
-            {/* Also a plain HTML label as fallback */}
             <label htmlFor="photo-upload-input" style={{
-              display: 'inline-block',
-              padding: '10px 24px',
+              display: 'inline-block', padding: '10px 24px',
               background: 'linear-gradient(to right, #7C3AED, #6D28D9)',
-              color: 'white',
-              borderRadius: '12px',
-              fontSize: '14px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              border: 'none'
+              color: 'white', borderRadius: '12px', fontSize: '14px',
+              fontWeight: '700', cursor: 'pointer'
             }}>
               {photoLoading ? 'Uploading...' : '📷 புகைப்படம் மாற்று / Change Photo'}
             </label>
-
             {profilePhoto && !photoLoading && (
               <Button size="sm" variant="ghost" color="red.400"
                 onClick={async () => {
@@ -180,16 +155,13 @@ export default function EditProfile() {
                     setProfilePhoto('');
                     login(localStorage.getItem('pmf_token'), { ...user, profile_photo: null });
                   } catch (e) {}
-                }}
-                _hover={{ color: 'red.300', bg: 'red.900' }}>
-                🗑️ புகைப்படம் நீக்கு / Remove Photo
+                }} _hover={{ color: 'red.300', bg: 'red.900' }}>
+                🗑️ நீக்கு / Remove
               </Button>
             )}
-
             {photoError && <Text color="red.300" fontSize="sm">{photoError}</Text>}
             {success && success.includes('Photo') && (
-              <Box bg="green.900" border="1px solid" borderColor="green.500"
-                borderRadius="xl" px={4} py={2}>
+              <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={2}>
                 <Text color="green.200" fontSize="sm">{success}</Text>
               </Box>
             )}
@@ -225,11 +197,68 @@ export default function EditProfile() {
                 onChange={e => setForm({...form, date_of_birth: e.target.value})} {...inputStyle} />
             </FormControl>
 
+            {/* Kutham Dropdown */}
             <FormControl>
               <FormLabel {...labelStyle}>குலம் / Kutham</FormLabel>
-              <Input value={form.kutham} onChange={e => setForm({...form, kutham: e.target.value})}
-                placeholder="உதா: வேளாளர்" {...inputStyle} />
+              <Select
+                value={form.kutham}
+                onChange={e => {
+                  if (e.target.value === '__contact_admin__') {
+                    setShowContactAdmin(true);
+                    setForm({...form, kutham: ''});
+                  } else {
+                    setShowContactAdmin(false);
+                    setForm({...form, kutham: e.target.value});
+                  }
+                }}
+                {...inputStyle}
+                placeholder="குலத்தை தேர்வு செய்யவும் / Select Kutham">
+                {kuthams.map(k => (
+                  <option key={k.id} value={k.name} style={{background:'#1e1b4b'}}>
+                    {k.name}
+                  </option>
+                ))}
+                <option value="__contact_admin__" style={{background:'#1e1b4b', color:'#F59E0B'}}>
+                  ➕ என் குலம் இல்லை — Admin-ஐ தொடர்பு கொள்ளவும்
+                </option>
+              </Select>
             </FormControl>
+
+            {/* Contact Admin Section */}
+            {showContactAdmin && (
+              <Box bg="orange.900" border="1px solid" borderColor="orange.500"
+                borderRadius="xl" px={4} py={4}>
+                <Text color="orange.200" fontSize="sm" fontWeight="700" mb={1}>
+                  📋 உங்கள் குலப்பெயரை சேர்க்க Admin-ஐ தொடர்பு கொள்ளவும்
+                </Text>
+                <Text color="orange.300" fontSize="xs" mb={4}>
+                  Contact admin to add your family/kutham name to the approved list
+                </Text>
+                <VStack spacing={3} align="stretch">
+                  <Button
+                    h="44px" borderRadius="xl" fontSize="sm" fontWeight="700"
+                    bg="green.600" color="white"
+                    onClick={() => window.open(`https://wa.me/${ADMIN_WHATSAPP}?text=${adminMessage}`, '_blank')}
+                    _hover={{ bg: 'green.700' }}>
+                    📱 WhatsApp Admin
+                  </Button>
+                  <Button
+                    h="44px" borderRadius="xl" fontSize="sm" fontWeight="700"
+                    bg="blue.600" color="white"
+                    onClick={() => window.open(`https://t.me/${ADMIN_TELEGRAM}`, '_blank')}
+                    _hover={{ bg: 'blue.700' }}>
+                    ✈️ Telegram — @{ADMIN_TELEGRAM}
+                  </Button>
+                  <Button
+                    h="44px" borderRadius="xl" fontSize="sm" fontWeight="700"
+                    bg="purple.600" color="white"
+                    onClick={() => window.open(`mailto:${ADMIN_EMAIL}?subject=Kutham Addition Request&body=${decodeURIComponent(adminMessage)}`, '_blank')}
+                    _hover={{ bg: 'purple.700' }}>
+                    📧 Email — {ADMIN_EMAIL}
+                  </Button>
+                </VStack>
+              </Box>
+            )}
 
             <FormControl>
               <FormLabel {...labelStyle}>முகவரி / Address</FormLabel>
