@@ -46,6 +46,33 @@ export default function Dashboard() {
     if (user?.id) fetchData();
   }, [user]);
 
+  // Separate fetch for extended tree — fires when user.id is ready
+  useEffect(() => {
+    if (!user?.id) return;
+    api.get(`/api/relationships/tree/${user.id}`)
+      .then(treeRes => {
+        const extNodes = (treeRes.data.nodes || []).map(n => ({
+          id: n.id,
+          relation_type: n.relation_type,
+          relation_tamil: n.relation_tamil,
+          verification_status: 'verified',
+          is_offline: n.is_offline,
+          offline_name: n.offline_name,
+          offline_gender: n.offline_gender,
+          to_user: {
+            id: n.id,
+            name: n.name,
+            phone: null,
+            kutham: n.kutham,
+            is_offline: n.is_offline,
+            offline_gender: n.offline_gender,
+          }
+        }));
+        setExtendedRelationships(extNodes);
+      })
+      .catch(() => setExtendedRelationships([]));
+  }, [user?.id]);
+
   const fetchData = async () => {
     try {
       const res = await getMyRelationships();
