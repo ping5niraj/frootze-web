@@ -8,7 +8,6 @@ import {
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
-import html2canvas from 'html2canvas';
 
 const BASE_URL = process.env.REACT_APP_PMF_API || 'https://pingmyfamily-backend-production.up.railway.app';
 
@@ -52,149 +51,15 @@ export default function AddRelative() {
   const [offlineGender, setOfflineGender] = useState('');
   const [relationType, setRelationType] = useState('');
   const [loading, setLoading] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showInvitePrompt, setShowInvitePrompt] = useState(false);
   const [notifStatus, setNotifStatus] = useState({ whatsapp: false, email: false, telegram: false });
   const [whatsappLink, setWhatsappLink] = useState('');
-  const [treeCapturing, setTreeCapturing] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [shareData, setShareData] = useState(null);
-  const [copied, setCopied] = useState(false);
 
   const selectedRelation = RELATIONS.find(r => r.value === relationType);
 
-  // ── Generate beautiful invite image with actual tree ──
-  const generateInviteImage = async () => {
-    try {
-      const res = await api.get('/api/relationships/mine');
-      const members = res.data.my_relationships || [];
-
-      const W = 800;
-      const HEADER = 140;
-      const FOOTER = 120;
-      const TREE_SECTION = 420;
-      const H = HEADER + TREE_SECTION + FOOTER;
-
-      const canvas = document.createElement('canvas');
-      canvas.width = W; canvas.height = H;
-      const ctx = canvas.getContext('2d');
-
-      // Background
-      ctx.fillStyle = '#0f0c29';
-      ctx.fillRect(0, 0, W, H);
-
-      // Header gradient band
-      const headerGrad = ctx.createLinearGradient(0, 0, W, HEADER);
-      headerGrad.addColorStop(0, '#7C3AED');
-      headerGrad.addColorStop(1, '#5B21B6');
-      ctx.fillStyle = headerGrad;
-      ctx.beginPath(); ctx.roundRect(0, 0, W, HEADER, [0,0,24,24]); ctx.fill();
-
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 38px Arial'; ctx.textAlign = 'center';
-      ctx.fillText('🌳 frootze', W/2, 52);
-      ctx.font = '16px Arial'; ctx.fillStyle = '#DDD6FE';
-      ctx.fillText(`${user?.name} உங்களை குடும்ப மரத்தில் சேர அழைக்கிறார்`, W/2, 82);
-      ctx.font = '14px Arial'; ctx.fillStyle = '#A78BFA';
-      ctx.fillText('is inviting you to join their family tree', W/2, 108);
-      ctx.font = '13px Arial'; ctx.fillStyle = 'rgba(196,181,253,0.7)';
-      ctx.fillText(`${members.length} members already in the tree`, W/2, 130);
-
-      // Tree section — embed actual tree image from sessionStorage
-      const cachedTree = sessionStorage.getItem('pmf_tree_image');
-      if (cachedTree) {
-        const treeImg = new Image();
-        await new Promise((resolve) => {
-          treeImg.onload = resolve;
-          treeImg.onerror = resolve;
-          treeImg.src = cachedTree;
-        });
-        // Draw tree image scaled to fit
-        const treeX = 20;
-        const treeY = HEADER + 10;
-        const treeW = W - 40;
-        const treeH = TREE_SECTION - 20;
-        // White bg for tree area
-        ctx.fillStyle = '#FFFFFF';
-        ctx.beginPath(); ctx.roundRect(treeX, treeY, treeW, treeH, 16); ctx.fill();
-        // Clip and draw tree
-        ctx.save();
-        ctx.beginPath(); ctx.roundRect(treeX, treeY, treeW, treeH, 16); ctx.clip();
-        ctx.drawImage(treeImg, treeX, treeY, treeW, treeH);
-        ctx.restore();
-      } else {
-        // Fallback — draw member list if no cached tree
-        ctx.fillStyle = 'rgba(124,58,237,0.15)';
-        ctx.beginPath(); ctx.roundRect(20, HEADER+10, W-40, TREE_SECTION-20, 16); ctx.fill();
-        ctx.fillStyle = '#A78BFA'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
-        ctx.fillText('குடும்பத்தினர் / Family Members', W/2, HEADER+50);
-        members.slice(0,6).forEach((m, i) => {
-          const col = i % 2; const row = Math.floor(i/2);
-          const x = 60 + col * 340; const y = HEADER + 80 + row * 45;
-          ctx.fillStyle = '#5B21B6';
-          ctx.beginPath(); ctx.arc(x+15, y+10, 14, 0, Math.PI*2); ctx.fill();
-          ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center';
-          const nm = m.to_user?.name || m.offline_name || '?';
-          ctx.fillText(nm.charAt(0).toUpperCase(), x+15, y+15);
-          ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'left';
-          ctx.fillText(nm.length > 14 ? nm.substring(0,14)+'…' : nm, x+38, y+8);
-          ctx.fillStyle = '#C4B5FD'; ctx.font = '11px Arial';
-          ctx.fillText(m.relation_tamil||'', x+38, y+24);
-        });
-      }
-
-      // CTA Footer
-      const ctaY = HEADER + TREE_SECTION;
-      const ctaGrad = ctx.createLinearGradient(0, ctaY, W, ctaY+FOOTER);
-      ctaGrad.addColorStop(0, '#7C3AED'); ctaGrad.addColorStop(1, '#059669');
-      ctx.fillStyle = ctaGrad;
-      ctx.beginPath(); ctx.roundRect(0, ctaY, W, FOOTER, [24,24,0,0]); ctx.fill();
-
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center';
-      ctx.fillText('இப்போதே சேருங்கள்! Join Now! 🌟', W/2, ctaY+38);
-      ctx.font = 'bold 32px Arial';
-      ctx.fillText('www.frootze.com', W/2, ctaY+80);
-      ctx.font = '14px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.7)';
-      ctx.fillText('Free · இலவசம் · frootze குடும்ப மரம் 🌳', W/2, ctaY+108);
-
-      return canvas.toDataURL('image/png');
-    } catch(e) { console.error('Invite image gen failed:', e); return null; }
-  };
-
-  // ── Generate simple tree image (kept for reference) ──
-  const generateTreeImage = generateInviteImage;
-
-  // ── Handle share platform ──
-  const handleShare = (platform) => {
-    if (!shareData) return;
-    const { inviteText, sharePhone, shareEmail } = shareData;
-    const encodedText = encodeURIComponent(inviteText);
-    const frootzeUrl = encodeURIComponent('https://frootze.com');
-    switch(platform) {
-      case 'whatsapp':
-        window.open(`https://wa.me/91${sharePhone}?text=${encodedText}`, '_blank'); break;
-      case 'telegram':
-        window.open(`https://t.me/share/url?url=https://frootze.com&text=${encodedText}`, '_blank'); break;
-      case 'facebook':
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${frootzeUrl}`, '_blank'); break;
-      case 'instagram':
-        navigator.clipboard.writeText(inviteText + '\n\nhttps://frootze.com');
-        window.open('https://www.instagram.com/', '_blank');
-        alert('✅ Message copied! Paste it in your Instagram post or story.');
-        break;
-      case 'email':
-        const subject = encodeURIComponent(`${user?.name} உங்களை frootze குடும்ப மரத்தில் சேர அழைக்கிறார்!`);
-        window.open(`mailto:${shareEmail || ''}?subject=${subject}&body=${encodedText}`, '_blank'); break;
-      case 'copy':
-        navigator.clipboard.writeText(inviteText + '\n\nhttps://frootze.com');
-        setCopied(true); setTimeout(() => setCopied(false), 2000); break;
-      default: break;
-    }
-  };
-
-  // ── Handle Add (online/offline) ──
   const handleAdd = async () => {
     setError(''); setSuccess(''); setShowInvitePrompt(false);
     if (!relationType) { setError('உறவை தேர்வு செய்யவும்'); return; }
@@ -250,345 +115,265 @@ export default function AddRelative() {
     } finally { setLoading(false); }
   };
 
-  // ── Handle Send Invite (unregistered) ──
   const handleSendInvite = async () => {
-    setTreeCapturing(true);
+    setInviteLoading(true);
     setShowInvitePrompt(false);
     try {
-      const imageUrl = await generateTreeImage();
-      if (imageUrl) {
+      // Download cached tree image if available
+      const cachedTree = sessionStorage.getItem('pmf_tree_image');
+      if (cachedTree) {
         const a = document.createElement('a');
-        a.href = imageUrl; a.download = `${user?.name}-family-tree-frootze.png`; a.click();
+        a.href = cachedTree;
+        a.download = `${user?.name}-frootze-family-tree.png`;
+        a.click();
       }
+
+      // Build WhatsApp message
       const res2 = await api.get('/api/relationships/mine');
       const members2 = (res2.data.my_relationships || []).slice(0, 5);
-      const gIcon = (rel) => {
-        if (['father','brother','son','grandfather_paternal','grandfather_maternal'].includes(rel.relation_type)) return '👨';
-        if (['mother','sister','daughter','grandmother_paternal','grandmother_maternal'].includes(rel.relation_type)) return '👩';
-        return '👤';
-      };
-      const memberLines = members2.map(m => `${gIcon(m)} *${m.to_user?.name || m.offline_name}* — ${m.relation_tamil}`).join('\n');
-      const inviteText = [
-        `🌳 *உங்கள் குடும்பம் frootze-ல் உங்களுக்காக காத்திருக்கிறது!*`,
-        `_(Your family is waiting for you on frootze!)_`,
-        ``,
-        memberLines ? `நமது குடும்ப மரத்தில் ஏற்கனவே உள்ளவர்கள்:\n${memberLines}` : ``,
-        ``,
-        `*${user?.name}* உங்களை *${selectedRelation?.tamil || 'குடும்பத்தினர்'}* ஆக சேர்க்க அழைக்கிறார்.`,
-        ``,
-        imageUrl ? `👆 *படத்தில் நம் குடும்ப மரத்தை பாருங்கள்!*\n_(Attach the downloaded image)_` : ``,
-        ``,
-        `உங்கள் இடம் காலியாக உள்ளது — இப்போதே சேருங்கள்! 🌟`,
-        `👇`,
-        `🔗 *https://frootze.com*`,
-        ``,
-        `_இலவசம் · frootze குடும்ப மரம்_ 🌳`,
-      ].filter(l => l !== undefined).join('\n');
+      const memberLines = members2.map(m => {
+        const nm = m.to_user?.name || m.offline_name || '';
+        return `• ${nm} (${m.relation_tamil})`;
+      }).join('\n');
 
-      setShareData({ inviteText, sharePhone: phone, shareEmail: email, imageUrl });
-      setShowShareModal(true);
+      const waText =
+        `🌳 ${user?.name} உங்களை frootze குடும்ப மரத்தில் சேர அழைக்கிறார்!\n\n` +
+        (memberLines ? `நமது குடும்பத்தினர்:\n${memberLines}\n\n` : '') +
+        `இப்போதே சேருங்கள்:\nhttps://frootze.com\n\nஇலவசம் 🌳`;
+
+      setTimeout(() => {
+        window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(waText)}`, '_blank');
+      }, cachedTree ? 800 : 0);
+
+      setSuccess(cachedTree
+        ? '✅ படம் பதிவிறக்கம் ஆனது! WhatsApp திறக்கும் — படத்தை 📎 மூலம் இணைத்து அனுப்பவும்.\nImage downloaded! Open WhatsApp → tap 📎 → attach image → Send'
+        : '📨 அழைப்பு அனுப்பப்பட்டது!');
+
     } catch(e) {
-      console.error(e);
-    } finally { setTreeCapturing(false); }
+      setSuccess('📨 அழைப்பு அனுப்பப்பட்டது!');
+    } finally { setInviteLoading(false); }
   };
 
   return (
-    <>
-      <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)"
-        px={{ base: 4, md: 8 }} py={6}>
-        <VStack w="100%" maxW="900px" mx="auto" spacing={4} align="stretch">
+    <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)"
+      px={{ base: 4, md: 8 }} py={6}>
+      <VStack w="100%" maxW="900px" mx="auto" spacing={4} align="stretch">
 
-          {/* Header */}
-          <Box {...sectionBox} py={5}>
-            <HStack spacing={3}>
-              <Box as="button" onClick={() => navigate('/dashboard')} color="whiteAlpha.600" fontSize="xl" _hover={{ color: 'white' }}>←</Box>
-              <Box>
-                <Heading fontSize={{ base: 'xl', md: '2xl' }} color="white">👨‍👩‍👧 குடும்பத்தினரை சேர்</Heading>
-                <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.500">Add Family Member</Text>
-              </Box>
-            </HStack>
-          </Box>
+        {/* Header */}
+        <Box {...sectionBox} py={5}>
+          <HStack spacing={3}>
+            <Box as="button" onClick={() => navigate('/dashboard')} color="whiteAlpha.600" fontSize="xl" _hover={{ color: 'white' }}>←</Box>
+            <Box>
+              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="white">👨‍👩‍👧 குடும்பத்தினரை சேர்</Heading>
+              <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.500">Add Family Member</Text>
+            </Box>
+          </HStack>
+        </Box>
 
-          {/* Online / Offline Toggle */}
-          <Box {...sectionBox} py={4}>
-            <Text fontSize="sm" fontWeight="600" color="whiteAlpha.700" mb={3}>
-              இவர் frootze-ல் உள்ளாரா? / Are they on frootze?
+        {/* Online / Offline Toggle */}
+        <Box {...sectionBox} py={4}>
+          <Text fontSize="sm" fontWeight="600" color="whiteAlpha.700" mb={3}>
+            இவர் frootze-ல் உள்ளாரா? / Are they on frootze?
+          </Text>
+          <HStack spacing={3}>
+            <Button flex={1} h="48px"
+              bg={!isOffline ? 'purple.600' : 'whiteAlpha.100'}
+              color={!isOffline ? 'white' : 'whiteAlpha.600'}
+              border="1px solid" borderColor={!isOffline ? 'purple.400' : 'whiteAlpha.200'}
+              borderRadius="xl" fontSize="sm" fontWeight="700"
+              onClick={() => { setIsOffline(false); setError(''); setSuccess(''); }}
+              _hover={{ bg: !isOffline ? 'purple.700' : 'whiteAlpha.200' }}>
+              📱 ஆம் — frootze-ல் உள்ளார் / Yes
+            </Button>
+            <Button flex={1} h="48px"
+              bg={isOffline ? 'orange.700' : 'whiteAlpha.100'}
+              color={isOffline ? 'white' : 'whiteAlpha.600'}
+              border="1px solid" borderColor={isOffline ? 'orange.400' : 'whiteAlpha.200'}
+              borderRadius="xl" fontSize="sm" fontWeight="700"
+              onClick={() => { setIsOffline(true); setError(''); setSuccess(''); }}
+              _hover={{ bg: isOffline ? 'orange.800' : 'whiteAlpha.200' }}>
+              🕊️ இல்லை — காலமானவர் / Deceased
+            </Button>
+          </HStack>
+        </Box>
+
+        {/* Form */}
+        <Box {...sectionBox} py={{ base: 6, md: 8 }}>
+          <VStack spacing={5} align="stretch">
+            <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="600" color="whiteAlpha.800">
+              அடிப்படை விவரம் / Basic Details
             </Text>
-            <HStack spacing={3}>
-              <Button flex={1} h="48px"
-                bg={!isOffline ? 'purple.600' : 'whiteAlpha.100'}
-                color={!isOffline ? 'white' : 'whiteAlpha.600'}
-                border="1px solid" borderColor={!isOffline ? 'purple.400' : 'whiteAlpha.200'}
-                borderRadius="xl" fontSize="sm" fontWeight="700"
-                onClick={() => { setIsOffline(false); setError(''); setSuccess(''); }}
-                _hover={{ bg: !isOffline ? 'purple.700' : 'whiteAlpha.200' }}>
-                📱 ஆம் — frootze-ல் உள்ளார் / Yes
-              </Button>
-              <Button flex={1} h="48px"
-                bg={isOffline ? 'orange.700' : 'whiteAlpha.100'}
-                color={isOffline ? 'white' : 'whiteAlpha.600'}
-                border="1px solid" borderColor={isOffline ? 'orange.400' : 'whiteAlpha.200'}
-                borderRadius="xl" fontSize="sm" fontWeight="700"
-                onClick={() => { setIsOffline(true); setError(''); setSuccess(''); }}
-                _hover={{ bg: isOffline ? 'orange.800' : 'whiteAlpha.200' }}>
-                🕊️ இல்லை — காலமானவர் / Deceased
-              </Button>
-            </HStack>
-          </Box>
 
-          {/* Form */}
-          <Box {...sectionBox} py={{ base: 6, md: 8 }}>
-            <VStack spacing={5} align="stretch">
-              <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="600" color="whiteAlpha.800">
-                அடிப்படை விவரம் / Basic Details
-              </Text>
+            <FormControl>
+              <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>உறவு / Relation *</FormLabel>
+              <Select placeholder="உறவை தேர்வு செய்யவும்" value={relationType}
+                onChange={e => setRelationType(e.target.value)} {...inputStyle}>
+                {RELATIONS.map(r => (
+                  <option key={r.value} value={r.value} style={{ background: '#1e1b4b' }}>
+                    {r.tamil} / {r.english}
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
 
-              <FormControl>
-                <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>உறவு / Relation *</FormLabel>
-                <Select placeholder="உறவை தேர்வு செய்யவும்" value={relationType}
-                  onChange={e => setRelationType(e.target.value)} {...inputStyle}>
-                  {RELATIONS.map(r => (
-                    <option key={r.value} value={r.value} style={{ background: '#1e1b4b' }}>
-                      {r.tamil} / {r.english}
-                    </option>
-                  ))}
-                </Select>
-              </FormControl>
+            {!isOffline && (
+              <>
+                <FormControl>
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>தொலைபேசி எண் / Phone *</FormLabel>
+                  <InputGroup size="lg">
+                    <InputLeftAddon bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
+                      color="white" fontSize="sm" fontWeight="600" h={{ base: '50px', md: '56px' }} px={4}>
+                      🇮🇳 +91
+                    </InputLeftAddon>
+                    <Input type="tel" maxLength={10} placeholder="9999999999"
+                      value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
+                      {...inputStyle} />
+                  </InputGroup>
+                </FormControl>
+                <FormControl>
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>📧 Email (optional)</FormLabel>
+                  <Input type="email" placeholder="relative@email.com"
+                    value={email} onChange={e => setEmail(e.target.value)} {...inputStyle} />
+                </FormControl>
+                <Box bg="purple.900" border="1px solid" borderColor="purple.600" borderRadius="xl" px={4} py={3}>
+                  <Text fontSize="xs" color="purple.300" fontWeight="600" mb={1}>💡 குறிப்பு / Note</Text>
+                  <Text fontSize="xs" color="purple.200">கோரிக்கை அனுப்பியதும் WhatsApp தானாக திறக்கும். அவர் frootze Dashboard-ல் ஏற்கலாம்.</Text>
+                </Box>
+              </>
+            )}
 
-              {!isOffline && (
-                <>
-                  <FormControl>
-                    <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>தொலைபேசி எண் / Phone *</FormLabel>
-                    <InputGroup size="lg">
-                      <InputLeftAddon bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
-                        color="white" fontSize="sm" fontWeight="600" h={{ base: '50px', md: '56px' }} px={4}>
-                        🇮🇳 +91
-                      </InputLeftAddon>
-                      <Input type="tel" maxLength={10} placeholder="9999999999"
-                        value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
-                        {...inputStyle} />
-                    </InputGroup>
-                  </FormControl>
-                  <FormControl>
-                    <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>📧 Email (optional)</FormLabel>
-                    <Input type="email" placeholder="relative@email.com"
-                      value={email} onChange={e => setEmail(e.target.value)} {...inputStyle} />
-                  </FormControl>
-                  <Box bg="purple.900" border="1px solid" borderColor="purple.600" borderRadius="xl" px={4} py={3}>
-                    <Text fontSize="xs" color="purple.300" fontWeight="600" mb={1}>💡 குறிப்பு / Note</Text>
-                    <Text fontSize="xs" color="purple.200">கோரிக்கை அனுப்பியதும் WhatsApp தானாக திறக்கும். அவர் frootze Dashboard-ல் ஏற்கலாம்.</Text>
-                  </Box>
-                </>
-              )}
+            {isOffline && (
+              <>
+                <Box bg="orange.900" border="1px solid" borderColor="orange.600" borderRadius="xl" px={4} py={3}>
+                  <Text fontSize="xs" color="orange.300" fontWeight="600" mb={1}>🕊️ காலமானவர் / Deceased Member</Text>
+                  <Text fontSize="xs" color="orange.200">இவர் நேரடியாக குடும்ப மரத்தில் சேர்க்கப்படுவார். தொலைபேசி தேவையில்லை.</Text>
+                </Box>
+                <FormControl>
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>பெயர் / Name *</FormLabel>
+                  <Input placeholder="உதா: Raman Kumar" value={offlineName}
+                    onChange={e => setOfflineName(e.target.value)} {...inputStyle} />
+                </FormControl>
+                <FormControl>
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>பாலினம் / Gender *</FormLabel>
+                  <Select placeholder="தேர்வு செய்யவும்" value={offlineGender}
+                    onChange={e => setOfflineGender(e.target.value)} {...inputStyle}>
+                    <option value="male" style={{ background: '#1e1b4b' }}>ஆண் / Male</option>
+                    <option value="female" style={{ background: '#1e1b4b' }}>பெண் / Female</option>
+                  </Select>
+                </FormControl>
+              </>
+            )}
+          </VStack>
+        </Box>
 
-              {isOffline && (
-                <>
-                  <Box bg="orange.900" border="1px solid" borderColor="orange.600" borderRadius="xl" px={4} py={3}>
-                    <Text fontSize="xs" color="orange.300" fontWeight="600" mb={1}>🕊️ காலமானவர் / Deceased Member</Text>
-                    <Text fontSize="xs" color="orange.200">இவர் நேரடியாக குடும்ப மரத்தில் சேர்க்கப்படுவார். தொலைபேசி தேவையில்லை.</Text>
-                  </Box>
-                  <FormControl>
-                    <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>பெயர் / Name *</FormLabel>
-                    <Input placeholder="உதா: Raman Kumar" value={offlineName}
-                      onChange={e => setOfflineName(e.target.value)} {...inputStyle} />
-                  </FormControl>
-                  <FormControl>
-                    <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>பாலினம் / Gender *</FormLabel>
-                    <Select placeholder="தேர்வு செய்யவும்" value={offlineGender}
-                      onChange={e => setOfflineGender(e.target.value)} {...inputStyle}>
-                      <option value="male" style={{ background: '#1e1b4b' }}>ஆண் / Male</option>
-                      <option value="female" style={{ background: '#1e1b4b' }}>பெண் / Female</option>
-                    </Select>
-                  </FormControl>
-                </>
-              )}
-            </VStack>
-          </Box>
+        {/* Result Section */}
+        <Box {...sectionBox} py={{ base: 5, md: 6 }}>
+          <VStack spacing={4} align="stretch">
 
-          {/* Result Section */}
-          <Box {...sectionBox} py={{ base: 5, md: 6 }}>
-            <VStack spacing={4} align="stretch">
-
-              {showInvitePrompt && (
-                <Box bg="yellow.900" border="1px solid" borderColor="yellow.500" borderRadius="xl" px={4} py={4}>
-                  <Text color="yellow.200" fontSize={{ base: 'sm', md: 'md' }} fontWeight="700" mb={1}>
-                    ⚠️ இந்த எண் frootze-ல் பதிவு செய்யப்படவில்லை
+            {/* Unregistered invite prompt */}
+            {showInvitePrompt && (
+              <Box bg="yellow.900" border="1px solid" borderColor="yellow.500" borderRadius="xl" px={4} py={4}>
+                <Text color="yellow.200" fontSize={{ base: 'sm', md: 'md' }} fontWeight="700" mb={1}>
+                  ⚠️ இந்த எண் frootze-ல் பதிவு செய்யப்படவில்லை
+                </Text>
+                <Text color="yellow.300" fontSize="sm" mb={3}>
+                  This number is not on frootze yet.
+                </Text>
+                <Box bg="blue.900" border="1px solid" borderColor="blue.600"
+                  borderRadius="xl" px={3} py={3} mb={3}>
+                  <Text fontSize="xs" color="blue.200" fontWeight="700" mb={1}>
+                    📋 How to share with family tree image:
                   </Text>
-                  <Text color="yellow.300" fontSize="sm" mb={3}>
-                    This number is not on frootze yet. Send them an invite with your family tree!
+                  <Text fontSize="xs" color="blue.300">1️⃣ Click "Send Invite" below</Text>
+                  <Text fontSize="xs" color="blue.300">2️⃣ Tree image downloads automatically</Text>
+                  <Text fontSize="xs" color="blue.300">3️⃣ WhatsApp opens with invite message</Text>
+                  <Text fontSize="xs" color="blue.300">4️⃣ Tap 📎 in WhatsApp → attach image → Send</Text>
+                  <Text fontSize="xs" color="blue.400" mt={1} fontStyle="italic">
+                    Full auto-share available in the frootze mobile app
                   </Text>
-                  <Box bg="blue.900" border="1px solid" borderColor="blue.500" borderRadius="xl" px={3} py={3} mb={3}>
-                    <Text fontSize="xs" color="blue.200" fontWeight="700" mb={1}>📋 படிகள் / Steps:</Text>
-                    <Text fontSize="xs" color="blue.300">1️⃣ குடும்ப மரம் தானாக பதிவிறக்கம் ஆகும்</Text>
-                    <Text fontSize="xs" color="blue.300">2️⃣ தளத்தை தேர்வு செய்யும் திரை வரும்</Text>
-                    <Text fontSize="xs" color="blue.300">3️⃣ WhatsApp-ல் 📎 கிளிக் செய்து படத்தை இணைக்கவும்</Text>
-                  </Box>
-                  <HStack spacing={3}>
-                    <Button flex={1} h="44px" bgGradient="linear(to-r, purple.600, green.500)"
-                      color="white" fontSize="sm" fontWeight="700" borderRadius="xl"
-                      isLoading={treeCapturing} loadingText="உருவாக்குகிறோம்..."
-                      onClick={handleSendInvite}>
-                      📤 பகிர் / Share Invite
-                    </Button>
-                    <Button flex={1} h="44px" variant="ghost" color="whiteAlpha.500"
-                      fontSize="sm" borderRadius="xl"
-                      onClick={() => setShowInvitePrompt(false)}
-                      _hover={{ color: 'white' }}>
-                      ரத்து / Cancel
-                    </Button>
-                  </HStack>
                 </Box>
-              )}
-
-              {error && (
-                <Box bg="red.900" border="1px solid" borderColor="red.500" borderRadius="xl" px={4} py={3}>
-                  <Text color="red.200" fontSize="sm">{error}</Text>
-                </Box>
-              )}
-
-              {success && (
-                <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={3}>
-                  <Text color="green.200" fontSize={{ base: 'sm', md: 'md' }}>{success}</Text>
-                </Box>
-              )}
-
-              {!isOffline && success && (
-                <SimpleGrid columns={3} spacing={3}>
-                  {[
-                    { key: 'whatsapp', icon: '📱', label: 'WhatsApp' },
-                    { key: 'email',    icon: '📧', label: 'Email'    },
-                    { key: 'telegram', icon: '✈️', label: 'Telegram' },
-                  ].map(n => (
-                    <Box key={n.key}
-                      bg={notifStatus[n.key] ? 'green.900' : 'whiteAlpha.100'}
-                      border="1px solid"
-                      borderColor={notifStatus[n.key] ? 'green.500' : 'whiteAlpha.200'}
-                      borderRadius="xl" px={3} py={3} textAlign="center">
-                      <Text fontSize="xl">{n.icon}</Text>
-                      <Text fontSize="xs" color={notifStatus[n.key] ? 'green.300' : 'whiteAlpha.400'} mt={1}>
-                        {notifStatus[n.key] ? '✓ Sent' : n.label}
-                      </Text>
-                    </Box>
-                  ))}
-                </SimpleGrid>
-              )}
-
-              {!success && !showInvitePrompt && (
-                <Button w="100%" h={{ base: '50px', md: '56px' }}
-                  bgGradient={isOffline ? 'linear(to-r, orange.600, orange.500)' : 'linear(to-r, purple.600, green.500)'}
-                  color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
-                  isLoading={loading} loadingText="சேர்க்கிறோம்..."
-                  isDisabled={isOffline ? (!offlineName.trim() || !offlineGender || !relationType) : (phone.length < 10 || !relationType)}
-                  onClick={handleAdd}
-                  _hover={{ transform: 'translateY(-2px)' }}
-                  _disabled={{ opacity: 0.4, cursor: 'not-allowed' }}>
-                  {isOffline ? '🕊️ குடும்ப மரத்தில் சேர் / Add to Tree' : '👨‍👩‍👧 கோரிக்கை அனுப்பு / Send Request'}
-                </Button>
-              )}
-
-              {success && (
                 <HStack spacing={3}>
-                  {whatsappLink && (
-                    <Button flex={1} h="50px" colorScheme="whatsapp" borderRadius="xl"
-                      onClick={() => window.open(whatsappLink, '_blank')}>
-                      📱 WhatsApp மீண்டும் திற
-                    </Button>
-                  )}
-                  <Button flex={1} h="50px" variant="ghost" color="whiteAlpha.600" borderRadius="xl"
-                    onClick={() => navigate('/dashboard')} _hover={{ color: 'white' }}>
-                    ← Dashboard
+                  <Button flex={1} h="44px" bgGradient="linear(to-r, purple.600, green.500)"
+                    color="white" fontSize="sm" fontWeight="700" borderRadius="xl"
+                    isLoading={inviteLoading} loadingText="அனுப்புகிறோம்..."
+                    onClick={handleSendInvite}>
+                    📨 அழைப்பு அனுப்பு / Send Invite
+                  </Button>
+                  <Button flex={1} h="44px" variant="ghost" color="whiteAlpha.500"
+                    fontSize="sm" borderRadius="xl"
+                    onClick={() => setShowInvitePrompt(false)}
+                    _hover={{ color: 'white' }}>
+                    ரத்து / Cancel
                   </Button>
                 </HStack>
-              )}
+              </Box>
+            )}
 
-            </VStack>
-          </Box>
+            {error && (
+              <Box bg="red.900" border="1px solid" borderColor="red.500" borderRadius="xl" px={4} py={3}>
+                <Text color="red.200" fontSize="sm">{error}</Text>
+              </Box>
+            )}
 
-        </VStack>
-      </Box>
+            {success && (
+              <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={3}>
+                <Text color="green.200" fontSize={{ base: 'sm', md: 'md' }}>{success}</Text>
+              </Box>
+            )}
 
-      {/* Share Modal */}
-      {showShareModal && shareData && (
-        <Box position="fixed" top="0" left="0" right="0" bottom="0"
-          bg="blackAlpha.800" zIndex={1000}
-          display="flex" alignItems="center" justifyContent="center" px={4}
-          onClick={() => setShowShareModal(false)}>
-          <Box bg="#1e1b4b" border="1px solid" borderColor="whiteAlpha.200"
-            borderRadius="2xl" w="100%" maxW="400px" overflow="hidden"
-            onClick={e => e.stopPropagation()}>
-            <Box bgGradient="linear(to-r, purple.700, purple.900)" px={5} py={4}>
-              <HStack justify="space-between">
-                <Box>
-                  <Text fontSize="lg" fontWeight="700" color="white">📤 அழைப்பை பகிர்</Text>
-                  <Text fontSize="xs" color="purple.200">Share Invite — Choose platform</Text>
-                </Box>
-                <Box as="button" onClick={() => setShowShareModal(false)}
-                  color="whiteAlpha.600" fontSize="xl">✕</Box>
-              </HStack>
-            </Box>
-            <VStack spacing={3} px={5} py={5}>
-
-              {/* Image Preview — long press to save on mobile, right-click on desktop */}
-              {shareData.imageUrl && (
-                <Box w="100%" borderRadius="xl" overflow="hidden" border="1px solid"
-                  borderColor="whiteAlpha.300">
-                  <img
-                    src={shareData.imageUrl}
-                    alt="Invite"
-                    style={{ width: '100%', display: 'block' }}
-                  />
-                  <Box bg="whiteAlpha.100" px={3} py={2} textAlign="center">
-                    <Text fontSize="xs" color="green.300" fontWeight="700">
-                      ✅ படம் தயார் / Image Ready
-                    </Text>
-                    <Text fontSize="xs" color="whiteAlpha.500">
-                      📱 Mobile: Long press image → Save → Share
-                    </Text>
-                    <Text fontSize="xs" color="whiteAlpha.500">
-                      💻 Desktop: Right click → Save image
+            {!isOffline && success && whatsappLink && (
+              <SimpleGrid columns={3} spacing={3}>
+                {[
+                  { key: 'whatsapp', icon: '📱', label: 'WhatsApp' },
+                  { key: 'email',    icon: '📧', label: 'Email'    },
+                  { key: 'telegram', icon: '✈️', label: 'Telegram' },
+                ].map(n => (
+                  <Box key={n.key}
+                    bg={notifStatus[n.key] ? 'green.900' : 'whiteAlpha.100'}
+                    border="1px solid"
+                    borderColor={notifStatus[n.key] ? 'green.500' : 'whiteAlpha.200'}
+                    borderRadius="xl" px={3} py={3} textAlign="center">
+                    <Text fontSize="xl">{n.icon}</Text>
+                    <Text fontSize="xs" color={notifStatus[n.key] ? 'green.300' : 'whiteAlpha.400'} mt={1}>
+                      {notifStatus[n.key] ? '✓ Sent' : n.label}
                     </Text>
                   </Box>
-                </Box>
-              )}
+                ))}
+              </SimpleGrid>
+            )}
 
-              <Text fontSize="xs" color="whiteAlpha.500" textAlign="center">
-                — படத்தை சேமித்த பிறகு கீழே பகிரவும் —
-              </Text>
+            {!success && !showInvitePrompt && (
+              <Button w="100%" h={{ base: '50px', md: '56px' }}
+                bgGradient={isOffline ? 'linear(to-r, orange.600, orange.500)' : 'linear(to-r, purple.600, green.500)'}
+                color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
+                isLoading={loading} loadingText="சேர்க்கிறோம்..."
+                isDisabled={isOffline ? (!offlineName.trim() || !offlineGender || !relationType) : (phone.length < 10 || !relationType)}
+                onClick={handleAdd}
+                _hover={{ transform: 'translateY(-2px)' }}
+                _disabled={{ opacity: 0.4, cursor: 'not-allowed' }}>
+                {isOffline ? '🕊️ குடும்ப மரத்தில் சேர் / Add to Tree' : '👨‍👩‍👧 கோரிக்கை அனுப்பு / Send Request'}
+              </Button>
+            )}
 
-              <Button w="100%" h="52px" bg="#25D366" color="white" fontSize="md" fontWeight="700"
-                borderRadius="xl" onClick={() => handleShare('whatsapp')} _hover={{ bg: '#1da851' }}>
-                📱 WhatsApp
-              </Button>
-              <Button w="100%" h="52px" bg="#0088cc" color="white" fontSize="md" fontWeight="700"
-                borderRadius="xl" onClick={() => handleShare('telegram')} _hover={{ bg: '#0077b5' }}>
-                ✈️ Telegram
-              </Button>
-              <Button w="100%" h="52px" bg="#1877F2" color="white" fontSize="md" fontWeight="700"
-                borderRadius="xl" onClick={() => handleShare('facebook')} _hover={{ bg: '#1465d0' }}>
-                📘 Facebook
-              </Button>
-              <Button w="100%" h="52px"
-                bgGradient="linear(to-r, #833ab4, #fd1d1d, #fcb045)"
-                color="white" fontSize="md" fontWeight="700" borderRadius="xl"
-                onClick={() => handleShare('instagram')} _hover={{ opacity: 0.9 }}>
-                📸 Instagram (Copy + Open)
-              </Button>
-              {shareData.shareEmail && (
-                <Button w="100%" h="52px" bg="purple.600" color="white" fontSize="md" fontWeight="700"
-                  borderRadius="xl" onClick={() => handleShare('email')} _hover={{ bg: 'purple.700' }}>
-                  📧 Email
+            {success && (
+              <HStack spacing={3}>
+                {whatsappLink && (
+                  <Button flex={1} h="50px" colorScheme="whatsapp" borderRadius="xl"
+                    onClick={() => window.open(whatsappLink, '_blank')}>
+                    📱 WhatsApp மீண்டும் திற
+                  </Button>
+                )}
+                <Button flex={1} h="50px" variant="ghost" color="whiteAlpha.600" borderRadius="xl"
+                  onClick={() => navigate('/dashboard')} _hover={{ color: 'white' }}>
+                  ← Dashboard
                 </Button>
-              )}
-              <Button w="100%" h="52px"
-                bg={copied ? 'green.600' : 'whiteAlpha.200'}
-                color="white" fontSize="md" fontWeight="700" borderRadius="xl"
-                onClick={() => handleShare('copy')} _hover={{ bg: copied ? 'green.600' : 'whiteAlpha.300' }}>
-                {copied ? '✅ நகலெடுக்கப்பட்டது! / Copied!' : '📋 செய்தியை நகலெடு / Copy Message'}
-              </Button>
-            </VStack>
-          </Box>
+              </HStack>
+            )}
+
+          </VStack>
         </Box>
-      )}
-    </>
+
+      </VStack>
+    </Box>
   );
 }
