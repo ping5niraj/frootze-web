@@ -527,6 +527,34 @@ export default function AddRelative() {
               </HStack>
             </Box>
             <VStack spacing={3} px={5} py={5}>
+
+              {/* Image Preview — long press to save on mobile, right-click on desktop */}
+              {shareData.imageUrl && (
+                <Box w="100%" borderRadius="xl" overflow="hidden" border="1px solid"
+                  borderColor="whiteAlpha.300">
+                  <img
+                    src={shareData.imageUrl}
+                    alt="Invite"
+                    style={{ width: '100%', display: 'block' }}
+                  />
+                  <Box bg="whiteAlpha.100" px={3} py={2} textAlign="center">
+                    <Text fontSize="xs" color="green.300" fontWeight="700">
+                      ✅ படம் தயார் / Image Ready
+                    </Text>
+                    <Text fontSize="xs" color="whiteAlpha.500">
+                      📱 Mobile: Long press image → Save → Share
+                    </Text>
+                    <Text fontSize="xs" color="whiteAlpha.500">
+                      💻 Desktop: Right click → Save image
+                    </Text>
+                  </Box>
+                </Box>
+              )}
+
+              <Text fontSize="xs" color="whiteAlpha.500" textAlign="center">
+                — படத்தை சேமித்த பிறகு கீழே பகிரவும் —
+              </Text>
+
               <Button w="100%" h="52px" bg="#25D366" color="white" fontSize="md" fontWeight="700"
                 borderRadius="xl" onClick={() => handleShare('whatsapp')} _hover={{ bg: '#1da851' }}>
                 📱 WhatsApp
@@ -557,12 +585,6 @@ export default function AddRelative() {
                 onClick={() => handleShare('copy')} _hover={{ bg: copied ? 'green.600' : 'whiteAlpha.300' }}>
                 {copied ? '✅ நகலெடுக்கப்பட்டது! / Copied!' : '📋 செய்தியை நகலெடு / Copy Message'}
               </Button>
-              {shareData.imageUrl && (
-                <Box bg="blue.900" border="1px solid" borderColor="blue.500" borderRadius="xl" px={4} py={3} w="100%">
-                  <Text fontSize="xs" color="blue.200" fontWeight="700">📎 படம் பதிவிறக்கம் ஆனது</Text>
-                  <Text fontSize="xs" color="blue.300">Tree image downloaded — attach it via 📎 in WhatsApp</Text>
-                </Box>
-              )}
             </VStack>
           </Box>
         </Box>
