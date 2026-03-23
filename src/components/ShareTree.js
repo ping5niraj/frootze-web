@@ -11,6 +11,7 @@ export default function ShareTree({ treeRef, userName, memberCount }) {
   useEffect(() => {
     if (!treeRef?.current || memberCount === 0) return;
     const timer = setTimeout(async () => {
+      // Extra wait for D3 to finish rendering
       try {
         const canvas = await html2canvas(treeRef.current, {
           backgroundColor: '#ffffff', scale: 1.5,
@@ -20,7 +21,7 @@ export default function ShareTree({ treeRef, userName, memberCount }) {
         const dataUrl = branded.toDataURL('image/png');
         try { sessionStorage.setItem('pmf_tree_image', dataUrl); } catch(e) {}
       } catch(e) {}
-    }, 2500); // wait 2.5s for tree to fully render
+    }, 5000); // wait 5s for D3 tree to fully render
     return () => clearTimeout(timer);
   }, [treeRef, memberCount, userName]);
 
