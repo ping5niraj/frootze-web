@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 
 export default function ShareTree({ treeRef, userName, memberCount }) {
@@ -6,21 +6,35 @@ export default function ShareTree({ treeRef, userName, memberCount }) {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
+  // ── Auto-capture tree silently after it renders ──
+  // This saves to sessionStorage so AddRelative can use it
+  useEffect(() => {
+    if (!treeRef?.current || memberCount === 0) return;
+    const timer = setTimeout(async () => {
+      try {
+        const canvas = await html2canvas(treeRef.current, {
+          backgroundColor: '#ffffff', scale: 1.5,
+          useCORS: true, allowTaint: true, logging: false,
+        });
+        const branded = addBranding(canvas, userName, memberCount);
+        const dataUrl = branded.toDataURL('image/png');
+        try { sessionStorage.setItem('pmf_tree_image', dataUrl); } catch(e) {}
+      } catch(e) {}
+    }, 2500); // wait 2.5s for tree to fully render
+    return () => clearTimeout(timer);
+  }, [treeRef, memberCount, userName]);
+
   const handleCapture = async () => {
     if (!treeRef?.current) return;
     setCapturing(true);
     try {
       const canvas = await html2canvas(treeRef.current, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
+        backgroundColor: '#ffffff', scale: 2,
+        useCORS: true, allowTaint: true, logging: false,
       });
       const branded = addBranding(canvas, userName, memberCount);
       const dataUrl = branded.toDataURL('image/png');
       setPreviewUrl(dataUrl);
-      // Save to sessionStorage so AddRelative can use it for invites
       try { sessionStorage.setItem('pmf_tree_image', dataUrl); } catch(e) {}
       setShowModal(true);
     } catch (err) {
@@ -50,12 +64,11 @@ export default function ShareTree({ treeRef, userName, memberCount }) {
     ctx.fillRect(0, 0, branded.width, headerH + padding);
 
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 36px Inter, Arial, sans-serif';
+    ctx.font = 'bold 36px Arial';
     ctx.textAlign = 'left';
     ctx.fillText('🌳 frootze', padding, padding + 36);
-
     ctx.fillStyle = '#DDD6FE';
-    ctx.font = '22px Inter, Arial, sans-serif';
+    ctx.font = '20px Arial';
     ctx.fillText(`${userName}'s Family Tree · ${memberCount} members`, padding, padding + 66);
 
     ctx.drawImage(canvas, padding, headerH + padding);
@@ -65,14 +78,12 @@ export default function ShareTree({ treeRef, userName, memberCount }) {
     ctx.fillRect(0, footerY - 10, branded.width, footerH + 10);
     ctx.fillStyle = '#C4B5FD';
     ctx.fillRect(0, footerY - 10, branded.width, 2);
-
     ctx.fillStyle = '#7C3AED';
-    ctx.font = 'bold 20px Inter, Arial, sans-serif';
+    ctx.font = 'bold 20px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('உங்கள் குடும்ப மரத்தை உருவாக்க:', branded.width / 2, footerY + 20);
-
     ctx.fillStyle = '#5B21B6';
-    ctx.font = 'bold 24px Inter, Arial, sans-serif';
+    ctx.font = 'bold 24px Arial';
     ctx.fillText('www.frootze.com', branded.width / 2, footerY + 50);
 
     return branded;
@@ -91,10 +102,8 @@ export default function ShareTree({ treeRef, userName, memberCount }) {
     handleDownload();
     const message = encodeURIComponent(
       `நான் எங்கள் குடும்ப மரத்தை உருவாக்கினேன்! 🌳\n\n` +
-      `(I built our family tree!)\n\n` +
       `உங்கள் இடத்தை சேர்க்க இங்கே கிளிக் செய்யுங்கள்:\n` +
-      `www.frootze.com\n\n` +
-      `#frootze #FamilyTree #குடும்பம்`
+      `www.frootze.com\n\n#frootze #FamilyTree #குடும்பம்`
     );
     setTimeout(() => window.open(`https://wa.me/?text=${message}`, '_blank'), 500);
   };
@@ -103,7 +112,7 @@ export default function ShareTree({ treeRef, userName, memberCount }) {
     <>
       <button onClick={handleCapture} disabled={capturing}
         className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-semibold text-base transition-all disabled:opacity-50">
-        {capturing ? <>⏳ Capturing tree...</> : <>📤 என் குடும்ப மரத்தை பகிர் / Share My Family Tree</>}
+        {capturing ? <>⏳ Capturing...</> : <>📤 என் குடும்ப மரத்தை பகிர் / Share My Family Tree</>}
       </button>
 
       {showModal && previewUrl && (
@@ -111,7 +120,8 @@ export default function ShareTree({ treeRef, userName, memberCount }) {
           <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
             <div className="bg-purple-700 text-white px-4 py-3 flex items-center justify-between">
               <h3 className="font-bold text-lg">Your Family Tree</h3>
-              <button onClick={() => { setShowModal(false); setPreviewUrl(null); }} className="text-purple-200 hover:text-white text-xl">✕</button>
+              <button onClick={() => { setShowModal(false); setPreviewUrl(null); }}
+                className="text-purple-200 hover:text-white text-xl">✕</button>
             </div>
             <div className="p-3 bg-gray-50">
               <img src={previewUrl} alt="Family Tree" className="w-full rounded-xl border border-purple-100" />

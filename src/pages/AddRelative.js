@@ -64,137 +64,100 @@ export default function AddRelative() {
 
   const selectedRelation = RELATIONS.find(r => r.value === relationType);
 
-  // ── Generate beautiful invite image ──
+  // ── Generate beautiful invite image with actual tree ──
   const generateInviteImage = async () => {
     try {
       const res = await api.get('/api/relationships/mine');
       const members = res.data.my_relationships || [];
 
       const W = 800;
-      const H = 1000;
+      const HEADER = 140;
+      const FOOTER = 120;
+      const TREE_SECTION = 420;
+      const H = HEADER + TREE_SECTION + FOOTER;
+
       const canvas = document.createElement('canvas');
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
 
-      // Background gradient
-      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-      bgGrad.addColorStop(0, '#0f0c29');
-      bgGrad.addColorStop(0.5, '#1e1b4b');
-      bgGrad.addColorStop(1, '#0f0c29');
-      ctx.fillStyle = bgGrad;
+      // Background
+      ctx.fillStyle = '#0f0c29';
       ctx.fillRect(0, 0, W, H);
 
-      // Decorative circles
-      ctx.fillStyle = 'rgba(124,58,237,0.15)';
-      ctx.beginPath(); ctx.arc(700, 100, 200, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(100, 800, 150, 0, Math.PI*2); ctx.fill();
-
-      // Header band
-      const headerGrad = ctx.createLinearGradient(0, 0, W, 130);
+      // Header gradient band
+      const headerGrad = ctx.createLinearGradient(0, 0, W, HEADER);
       headerGrad.addColorStop(0, '#7C3AED');
       headerGrad.addColorStop(1, '#5B21B6');
       ctx.fillStyle = headerGrad;
-      ctx.beginPath();
-      ctx.roundRect(30, 30, W-60, 130, 20);
-      ctx.fill();
+      ctx.beginPath(); ctx.roundRect(0, 0, W, HEADER, [0,0,24,24]); ctx.fill();
 
-      // frootze logo text
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 42px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('🌳 frootze', W/2, 85);
-      ctx.font = '18px Arial';
-      ctx.fillStyle = '#DDD6FE';
-      ctx.fillText('உங்கள் குடும்பம் · உங்கள் வேர்கள்', W/2, 120);
+      ctx.font = 'bold 38px Arial'; ctx.textAlign = 'center';
+      ctx.fillText('🌳 frootze', W/2, 52);
+      ctx.font = '16px Arial'; ctx.fillStyle = '#DDD6FE';
+      ctx.fillText(`${user?.name} உங்களை குடும்ப மரத்தில் சேர அழைக்கிறார்`, W/2, 82);
+      ctx.font = '14px Arial'; ctx.fillStyle = '#A78BFA';
+      ctx.fillText('is inviting you to join their family tree', W/2, 108);
+      ctx.font = '13px Arial'; ctx.fillStyle = 'rgba(196,181,253,0.7)';
+      ctx.fillText(`${members.length} members already in the tree`, W/2, 130);
 
-      // Invitation title
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 30px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(`${user?.name}`, W/2, 210);
-      ctx.font = '20px Arial';
-      ctx.fillStyle = '#C4B5FD';
-      ctx.fillText('உங்களை குடும்ப மரத்தில் சேர அழைக்கிறார்', W/2, 248);
-      ctx.fillStyle = '#A78BFA';
-      ctx.font = '16px Arial';
-      ctx.fillText('is inviting you to join their family tree', W/2, 275);
-
-      // Divider
-      ctx.strokeStyle = 'rgba(167,139,250,0.3)';
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(60, 300); ctx.lineTo(W-60, 300); ctx.stroke();
-
-      // Family members section
-      ctx.fillStyle = '#A78BFA';
-      ctx.font = 'bold 18px Arial';
-      ctx.textAlign = 'left';
-      ctx.fillText('👨‍👩‍👧 குடும்பத்தினர் / Family Members', 60, 340);
-
-      // Draw member cards
-      const displayMembers = members.slice(0, 6);
-      const cols = 3;
-      const cardW = 210; const cardH = 80;
-      const startX = 55; const startY = 360;
-      const gap = 15;
-
-      displayMembers.forEach((m, i) => {
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const x = startX + col * (cardW + gap);
-        const y = startY + row * (cardH + gap);
-
-        // Card background
-        ctx.fillStyle = 'rgba(124,58,237,0.25)';
-        ctx.beginPath(); ctx.roundRect(x, y, cardW, cardH, 12); ctx.fill();
-        ctx.strokeStyle = 'rgba(167,139,250,0.4)';
-        ctx.lineWidth = 1; ctx.stroke();
-
-        // Avatar circle
-        ctx.fillStyle = '#5B21B6';
-        ctx.beginPath(); ctx.arc(x+30, y+40, 20, 0, Math.PI*2); ctx.fill();
+      // Tree section — embed actual tree image from sessionStorage
+      const cachedTree = sessionStorage.getItem('pmf_tree_image');
+      if (cachedTree) {
+        const treeImg = new Image();
+        await new Promise((resolve) => {
+          treeImg.onload = resolve;
+          treeImg.onerror = resolve;
+          treeImg.src = cachedTree;
+        });
+        // Draw tree image scaled to fit
+        const treeX = 20;
+        const treeY = HEADER + 10;
+        const treeW = W - 40;
+        const treeH = TREE_SECTION - 20;
+        // White bg for tree area
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
-        const nm = m.to_user?.name || m.offline_name || '?';
-        ctx.fillText(nm.charAt(0).toUpperCase(), x+30, y+46);
-
-        // Name and relation
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 13px Arial'; ctx.textAlign = 'left';
-        const shortName = nm.length > 12 ? nm.substring(0,12)+'…' : nm;
-        ctx.fillText(shortName, x+58, y+34);
-        ctx.fillStyle = '#C4B5FD';
-        ctx.font = '11px Arial';
-        ctx.fillText(m.relation_tamil || '', x+58, y+54);
-      });
-
-      if (members.length > 6) {
-        ctx.fillStyle = '#A78BFA';
-        ctx.font = '14px Arial'; ctx.textAlign = 'center';
-        ctx.fillText(`+ ${members.length - 6} more members`, W/2, startY + 3*(cardH+gap) + 20);
+        ctx.beginPath(); ctx.roundRect(treeX, treeY, treeW, treeH, 16); ctx.fill();
+        // Clip and draw tree
+        ctx.save();
+        ctx.beginPath(); ctx.roundRect(treeX, treeY, treeW, treeH, 16); ctx.clip();
+        ctx.drawImage(treeImg, treeX, treeY, treeW, treeH);
+        ctx.restore();
+      } else {
+        // Fallback — draw member list if no cached tree
+        ctx.fillStyle = 'rgba(124,58,237,0.15)';
+        ctx.beginPath(); ctx.roundRect(20, HEADER+10, W-40, TREE_SECTION-20, 16); ctx.fill();
+        ctx.fillStyle = '#A78BFA'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
+        ctx.fillText('குடும்பத்தினர் / Family Members', W/2, HEADER+50);
+        members.slice(0,6).forEach((m, i) => {
+          const col = i % 2; const row = Math.floor(i/2);
+          const x = 60 + col * 340; const y = HEADER + 80 + row * 45;
+          ctx.fillStyle = '#5B21B6';
+          ctx.beginPath(); ctx.arc(x+15, y+10, 14, 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center';
+          const nm = m.to_user?.name || m.offline_name || '?';
+          ctx.fillText(nm.charAt(0).toUpperCase(), x+15, y+15);
+          ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'left';
+          ctx.fillText(nm.length > 14 ? nm.substring(0,14)+'…' : nm, x+38, y+8);
+          ctx.fillStyle = '#C4B5FD'; ctx.font = '11px Arial';
+          ctx.fillText(m.relation_tamil||'', x+38, y+24);
+        });
       }
 
-      // Call to action box
-      const ctaY = 700;
-      const ctaGrad = ctx.createLinearGradient(0, ctaY, W, ctaY+160);
-      ctaGrad.addColorStop(0, '#7C3AED');
-      ctaGrad.addColorStop(1, '#059669');
+      // CTA Footer
+      const ctaY = HEADER + TREE_SECTION;
+      const ctaGrad = ctx.createLinearGradient(0, ctaY, W, ctaY+FOOTER);
+      ctaGrad.addColorStop(0, '#7C3AED'); ctaGrad.addColorStop(1, '#059669');
       ctx.fillStyle = ctaGrad;
-      ctx.beginPath(); ctx.roundRect(30, ctaY, W-60, 160, 20); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(0, ctaY, W, FOOTER, [24,24,0,0]); ctx.fill();
 
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 28px Arial'; ctx.textAlign = 'center';
-      ctx.fillText('இப்போதே சேருங்கள்! Join Now! 🌟', W/2, ctaY+50);
-      ctx.font = 'bold 36px Arial';
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillText('www.frootze.com', W/2, ctaY+105);
-      ctx.font = '16px Arial';
-      ctx.fillStyle = 'rgba(255,255,255,0.8)';
-      ctx.fillText('Free · குடும்ப மரம் · Family Tree', W/2, ctaY+140);
-
-      // Footer
-      ctx.fillStyle = 'rgba(167,139,250,0.5)';
-      ctx.font = '13px Arial'; ctx.textAlign = 'center';
-      ctx.fillText('frootze.com — உங்கள் குடும்பம், உங்கள் வேர்கள் 🌳', W/2, H-30);
+      ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center';
+      ctx.fillText('இப்போதே சேருங்கள்! Join Now! 🌟', W/2, ctaY+38);
+      ctx.font = 'bold 32px Arial';
+      ctx.fillText('www.frootze.com', W/2, ctaY+80);
+      ctx.font = '14px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillText('Free · இலவசம் · frootze குடும்ப மரம் 🌳', W/2, ctaY+108);
 
       return canvas.toDataURL('image/png');
     } catch(e) { console.error('Invite image gen failed:', e); return null; }
