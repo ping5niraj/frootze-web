@@ -13,6 +13,7 @@ import LocationPage from './pages/LocationPage';
 import Birthdays from './pages/Birthdays';
 import Quiz from './pages/Quiz';
 import Admin from './pages/Admin';
+import Privacy from './pages/Privacy';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
           <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Navigate to="/" replace />} />
+		  <Route path="/privacy" element={<Privacy />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
