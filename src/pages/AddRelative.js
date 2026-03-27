@@ -27,6 +27,8 @@ const RELATIONS = [
   { value: 'granddaughter',        tamil: 'பேத்தி',                  english: 'Granddaughter'      },
 ];
 
+const CHILD_RELATIONS = ['son','daughter','grandson','granddaughter'];
+
 const sectionBox = {
   w: '100%', bg: 'whiteAlpha.100', border: '1px solid',
   borderColor: 'whiteAlpha.200', borderRadius: '2xl',
@@ -45,6 +47,7 @@ export default function AddRelative() {
   const navigate = useNavigate();
 
   const [isOffline, setIsOffline] = useState(false);
+  const [isMinor, setIsMinor] = useState(false);
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [offlineName, setOfflineName] = useState('');
@@ -63,20 +66,26 @@ export default function AddRelative() {
   const handleAdd = async () => {
     setError(''); setSuccess(''); setShowInvitePrompt(false);
     if (!relationType) { setError('உறவை தேர்வு செய்யவும்'); return; }
+    const isChildRelation = CHILD_RELATIONS.includes(relationType);
     if (isOffline) {
       if (!offlineName.trim()) { setError('பெயர் உள்ளிடவும்'); return; }
+      if (!offlineGender) { setError('பாலினம் தேர்வு செய்யவும்'); return; }
+    } else if (isChildRelation && isMinor) {
+      if (!offlineName.trim()) { setError('குழந்தையின் பெயர் உள்ளிடவும்'); return; }
       if (!offlineGender) { setError('பாலினம் தேர்வு செய்யவும்'); return; }
     } else {
       if (!phone || phone.length < 10) { setError('சரியான 10 இலக்க எண் உள்ளிடவும்'); return; }
     }
     setLoading(true);
     try {
-      if (isOffline) {
+      const isChildRelation2 = CHILD_RELATIONS.includes(relationType);
+      if (isOffline || (isChildRelation2 && isMinor)) {
         await api.post('/api/relationships', {
           relation_type: relationType, relation_tamil: selectedRelation?.tamil,
           is_offline: true, offline_name: offlineName.trim(), offline_gender: offlineGender,
         });
-        setSuccess(`🕊️ ${offlineName} குடும்ப மரத்தில் சேர்க்கப்பட்டார்`);
+        const label = isOffline ? '🕊️' : '👶';
+        setSuccess(`${label} ${offlineName} குடும்ப மரத்தில் சேர்க்கப்பட்டார்`);
       } else {
         const res = await api.post('/api/relationships', {
           to_user_phone: phone, relation_type: relationType,
@@ -216,7 +225,31 @@ export default function AddRelative() {
               </Select>
             </FormControl>
 
-            {!isOffline && (
+            {!isOffline && CHILD_RELATIONS.includes(relationType) && (
+              <Box bg={isMinor ? 'blue.900' : 'whiteAlpha.100'}
+                border="1px solid" borderColor={isMinor ? 'blue.500' : 'whiteAlpha.200'}
+                borderRadius="xl" px={4} py={3}>
+                <HStack justify="space-between" alignItems="center">
+                  <Box>
+                    <Text fontSize="sm" color="white" fontWeight="600">👶 18 வயதுக்கு கீழா? / Under 18?</Text>
+                    <Text fontSize="xs" color="whiteAlpha.500">Minor — phone number optional</Text>
+                  </Box>
+                  <HStack spacing={2}>
+                    <Button size="xs" bg={!isMinor ? 'purple.600' : 'whiteAlpha.200'} color="white"
+                      onClick={() => setIsMinor(false)}>இல்லை</Button>
+                    <Button size="xs" bg={isMinor ? 'blue.600' : 'whiteAlpha.200'} color="white"
+                      onClick={() => setIsMinor(true)}>ஆம்</Button>
+                  </HStack>
+                </HStack>
+                {isMinor && (
+                  <Text fontSize="xs" color="blue.300" mt={2}>
+                    பெயர் மட்டும் போதும் — தொலைபேசி தேவையில்லை / Phone not required for minors
+                  </Text>
+                )}
+              </Box>
+            )}
+
+            {!isOffline && (!CHILD_RELATIONS.includes(relationType) || !isMinor) && (
               <>
                 <FormControl>
                   <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>தொலைபேசி எண் / Phone *</FormLabel>
@@ -239,6 +272,25 @@ export default function AddRelative() {
                   <Text fontSize="xs" color="purple.300" fontWeight="600" mb={1}>💡 குறிப்பு / Note</Text>
                   <Text fontSize="xs" color="purple.200">கோரிக்கை அனுப்பியதும் WhatsApp தானாக திறக்கும். அவர் frootze Dashboard-ல் ஏற்கலாம்.</Text>
                 </Box>
+              </>
+            )}
+
+            {/* Minor child name+gender fields */}
+            {!isOffline && CHILD_RELATIONS.includes(relationType) && isMinor && (
+              <>
+                <FormControl>
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>குழந்தையின் பெயர் / Child's Name *</FormLabel>
+                  <Input placeholder="உதா: Raman Kumar" value={offlineName}
+                    onChange={e => setOfflineName(e.target.value)} {...inputStyle} />
+                </FormControl>
+                <FormControl>
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>பாலினம் / Gender *</FormLabel>
+                  <Select placeholder="தேர்வு செய்யவும்" value={offlineGender}
+                    onChange={e => setOfflineGender(e.target.value)} {...inputStyle}>
+                    <option value="male" style={{ background: '#1e1b4b' }}>ஆண் / Male</option>
+                    <option value="female" style={{ background: '#1e1b4b' }}>பெண் / Female</option>
+                  </Select>
+                </FormControl>
               </>
             )}
 
@@ -347,11 +399,17 @@ export default function AddRelative() {
                 bgGradient={isOffline ? 'linear(to-r, orange.600, orange.500)' : 'linear(to-r, purple.600, green.500)'}
                 color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
                 isLoading={loading} loadingText="சேர்க்கிறோம்..."
-                isDisabled={isOffline ? (!offlineName.trim() || !offlineGender || !relationType) : (phone.length < 10 || !relationType)}
+                isDisabled={
+                  isOffline ? (!offlineName.trim() || !offlineGender || !relationType) :
+                  (CHILD_RELATIONS.includes(relationType) && isMinor) ? (!offlineName.trim() || !offlineGender || !relationType) :
+                  (phone.length < 10 || !relationType)
+                }
                 onClick={handleAdd}
                 _hover={{ transform: 'translateY(-2px)' }}
                 _disabled={{ opacity: 0.4, cursor: 'not-allowed' }}>
-                {isOffline ? '🕊️ குடும்ப மரத்தில் சேர் / Add to Tree' : '👨‍👩‍👧 கோரிக்கை அனுப்பு / Send Request'}
+                {isOffline ? '🕊️ குடும்ப மரத்தில் சேர் / Add to Tree' :
+                     (CHILD_RELATIONS.includes(relationType) && isMinor) ? '👶 குழந்தையை சேர் / Add Child' :
+                     '👨‍👩‍👧 கோரிக்கை அனுப்பு / Send Request'}
               </Button>
             )}
 
