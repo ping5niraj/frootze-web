@@ -58,6 +58,7 @@ export default function AddRelative() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showInvitePrompt, setShowInvitePrompt] = useState(false);
+  const [treeInviteLoading, setTreeInviteLoading] = useState(false);
   const [notifStatus, setNotifStatus] = useState({ whatsapp: false, email: false, telegram: false });
   const [whatsappLink, setWhatsappLink] = useState('');
 
@@ -161,6 +162,26 @@ export default function AddRelative() {
     } catch(e) {
       setSuccess('📨 அழைப்பு அனுப்பப்பட்டது!');
     } finally { setInviteLoading(false); }
+  };
+
+  const handleShareTree = async () => {
+    if (!relationType) { setError('உறவை தேர்வு செய்யவும் / Select relation first'); return; }
+    if (!phone || phone.length < 10) { setError('சரியான 10 இலக்க எண் உள்ளிடவும்'); return; }
+    setTreeInviteLoading(true);
+    try {
+      const res = await api.post('/api/tree-invite/send', {
+        to_phone: phone,
+        relation_type: relationType,
+        relation_tamil: selectedRelation?.tamil,
+      });
+      if (res.data.whatsapp_link) {
+        window.open(res.data.whatsapp_link, '_blank');
+      }
+      setSuccess(`✅ குடும்ப மரம் அழைப்பு அனுப்பப்பட்டது!
+Tree invite sent! Link: ${res.data.invite_url}`);
+    } catch (e) {
+      setError(e.response?.data?.error || 'Tree invite failed');
+    } finally { setTreeInviteLoading(false); }
   };
 
   return (
@@ -392,6 +413,20 @@ export default function AddRelative() {
                   </Box>
                 ))}
               </SimpleGrid>
+            )}
+
+            {!success && !showInvitePrompt && !isOffline && !(CHILD_RELATIONS.includes(relationType) && isMinor) && (
+              <Button w="100%" h={{ base: '50px', md: '56px' }}
+                variant="outline"
+                borderColor="green.500" color="green.300"
+                fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
+                isLoading={treeInviteLoading} loadingText="அனுப்புகிறோம்..."
+                isDisabled={phone.length < 10 || !relationType}
+                onClick={handleShareTree}
+                mb={3}
+                _hover={{ bg: 'green.900' }}>
+                🌳 குடும்ப மரம் பகிர் / Share My Family Tree
+              </Button>
             )}
 
             {!success && !showInvitePrompt && (
