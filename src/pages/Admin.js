@@ -26,30 +26,29 @@ const inputStyle = {
 };
 
 export default function Admin() {
-  const [token, setToken] = useState(() => localStorage.getItem('pmf_admin_token') || '');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
+  const [token, setToken]               = useState(() => localStorage.getItem('pmf_admin_token') || '');
+  const [username, setUsername]         = useState('');
+  const [password, setPassword]         = useState('');
+  const [loginError, setLoginError]     = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
-  const [activeTab, setActiveTab] = useState('stats');
-  const [stats, setStats] = useState(null);
-  const [kuthams, setKuthams] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [search, setSearch] = useState('');
-  const [newKutham, setNewKutham] = useState('');
+  const [activeTab, setActiveTab]         = useState('stats');
+  const [stats, setStats]                 = useState(null);
+  const [kuthams, setKuthams]             = useState([]);
+  const [users, setUsers]                 = useState([]);
+  const [pendingRels, setPendingRels]     = useState([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [search, setSearch]               = useState('');
+  const [newKutham, setNewKutham]         = useState('');
   const [kuthamLoading, setKuthamLoading] = useState(false);
-  const [kuthamError, setKuthamError] = useState('');
+  const [kuthamError, setKuthamError]     = useState('');
   const [kuthamSuccess, setKuthamSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]             = useState(false);
 
   const isLoggedIn = !!token;
 
   useEffect(() => {
-    if (isLoggedIn) {
-      loadStats();
-      loadKuthams();
-    }
+    if (isLoggedIn) { loadStats(); loadKuthams(); }
   }, [token]);
 
   const handleLogin = async () => {
@@ -64,10 +63,7 @@ export default function Admin() {
     } finally { setLoginLoading(false); }
   };
 
-  const handleLogout = () => {
-    setToken('');
-    localStorage.removeItem('pmf_admin_token');
-  };
+  const handleLogout = () => { setToken(''); localStorage.removeItem('pmf_admin_token'); };
 
   const loadStats = async () => {
     try {
@@ -90,6 +86,15 @@ export default function Admin() {
       setUsers(res.data.users || []);
     } catch (e) {}
     finally { setLoading(false); }
+  };
+
+  const loadPendingRels = async () => {
+    setPendingLoading(true);
+    try {
+      const res = await api(token).get('/api/admin/pending-relations');
+      setPendingRels(res.data.pending || []);
+    } catch (e) {}
+    finally { setPendingLoading(false); }
   };
 
   const handleAddKutham = async () => {
@@ -124,21 +129,18 @@ export default function Admin() {
             <Text fontSize="3xl">🔐</Text>
             <Heading fontSize="2xl" color="white">Admin Login</Heading>
             <Text color="whiteAlpha.500" fontSize="sm">frootze.com Admin Panel</Text>
-
             <Input placeholder="Username" value={username}
               onChange={e => setUsername(e.target.value)} {...inputStyle} />
             <Input placeholder="Password" type="password" value={password}
               onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
               {...inputStyle} />
-
             {loginError && (
               <Box bg="red.900" border="1px solid" borderColor="red.500"
                 borderRadius="xl" px={4} py={3} w="100%">
                 <Text color="red.200" fontSize="sm">{loginError}</Text>
               </Box>
             )}
-
             <Button w="100%" h="50px" bgGradient="linear(to-r, purple.600, green.500)"
               color="white" fontSize="lg" fontWeight="700" borderRadius="xl"
               isLoading={loginLoading} onClick={handleLogin}>
@@ -162,9 +164,7 @@ export default function Admin() {
             <HStack spacing={3}>
               <Text fontSize="2xl">🌳</Text>
               <Box>
-                <Heading fontSize={{ base: 'lg', md: 'xl' }} color="white">
-                  frootze Admin Panel
-                </Heading>
+                <Heading fontSize={{ base: 'lg', md: 'xl' }} color="white">frootze Admin Panel</Heading>
                 <Text fontSize="xs" color="whiteAlpha.400">frootze.com</Text>
               </Box>
             </HStack>
@@ -178,9 +178,10 @@ export default function Admin() {
         {/* Tab Navigation */}
         <HStack bg="whiteAlpha.100" borderRadius="xl" p={1}>
           {[
-            { key: 'stats',   label: '📊 Stats'          },
-            { key: 'kuthams', label: '🏷️ Kuthams'        },
-            { key: 'users',   label: '👥 Users'           },
+            { key: 'stats',   label: '📊 Stats'    },
+            { key: 'pending', label: '⏳ Pending'   },
+            { key: 'kuthams', label: '🏷️ Kuthams'  },
+            { key: 'users',   label: '👥 Users'     },
           ].map(t => (
             <Button key={t.key} flex={1} size="sm"
               bg={activeTab === t.key ? 'purple.600' : 'transparent'}
@@ -188,8 +189,9 @@ export default function Admin() {
               borderRadius="lg"
               onClick={() => {
                 setActiveTab(t.key);
-                if (t.key === 'users') loadUsers();
-                if (t.key === 'stats') loadStats();
+                if (t.key === 'users')   loadUsers();
+                if (t.key === 'stats')   loadStats();
+                if (t.key === 'pending') loadPendingRels();
               }}
               _hover={{ bg: activeTab === t.key ? 'purple.600' : 'whiteAlpha.100' }}>
               {t.label}
@@ -205,18 +207,29 @@ export default function Admin() {
             ) : (
               <SimpleGrid columns={{ base: 2, md: 3 }} spacing={4}>
                 {[
-                  { label: 'Total Users',        value: stats.total_users,                  icon: '👥', color: 'purple.300' },
-                  { label: 'New Today',           value: stats.new_users_today,              icon: '🆕', color: 'green.300'  },
-                  { label: 'Verified Relations',  value: stats.total_verified_relationships, icon: '✅', color: 'blue.300'   },
-                  { label: 'Pending Relations',   value: stats.pending_relationships,        icon: '⏳', color: 'yellow.300' },
-                  { label: 'Total Kuthams',       value: stats.total_kuthams,                icon: '🏷️', color: 'pink.300'   },
+                  { label: 'Total Users',       value: stats.total_users,                  icon: '👥', color: 'purple.300' },
+                  { label: 'New Today',          value: stats.new_users_today,              icon: '🆕', color: 'green.300'  },
+                  { label: 'Verified Relations', value: stats.total_verified_relationships, icon: '✅', color: 'blue.300'   },
+                  { label: 'Pending Relations',  value: stats.pending_relationships,        icon: '⏳', color: 'yellow.300' },
+                  { label: 'Total Kuthams',      value: stats.total_kuthams,                icon: '🏷️', color: 'pink.300'   },
                 ].map((s, i) => (
                   <Box key={i} bg="whiteAlpha.100" border="1px solid"
-                    borderColor="whiteAlpha.200" borderRadius="2xl" px={5} py={5}>
+                    borderColor="whiteAlpha.200" borderRadius="2xl" px={5} py={5}
+                    cursor={s.label === 'Pending Relations' ? 'pointer' : 'default'}
+                    onClick={() => {
+                      if (s.label === 'Pending Relations') {
+                        setActiveTab('pending');
+                        loadPendingRels();
+                      }
+                    }}
+                    _hover={s.label === 'Pending Relations' ? { borderColor: 'yellow.400' } : {}}>
                     <Text fontSize="2xl">{s.icon}</Text>
                     <Text fontSize={{ base: '2xl', md: '3xl' }} fontWeight="800"
                       color={s.color} mt={2}>{s.value}</Text>
                     <Text fontSize="xs" color="whiteAlpha.500" mt={1}>{s.label}</Text>
+                    {s.label === 'Pending Relations' && s.value > 0 && (
+                      <Text fontSize="xs" color="yellow.400" mt={1}>👆 Click to view</Text>
+                    )}
                   </Box>
                 ))}
               </SimpleGrid>
@@ -224,11 +237,108 @@ export default function Admin() {
           </Box>
         )}
 
+        {/* PENDING RELATIONS TAB */}
+        {activeTab === 'pending' && (
+          <VStack spacing={4} align="stretch">
+            <Box {...sectionBox}>
+              <HStack justify="space-between" mb={4}>
+                <Text fontSize="md" fontWeight="700" color="white">
+                  ⏳ நிலுவையில் உள்ள உறவுகள் / Pending Relations ({pendingRels.length})
+                </Text>
+                <Button size="sm" variant="ghost" color="whiteAlpha.600"
+                  onClick={loadPendingRels} _hover={{ color: 'white' }}>
+                  🔄 Refresh
+                </Button>
+              </HStack>
+
+              {pendingLoading ? (
+                <Box textAlign="center" py={6}><Spinner color="yellow.300" /></Box>
+              ) : pendingRels.length === 0 ? (
+                <Box textAlign="center" py={8}>
+                  <Text fontSize="3xl">✅</Text>
+                  <Text color="whiteAlpha.500" mt={2}>No pending relations — all clear!</Text>
+                </Box>
+              ) : (
+                <VStack spacing={3} align="stretch">
+                  {pendingRels.map(r => (
+                    <Box key={r.id} bg="whiteAlpha.100" border="1px solid"
+                      borderColor="yellow.800" borderRadius="xl" px={4} py={4}>
+                      <HStack spacing={4} flexWrap="wrap" gap={3}>
+
+                        {/* From user */}
+                        <HStack spacing={2} minW="140px">
+                          <Avatar size="sm" name={r.from_user?.name || '?'} bg="purple.600" />
+                          <Box>
+                            <Text fontSize="sm" fontWeight="700" color="white">
+                              {r.from_user?.name || 'Unknown'}
+                            </Text>
+                            <Text fontSize="xs" color="whiteAlpha.400">
+                              {r.from_user?.phone || ''}
+                            </Text>
+                            {r.from_user?.kutham && (
+                              <Badge colorScheme="purple" fontSize="2xs">{r.from_user.kutham}</Badge>
+                            )}
+                          </Box>
+                        </HStack>
+
+                        {/* Relation arrow */}
+                        <VStack spacing={0} flex={1} align="center">
+                          <Text fontSize="xs" color="yellow.300" fontWeight="700">
+                            {r.relation_tamil || r.relation_type}
+                          </Text>
+                          <Text fontSize="lg" color="yellow.400">→</Text>
+                          <Text fontSize="2xs" color="whiteAlpha.400">
+                            {r.is_offline ? 'offline member' : 'awaiting confirmation'}
+                          </Text>
+                        </VStack>
+
+                        {/* To user */}
+                        <HStack spacing={2} minW="140px" justify="flex-end">
+                          {r.is_offline ? (
+                            <Box textAlign="right">
+                              <Text fontSize="sm" fontWeight="700" color="whiteAlpha.700">
+                                {r.offline_name || 'Offline member'}
+                              </Text>
+                              <Badge colorScheme="gray" fontSize="2xs">Offline / Deceased</Badge>
+                            </Box>
+                          ) : (
+                            <>
+                              <Box textAlign="right">
+                                <Text fontSize="sm" fontWeight="700" color="white">
+                                  {r.to_user?.name || 'Unknown'}
+                                </Text>
+                                <Text fontSize="xs" color="whiteAlpha.400">
+                                  {r.to_user?.phone || ''}
+                                </Text>
+                                {r.to_user?.kutham && (
+                                  <Badge colorScheme="purple" fontSize="2xs">{r.to_user.kutham}</Badge>
+                                )}
+                              </Box>
+                              <Avatar size="sm" name={r.to_user?.name || '?'} bg="green.600" />
+                            </>
+                          )}
+                        </HStack>
+
+                      </HStack>
+
+                      {/* Date */}
+                      <Text fontSize="2xs" color="whiteAlpha.300" mt={2} textAlign="right">
+                        Sent: {new Date(r.created_at).toLocaleDateString('en-IN', {
+                          day: '2-digit', month: 'short', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit'
+                        })}
+                      </Text>
+                    </Box>
+                  ))}
+                </VStack>
+              )}
+            </Box>
+          </VStack>
+        )}
+
         {/* KUTHAMS TAB */}
         {activeTab === 'kuthams' && (
           <VStack spacing={4} align="stretch">
-
-            {/* Add new kutham */}
             <Box {...sectionBox}>
               <Text fontSize="md" fontWeight="700" color="white" mb={4}>
                 ➕ புதிய குலம் சேர் / Add New Kutham
@@ -257,17 +367,13 @@ export default function Admin() {
                 </Box>
               )}
             </Box>
-
-            {/* Kutham list */}
             <Box {...sectionBox}>
               <Text fontSize="md" fontWeight="700" color="white" mb={4}>
                 🏷️ அங்கீகரிக்கப்பட்ட குலங்கள் / Approved Kuthams ({kuthams.length})
               </Text>
               <VStack spacing={2} align="stretch">
                 {kuthams.length === 0 && (
-                  <Text color="whiteAlpha.400" textAlign="center" py={4}>
-                    No kuthams added yet
-                  </Text>
+                  <Text color="whiteAlpha.400" textAlign="center" py={4}>No kuthams added yet</Text>
                 )}
                 {kuthams.map(k => (
                   <HStack key={k.id} bg="whiteAlpha.100" borderRadius="xl"
@@ -276,9 +382,7 @@ export default function Admin() {
                       <Text fontSize="lg">🏷️</Text>
                       <Box>
                         <Text fontSize="sm" fontWeight="600" color="white">{k.name}</Text>
-                        <Text fontSize="xs" color="whiteAlpha.400">
-                          {k.user_count} பயனர் / users
-                        </Text>
+                        <Text fontSize="xs" color="whiteAlpha.400">{k.user_count} பயனர் / users</Text>
                       </Box>
                     </HStack>
                     <Button size="sm" variant="ghost" color="red.400"
@@ -296,8 +400,6 @@ export default function Admin() {
         {/* USERS TAB */}
         {activeTab === 'users' && (
           <VStack spacing={4} align="stretch">
-
-            {/* Search */}
             <Box {...sectionBox}>
               <HStack spacing={3}>
                 <Input flex={1} placeholder="🔍 பெயர் அல்லது தொலைபேசி / Search name or phone"
@@ -310,8 +412,6 @@ export default function Admin() {
                 </Button>
               </HStack>
             </Box>
-
-            {/* User list */}
             <Box {...sectionBox}>
               <Text fontSize="md" fontWeight="700" color="white" mb={4}>
                 👥 பயனர்கள் / Users ({users.length})
@@ -321,9 +421,7 @@ export default function Admin() {
               ) : (
                 <VStack spacing={2} align="stretch">
                   {users.length === 0 && (
-                    <Text color="whiteAlpha.400" textAlign="center" py={4}>
-                      No users found
-                    </Text>
+                    <Text color="whiteAlpha.400" textAlign="center" py={4}>No users found</Text>
                   )}
                   {users.map(u => (
                     <HStack key={u.id} bg="whiteAlpha.100" borderRadius="xl"
@@ -336,20 +434,12 @@ export default function Admin() {
                         </Box>
                       </HStack>
                       <HStack spacing={2} flexWrap="wrap">
-                        {u.kutham && (
-                          <Badge colorScheme="purple" borderRadius="full" px={2} fontSize="xs">
-                            {u.kutham}
-                          </Badge>
-                        )}
-                        {!u.kutham && (
-                          <Badge colorScheme="gray" borderRadius="full" px={2} fontSize="xs">
-                            No Kutham
-                          </Badge>
-                        )}
+                        {u.kutham
+                          ? <Badge colorScheme="purple" borderRadius="full" px={2} fontSize="xs">{u.kutham}</Badge>
+                          : <Badge colorScheme="gray"   borderRadius="full" px={2} fontSize="xs">No Kutham</Badge>
+                        }
                         {u.district && (
-                          <Badge colorScheme="blue" borderRadius="full" px={2} fontSize="xs">
-                            {u.district}
-                          </Badge>
+                          <Badge colorScheme="blue" borderRadius="full" px={2} fontSize="xs">{u.district}</Badge>
                         )}
                         <Text fontSize="xs" color="whiteAlpha.300">
                           {new Date(u.created_at).toLocaleDateString('en-IN')}
