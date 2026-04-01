@@ -1,20 +1,42 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  Box, VStack, HStack, Text, Button, Input, Spinner,
-  Badge, Avatar
+  Box, VStack, HStack, Text, Button, Input, Spinner, Badge
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
-const RELATIONS = [
-  { value: 'father',   tamil: 'அப்பா',          emoji: '👨', label: 'Father'   },
-  { value: 'mother',   tamil: 'அம்மா',          emoji: '👩', label: 'Mother'   },
-  { value: 'spouse',   tamil: 'மனைவி/கணவன்',   emoji: '💑', label: 'Spouse'   },
-  { value: 'brother',  tamil: 'அண்ணன்/தம்பி',  emoji: '👦', label: 'Brother'  },
-  { value: 'sister',   tamil: 'அக்கா/தங்கை',   emoji: '👧', label: 'Sister'   },
-  { value: 'son',      tamil: 'மகன்',           emoji: '🧒', label: 'Son'      },
-  { value: 'daughter', tamil: 'மகள்',           emoji: '👶', label: 'Daughter' },
+// Core 7 — for manual add without chain
+const CORE_RELATIONS = [
+  { value: 'father',   tamil: 'அப்பா',         emoji: '👨', label: 'Father'   },
+  { value: 'mother',   tamil: 'அம்மா',         emoji: '👩', label: 'Mother'   },
+  { value: 'spouse',   tamil: 'மனைவி/கணவன்',  emoji: '💑', label: 'Spouse'   },
+  { value: 'brother',  tamil: 'அண்ணன்/தம்பி', emoji: '👦', label: 'Brother'  },
+  { value: 'sister',   tamil: 'அக்கா/தங்கை',  emoji: '👧', label: 'Sister'   },
+  { value: 'son',      tamil: 'மகன்',          emoji: '🧒', label: 'Son'      },
+  { value: 'daughter', tamil: 'மகள்',          emoji: '👶', label: 'Daughter' },
+];
+
+// Extended — shown when manually overriding chain suggestion
+const ALL_RELATIONS = [
+  ...CORE_RELATIONS,
+  { value: 'nephew',               tamil: 'மருமகன்',                 emoji: '👦', label: 'Nephew'          },
+  { value: 'niece',                tamil: 'மருமகள்',                 emoji: '👧', label: 'Niece'           },
+  { value: 'uncle_paternal',       tamil: 'பெரியப்பா/சித்தப்பா',   emoji: '👴', label: 'Uncle (Paternal)'},
+  { value: 'aunt_paternal',        tamil: 'அத்தை',                   emoji: '👵', label: 'Aunt (Paternal)' },
+  { value: 'uncle_maternal',       tamil: 'மாமா',                    emoji: '👴', label: 'Uncle (Maternal)'},
+  { value: 'aunt_maternal',        tamil: 'சித்தி',                  emoji: '👵', label: 'Aunt (Maternal)' },
+  { value: 'grandfather_paternal', tamil: 'தாத்தா (அப்பா பக்கம்)', emoji: '👴', label: 'Grandfather (P)' },
+  { value: 'grandmother_paternal', tamil: 'பாட்டி (அப்பா பக்கம்)', emoji: '👵', label: 'Grandmother (P)' },
+  { value: 'grandfather_maternal', tamil: 'தாத்தா (அம்மா பக்கம்)', emoji: '👴', label: 'Grandfather (M)' },
+  { value: 'grandmother_maternal', tamil: 'பாட்டி (அம்மா பக்கம்)', emoji: '👵', label: 'Grandmother (M)' },
+  { value: 'grandson',             tamil: 'பேரன்',                   emoji: '🧒', label: 'Grandson'        },
+  { value: 'granddaughter',        tamil: 'பேத்தி',                  emoji: '👶', label: 'Granddaughter'   },
+  { value: 'cousin',               tamil: 'உறவினர்',                 emoji: '🤝', label: 'Cousin'          },
+  { value: 'father_in_law',        tamil: 'மாமனார்',                 emoji: '👴', label: 'Father-in-law'   },
+  { value: 'mother_in_law',        tamil: 'மாமியார்',                emoji: '👵', label: 'Mother-in-law'   },
+  { value: 'brother_in_law',       tamil: 'மைத்துனன்',              emoji: '👦', label: 'Brother-in-law'  },
+  { value: 'sister_in_law',        tamil: 'நாத்தனார்',               emoji: '👧', label: 'Sister-in-law'   },
 ];
 
 const inputStyle = {
@@ -35,51 +57,54 @@ export default function AddRelative() {
   const [success, setSuccess]           = useState('');
   const [whatsappLink, setWhatsappLink] = useState('');
 
-  // Chain detection state
-  const [chainLoading, setChainLoading]     = useState(false);
-  const [chainData, setChainData]           = useState(null);   // full response
-  const [chainDetected, setChainDetected]   = useState(false);
+  // Chain detection
+  const [chainLoading, setChainLoading]   = useState(false);
+  const [chainData, setChainData]         = useState(null);
+  const [overrideRelation, setOverride]   = useState(false); // manual override
   const chainTimer = useRef(null);
 
-  // Offline member state
-  const [isOffline, setIsOffline]       = useState(false);
-  const [offlineName, setOfflineName]   = useState('');
+  // Offline
+  const [isOffline, setIsOffline]         = useState(false);
+  const [offlineName, setOfflineName]     = useState('');
   const [offlineGender, setOfflineGender] = useState('male');
 
-  const selectedRelation = RELATIONS.find(r => r.value === relationType);
+  const suggestedRelation = chainData?.suggested_relation;
+  const hasSuggestion     = !!suggestedRelation?.type && chainData?.chain;
+  const showDropdown      = !hasSuggestion || overrideRelation;
+  const RELATIONS_TO_SHOW = showDropdown ? ALL_RELATIONS : CORE_RELATIONS;
+  const selectedRelation  = ALL_RELATIONS.find(r => r.value === relationType);
 
-  // Auto-trigger chain detect when phone is 10 digits
+  // Auto-trigger chain detect
   useEffect(() => {
     if (isOffline) return;
-    if (phone.replace(/\D/g,'').length === 10) {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10) {
       clearTimeout(chainTimer.current);
-      chainTimer.current = setTimeout(() => detectChain(phone), 600);
+      chainTimer.current = setTimeout(() => detectChain(digits), 700);
     } else {
       setChainData(null);
-      setChainDetected(false);
+      setOverride(false);
+      setRelationType('');
     }
     return () => clearTimeout(chainTimer.current);
   }, [phone, isOffline]);
 
-  // Auto-fill suggested relation from chain
+  // Auto-apply suggested relation
   useEffect(() => {
-    if (chainData?.suggested_relation?.type && !relationType) {
-      const match = RELATIONS.find(r => r.value === chainData.suggested_relation.type);
-      if (match) setRelationType(match.value);
+    if (hasSuggestion && !overrideRelation) {
+      setRelationType(suggestedRelation.type);
     }
-  }, [chainData]);
+  }, [chainData, overrideRelation]);
 
-  const detectChain = async (ph) => {
+  const detectChain = async (digits) => {
     setChainLoading(true);
+    setOverride(false);
+    setRelationType('');
     try {
-      const res = await api.get(`/api/relationships/chain-detect?to_phone=${ph.replace(/\D/g,'')}`);
+      const res = await api.get(`/api/relationships/chain-detect?to_phone=${digits}`);
       setChainData(res.data);
-      setChainDetected(true);
-    } catch(e) {
-      setChainData(null);
-    } finally {
-      setChainLoading(false);
-    }
+    } catch(e) { setChainData(null); }
+    finally { setChainLoading(false); }
   };
 
   const handleAdd = async () => {
@@ -94,96 +119,119 @@ export default function AddRelative() {
     setLoading(true);
     try {
       const payload = isOffline
-        ? { relation_type: relationType, relation_tamil: selectedRelation?.tamil, is_offline: true, offline_name: offlineName.trim(), offline_gender: offlineGender }
-        : { to_user_phone: phone, relation_type: relationType, relation_tamil: selectedRelation?.tamil };
+        ? { relation_type: relationType, relation_tamil: selectedRelation?.tamil,
+            is_offline: true, offline_name: offlineName.trim(), offline_gender: offlineGender }
+        : { to_user_phone: phone, relation_type: relationType,
+            relation_tamil: selectedRelation?.tamil };
 
       const res = await api.post('/api/relationships', payload);
-
       if (res.data.success) {
-        setSuccess(isOffline ? `${offlineName} குடும்ப மரத்தில் சேர்க்கப்பட்டார்` : `கோரிக்கை அனுப்பப்பட்டது!`);
+        setSuccess(isOffline
+          ? `${offlineName} குடும்ப மரத்தில் சேர்க்கப்பட்டார்`
+          : `கோரிக்கை அனுப்பப்பட்டது!`);
         setWhatsappLink(res.data.whatsapp_link || '');
         setPhone(''); setRelationType(''); setOfflineName('');
-        setChainData(null); setChainDetected(false);
+        setChainData(null); setOverride(false);
       }
     } catch (e) {
       const msg = e.response?.data?.error || 'பிழை ஏற்பட்டது';
       if (e.response?.status === 404 && e.response?.data?.invite_saved) {
-        setError('இந்த எண் பதிவு செய்யப்படவில்லை. WhatsApp மூலம் அழைக்கவும்.');
+        setError('இந்த எண் பதிவு செய்யப்படவில்லை.');
         setWhatsappLink(e.response?.data?.whatsapp_link || '');
-      } else {
-        setError(msg);
-      }
+      } else { setError(msg); }
     } finally { setLoading(false); }
   };
 
-  // Chain visualization component
+  // ── Chain Card ──
   const ChainCard = () => {
-    if (!chainDetected || !chainData) return null;
+    if (!chainData || isOffline) return null;
 
     if (!chainData.target_found) return (
-      <Box bg="orange.900" border="1px solid" borderColor="orange.500" borderRadius="xl" px={4} py={3}>
-        <Text color="orange.200" fontSize="sm">⚠️ இந்த எண் frootze-ல் பதிவு செய்யப்படவில்லை</Text>
-        <Text color="orange.300" fontSize="xs" mt={1}>They need to register first. You can still send a WhatsApp invite after adding.</Text>
+      <Box bg="orange.900" border="1px solid" borderColor="orange.600" borderRadius="xl" px={4} py={3}>
+        <Text color="orange.200" fontSize="sm" fontWeight="700">⚠️ frootze-ல் பதிவு செய்யப்படவில்லை</Text>
+        <Text color="orange.300" fontSize="xs" mt={1}>WhatsApp மூலம் அழைக்கவும்</Text>
       </Box>
     );
 
     if (chainData.already_connected) return (
-      <Box bg="blue.900" border="1px solid" borderColor="blue.500" borderRadius="xl" px={4} py={3}>
-        <Text color="blue.200" fontSize="sm">ℹ️ Already connected in your family tree</Text>
+      <Box bg="blue.900" border="1px solid" borderColor="blue.600" borderRadius="xl" px={4} py={3}>
+        <Text color="blue.200" fontSize="sm">ℹ️ ஏற்கனவே குடும்ப மரத்தில் இணைக்கப்பட்டுள்ளார்</Text>
       </Box>
     );
 
     if (!chainData.chain) return (
-      <Box bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.200" borderRadius="xl" px={4} py={3}>
-        <Text color="white" fontSize="sm" fontWeight="600">✅ Registered on frootze</Text>
-        <Text color="whiteAlpha.500" fontSize="xs" mt={1}>No existing family connection found. Select relation manually.</Text>
+      <Box bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.300" borderRadius="xl" px={4} py={3}>
+        <Text color="white" fontSize="sm" fontWeight="700">✅ frootze-ல் பதிவு செய்யப்பட்டவர்</Text>
+        <Text color="whiteAlpha.500" fontSize="xs" mt={1}>நேரடி குடும்ப தொடர்பு இல்லை — கைமுறையாக தேர்வு செய்யவும்</Text>
       </Box>
     );
 
-    // Chain found — show visual
     return (
       <Box bg="whiteAlpha.100" border="1px solid" borderColor="purple.500" borderRadius="xl" px={4} py={4}>
-        <Text color="purple.300" fontSize="xs" fontWeight="700" mb={3}>🔗 குடும்ப தொடர்பு கண்டறியப்பட்டது / Connection Found</Text>
+        <Text color="purple.300" fontSize="xs" fontWeight="700" mb={3}>
+          🔗 குடும்ப தொடர்பு கண்டறியப்பட்டது / Connection Found
+        </Text>
 
-        <HStack spacing={0} flexWrap="wrap" align="center" gap={1}>
+        {/* Chain visualization */}
+        <HStack spacing={1} flexWrap="wrap" align="center" mb={3}>
           {chainData.chain.map((node, idx) => (
             <HStack key={idx} spacing={1} align="center">
-              {/* Node */}
-              <VStack spacing={1} align="center">
-                <Avatar size="xs" name={node.user.name}
+              <VStack spacing={0} align="center">
+                <Box w="32px" h="32px" borderRadius="full" display="flex"
+                  alignItems="center" justifyContent="center"
                   bg={node.connected ? 'purple.600' : 'gray.600'}
                   border="2px solid"
-                  borderColor={node.connected ? 'green.400' : 'gray.500'}/>
+                  borderColor={node.connected ? 'green.400' : 'gray.500'}>
+                  <Text color="white" fontSize="xs" fontWeight="700">
+                    {(node.user.name||'?')[0].toUpperCase()}
+                  </Text>
+                </Box>
                 <Text fontSize="2xs" color={node.connected ? 'white' : 'whiteAlpha.500'}
-                  maxW="60px" textAlign="center" noOfLines={1}>
-                  {node.user.name}
+                  maxW="50px" textAlign="center" noOfLines={1}>
+                  {node.user.name?.split(' ')[0]}
                 </Text>
-                {!node.connected && idx > 0 && (
-                  <Badge colorScheme="green" fontSize="2xs">New</Badge>
-                )}
+                {!node.connected && idx > 0 &&
+                  <Badge colorScheme="green" fontSize="2xs">NEW</Badge>}
               </VStack>
-
-              {/* Arrow + relation */}
               {idx < chainData.chain.length - 1 && (
                 <VStack spacing={0} align="center" mx={1}>
-                  <Text fontSize="2xs" color="yellow.300" fontWeight="700" textAlign="center">
-                    {chainData.chain[idx].rel_tamil || chainData.chain[idx].relation_to_next}
+                  <Text fontSize="2xs" color="yellow.300" fontWeight="700">
+                    {chainData.chain[idx].rel_tamil || ''}
                   </Text>
-                  <Text color="purple.300" fontSize="md">→</Text>
+                  <Text color="purple.300">→</Text>
                 </VStack>
               )}
             </HStack>
           ))}
         </HStack>
 
-        {chainData.suggested_relation && (
-          <Box mt={3} bg="green.900" border="1px solid" borderColor="green.600" borderRadius="lg" px={3} py={2}>
-            <Text fontSize="xs" color="green.300">
-              💡 Suggested: <Text as="span" fontWeight="700">
-                {chainData.suggested_relation.tamil} / {chainData.suggested_relation.type}
-              </Text> — auto-selected below
-            </Text>
+        {/* Suggested relation — pre-filled badge */}
+        {hasSuggestion && !overrideRelation && (
+          <Box bg="green.900" border="1px solid" borderColor="green.600" borderRadius="lg" px={3} py={2}>
+            <HStack justify="space-between" align="center">
+              <VStack spacing={0} align="start">
+                <Text fontSize="xs" color="green.400" fontWeight="700">✅ தொடர்பு தானாக தேர்வு செய்யப்பட்டது</Text>
+                <Text fontSize="md" color="white" fontWeight="800">
+                  {suggestedRelation.tamil} / {suggestedRelation.type}
+                </Text>
+              </VStack>
+              <Button size="xs" variant="ghost" color="whiteAlpha.500"
+                onClick={() => { setOverride(true); setRelationType(''); }}
+                _hover={{ color: 'white' }}>
+                ✏️ மாற்று
+              </Button>
+            </HStack>
           </Box>
+        )}
+
+        {overrideRelation && (
+          <HStack mb={2}>
+            <Text fontSize="xs" color="whiteAlpha.500">கைமுறையாக தேர்வு செய்கிறீர்கள்</Text>
+            <Button size="xs" variant="ghost" color="purple.300"
+              onClick={() => { setOverride(false); setRelationType(suggestedRelation?.type || ''); }}>
+              ↩ திரும்பு
+            </Button>
+          </HStack>
         )}
       </Box>
     );
@@ -193,14 +241,13 @@ export default function AddRelative() {
     <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)" px={{ base: 4, md: 8 }} py={6}>
       <VStack w="100%" maxW="600px" mx="auto" spacing={4} align="stretch">
 
-        {/* Header */}
         <HStack spacing={3} mb={2}>
-          <Button size="sm" variant="ghost" color="whiteAlpha.600" onClick={() => navigate('/dashboard')}
-            _hover={{ color: 'white' }}>← Back</Button>
+          <Button size="sm" variant="ghost" color="whiteAlpha.600"
+            onClick={() => navigate('/dashboard')} _hover={{ color: 'white' }}>← Back</Button>
           <Text fontSize="xl" fontWeight="800" color="white">👨‍👩‍👧‍👦 குடும்பத்தினரை சேர்</Text>
         </HStack>
 
-        {/* Toggle Online / Offline */}
+        {/* Online / Offline toggle */}
         <HStack bg="whiteAlpha.100" borderRadius="xl" p={1}>
           <Button flex={1} size="sm" borderRadius="lg"
             bg={!isOffline ? 'purple.600' : 'transparent'}
@@ -218,7 +265,7 @@ export default function AddRelative() {
           </Button>
         </HStack>
 
-        {/* Phone input (online) */}
+        {/* Phone input */}
         {!isOffline && (
           <Box bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.200" borderRadius="2xl" px={5} py={5}>
             <Text fontSize="sm" color="whiteAlpha.600" mb={2}>தொலைபேசி எண் / Phone Number</Text>
@@ -227,7 +274,7 @@ export default function AddRelative() {
                 <Text color="white" fontSize="md">+91</Text>
               </Box>
               <Input flex={1} placeholder="10 digit mobile number" value={phone}
-                onChange={e => { setPhone(e.target.value); setError(''); setSuccess(''); }}
+                onChange={e => { setPhone(e.target.value.replace(/\D/g,'')); setError(''); setSuccess(''); }}
                 maxLength={10} type="tel" {...inputStyle}/>
               {chainLoading && <Spinner color="purple.300" size="sm"/>}
             </HStack>
@@ -255,28 +302,32 @@ export default function AddRelative() {
           </Box>
         )}
 
-        {/* Chain detection card */}
+        {/* Chain card — shows connection + auto-selected relation */}
         {!isOffline && <ChainCard/>}
 
-        {/* Relation selector */}
-        <Box bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.200" borderRadius="2xl" px={5} py={5}>
-          <Text fontSize="sm" color="whiteAlpha.600" mb={3}>உறவு முறை / Relation Type</Text>
-          <Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap={2}>
-            {RELATIONS.map(r => (
-              <Button key={r.value} size="sm" borderRadius="xl" h="60px"
-                flexDirection="column" gap={1}
-                bg={relationType === r.value ? 'purple.600' : 'whiteAlpha.100'}
-                color={relationType === r.value ? 'white' : 'whiteAlpha.600'}
-                border="1px solid"
-                borderColor={relationType === r.value ? 'purple.400' : 'whiteAlpha.200'}
-                onClick={() => setRelationType(r.value)}
-                _hover={{ bg: relationType === r.value ? 'purple.600' : 'whiteAlpha.200' }}>
-                <Text fontSize="lg">{r.emoji}</Text>
-                <Text fontSize="2xs">{r.tamil}</Text>
-              </Button>
-            ))}
+        {/* Relation selector — only shown when no suggestion OR override */}
+        {(showDropdown || isOffline) && (
+          <Box bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.200" borderRadius="2xl" px={5} py={5}>
+            <Text fontSize="sm" color="whiteAlpha.600" mb={3}>
+              {overrideRelation ? '✏️ உறவு மாற்று / Change Relation' : 'உறவு முறை / Relation Type'}
+            </Text>
+            <Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap={2}>
+              {(isOffline ? CORE_RELATIONS : ALL_RELATIONS).map(r => (
+                <Button key={r.value} size="sm" borderRadius="xl" h="60px"
+                  flexDirection="column" gap={1}
+                  bg={relationType === r.value ? 'purple.600' : 'whiteAlpha.100'}
+                  color={relationType === r.value ? 'white' : 'whiteAlpha.600'}
+                  border="1px solid"
+                  borderColor={relationType === r.value ? 'purple.400' : 'whiteAlpha.200'}
+                  onClick={() => setRelationType(r.value)}
+                  _hover={{ bg: relationType === r.value ? 'purple.600' : 'whiteAlpha.200' }}>
+                  <Text fontSize="lg">{r.emoji}</Text>
+                  <Text fontSize="2xs" textAlign="center">{r.tamil}</Text>
+                </Button>
+              ))}
+            </Box>
           </Box>
-        </Box>
+        )}
 
         {/* Error */}
         {error && (
@@ -298,10 +349,10 @@ export default function AddRelative() {
           </Box>
         )}
 
-        {/* WhatsApp invite for unregistered */}
+        {/* WhatsApp invite */}
         {!success && whatsappLink && (
           <Box bg="orange.900" border="1px solid" borderColor="orange.500" borderRadius="xl" px={4} py={3}>
-            <Text color="orange.200" fontSize="sm" mb={2}>📲 Invite them to join frootze first:</Text>
+            <Text color="orange.200" fontSize="sm" mb={2}>📲 Invite them to join frootze:</Text>
             <Button as="a" href={whatsappLink} target="_blank" size="sm"
               bg="green.600" color="white" borderRadius="xl" _hover={{ bg: 'green.500' }}>
               💬 WhatsApp Invite
@@ -309,7 +360,7 @@ export default function AddRelative() {
           </Box>
         )}
 
-        {/* Submit button */}
+        {/* Submit */}
         <Button h="56px" bgGradient="linear(to-r, purple.600, green.500)"
           color="white" fontSize="lg" fontWeight="700" borderRadius="xl"
           isLoading={loading} loadingText="அனுப்புகிறோம்..."
