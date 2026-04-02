@@ -1,458 +1,355 @@
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
+import { Box, Spinner, Text, VStack } from '@chakra-ui/react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 // ── Layout constants ──────────────────────────────────────
-const NODE_W    = 110;
-const NODE_H    = 80;
-const H_GAP     = 40;   // horizontal gap between columns
-const V_GAP     = 80;   // vertical gap between generations
-const COL_W     = NODE_W + H_GAP;
-const MARGIN    = { top: 60, left: 40, right: 40, bottom: 60 };
+const NODE_W  = 120;
+const NODE_H  = 70;
+const H_GAP   = 60;   // horizontal gap between same-gen nodes
+const V_GAP   = 100;  // vertical gap between generations
 
-// ── Kutham palette ────────────────────────────────────────
-const KUTHAM_PALETTE = [
-  { fill: '#EDE9FE', stroke: '#7C3AED', text: '#5B21B6' },
-  { fill: '#FFF7ED', stroke: '#F59E0B', text: '#92400E' },
-  { fill: '#EFF6FF', stroke: '#3B82F6', text: '#1D4ED8' },
-  { fill: '#F0FDF4', stroke: '#22C55E', text: '#15803D' },
-  { fill: '#FFF1F2', stroke: '#F43F5E', text: '#BE123C' },
-  { fill: '#F0F9FF', stroke: '#0EA5E9', text: '#0369A1' },
-  { fill: '#FDF4FF', stroke: '#A855F7', text: '#7E22CE' },
-  { fill: '#FFFBEB', stroke: '#EAB308', text: '#854D0E' },
-];
-const UNKNOWN_COLOR = { fill: '#F3F4F6', stroke: '#9CA3AF', text: '#6B7280' };
-const YOU_COLOR     = { fill: '#7C3AED', stroke: '#5B21B6', text: '#FFFFFF' };
-const OFFLINE_COLOR = { fill: '#E5E7EB', stroke: '#9CA3AF', text: '#6B7280' };
-
-// ── Relation type → column ────────────────────────────────
-const BLOOD_TYPES = new Set([
-  'father','mother','brother','sister','son','daughter',
-  'grandfather_paternal','grandmother_paternal',
-  'grandfather_maternal','grandmother_maternal',
-  'grandson','granddaughter','nephew','niece',
-  'uncle_paternal','aunt_paternal','uncle_maternal','aunt_maternal',
-  'cousin','great_grandfather','great_grandmother',
-]);
-const WIFE_TYPES = new Set([
-  'spouse','father_in_law','mother_in_law',
-  'brother_in_law','sister_in_law',
-  'son_in_law','daughter_in_law',
-  'aunt_by_marriage','uncle_by_marriage',
-  'nephew_by_marriage','niece_by_marriage',
-  'stepson','stepdaughter',
-]);
-
-// ── Generation from relation type ────────────────────────
-const GEN_MAP = {
-  great_grandfather: 3, great_grandmother: 3,
-  grandfather_paternal: 2, grandmother_paternal: 2,
-  grandfather_maternal: 2, grandmother_maternal: 2,
-  father: 1, mother: 1, father_in_law: 1, mother_in_law: 1,
-  uncle_paternal: 1, aunt_paternal: 1, uncle_maternal: 1, aunt_maternal: 1,
+// ── Generation delta per relation type ───────────────────
+const GEN_DELTA = {
+  // Up (parents)
+  father: -1, mother: -1,
+  grandfather_paternal: -2, grandmother_paternal: -2,
+  grandfather_maternal: -2, grandmother_maternal: -2,
+  great_grandfather: -3, great_grandmother: -3,
+  father_in_law: -1, mother_in_law: -1,
+  uncle_paternal: -1, aunt_paternal: -1,
+  uncle_maternal: -1, aunt_maternal: -1,
+  // Same level
   brother: 0, sister: 0, spouse: 0,
   brother_in_law: 0, sister_in_law: 0,
-  aunt_by_marriage: 0, uncle_by_marriage: 0,
-  cousin: 0,
-  son: -1, daughter: -1,
-  nephew: -1, niece: -1,
-  son_in_law: -1, daughter_in_law: -1,
-  nephew_by_marriage: -1, niece_by_marriage: -1,
-  stepson: -1, stepdaughter: -1,
-  grandson: -2, granddaughter: -2,
+  cousin: 0, aunt_by_marriage: 0, uncle_by_marriage: 0,
+  // Down (children)
+  son: 1, daughter: 1,
+  grandson: 2, granddaughter: 2,
+  nephew: 1, niece: 1,
+  son_in_law: 1, daughter_in_law: 1,
+  nephew_by_marriage: 1, niece_by_marriage: 1,
+  stepson: 1, stepdaughter: 1,
 };
 
-const GEN_LABELS = {
-  3: 'Past Gen 3', 2: 'Past Gen 2', 1: 'Past Gen 1',
-  0: 'Current', '-1': 'Future Gen 1', '-2': 'Future Gen 2',
-};
+// ── Kutham color palette ──────────────────────────────────
+const KUTHAM_PALETTE = [
+  { fill: '#4C1D95', stroke: '#7C3AED', text: '#DDD6FE' },
+  { fill: '#78350F', stroke: '#F59E0B', text: '#FDE68A' },
+  { fill: '#1E3A5F', stroke: '#3B82F6', text: '#BFDBFE' },
+  { fill: '#14532D', stroke: '#22C55E', text: '#BBF7D0' },
+  { fill: '#4C0519', stroke: '#F43F5E', text: '#FECDD3' },
+  { fill: '#0C4A6E', stroke: '#0EA5E9', text: '#BAE6FD' },
+  { fill: '#3B0764', stroke: '#A855F7', text: '#E9D5FF' },
+  { fill: '#422006', stroke: '#EAB308', text: '#FEF9C3' },
+];
+const UNKNOWN_COLOR = { fill: '#1F2937', stroke: '#6B7280', text: '#9CA3AF' };
+const ROOT_COLOR    = { fill: '#5B21B6', stroke: '#7C3AED', text: '#FFFFFF' };
+const OFFLINE_COLOR = { fill: '#374151', stroke: '#6B7280', text: '#9CA3AF' };
 
-export default function FamilyNetwork({ currentUser, relationships }) {
-  const svgRef = useRef(null);
+export default function FamilyNetwork({ currentUser }) {
+  const svgRef  = useRef(null);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState('');
 
   useEffect(() => {
-    if (!svgRef.current || !relationships || !currentUser) return;
-    drawNetwork();
-  }, [relationships, currentUser]);
+    if (!currentUser?.id) return;
+    setLoading(true);
+    api.get(`/api/relationships/network/${currentUser.id}`)
+      .then(res => {
+        setLoading(false);
+        if (res.data.nodes) drawNetwork(res.data);
+      })
+      .catch(() => { setLoading(false); setError('Network fetch failed'); });
+  }, [currentUser?.id]);
 
-  const drawNetwork = () => {
-    const container = svgRef.current;
-    d3.select(container).selectAll('*').remove();
+  const drawNetwork = (data) => {
+    const { nodes, edges, root_id } = data;
+    if (!svgRef.current || !nodes?.length) return;
+    d3.select(svgRef.current).selectAll('*').remove();
 
-    // ── Build nodes ──────────────────────────────────────
+    // ── Build kutham color map ────────────────────────────
     const kuthamMap = new Map();
-    let kuthamIdx = 0;
+    let kidx = 0;
+    nodes.forEach(n => {
+      if (n.kutham && !kuthamMap.has(n.kutham)) kuthamMap.set(n.kutham, kidx++);
+    });
 
-    // Self node
-    const nodes = [{
-      id: currentUser.id,
-      name: currentUser.name,
-      tamil: 'நீங்கள்',
-      relationType: 'self',
-      col: 'center',
-      gen: 0,
-      kutham: currentUser.kutham,
-      isYou: true,
-      verified: true,
-      isOffline: false,
-      photo: currentUser.profile_photo,
-    }];
+    // ── Assign generations via BFS from root ─────────────
+    const genMap  = new Map(); // id → generation number (root=0)
+    const posMap  = new Map(); // id → { x, y }
+    genMap.set(root_id, 0);
 
-    if (currentUser.kutham && !kuthamMap.has(currentUser.kutham)) {
-      kuthamMap.set(currentUser.kutham, kuthamIdx++);
-    }
+    // BFS to assign generations
+    const bfsQueue = [root_id];
+    const bfsVisited = new Set([root_id]);
+    while (bfsQueue.length > 0) {
+      const uid = bfsQueue.shift();
+      const currentGen = genMap.get(uid);
 
-    // Add relationships as nodes
-    for (const rel of (relationships || [])) {
-      const person = rel.to_user || (rel.is_offline ? {
-        id: `offline-${rel.id}`,
-        name: rel.offline_name,
-        kutham: null,
-        profile_photo: null,
-        is_offline: true,
-      } : null);
-
-      if (!person || person.id === currentUser.id) continue;
-
-      const relType  = rel.relation_type;
-      const col      = BLOOD_TYPES.has(relType) ? 'blood'
-                     : WIFE_TYPES.has(relType)  ? 'wife'
-                     : 'blood';
-      const gen      = GEN_MAP[relType] ?? 0;
-
-      if (person.kutham && !kuthamMap.has(person.kutham)) {
-        kuthamMap.set(person.kutham, kuthamIdx++);
-      }
-
-      // Avoid duplicates
-      if (!nodes.find(n => n.id === person.id)) {
-        nodes.push({
-          id: person.id,
-          name: person.name || rel.offline_name,
-          tamil: rel.relation_tamil,
-          relationType: relType,
-          col,
-          gen,
-          kutham: person.kutham,
-          isYou: false,
-          verified: rel.verification_status === 'verified',
-          isOffline: rel.is_offline || false,
-          photo: person.profile_photo,
-        });
-      }
-    }
-
-    // ── Assign x/y positions ─────────────────────────────
-    const genSet = [...new Set(nodes.map(n => n.gen))].sort((a,b) => b - a);
-
-    // Group nodes by gen + col
-    const groups = {};
-    for (const node of nodes) {
-      const key = `${node.gen}_${node.col}`;
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(node);
-    }
-
-    // Calculate how many columns per gen
-    const genMaxCols = {};
-    for (const node of nodes) {
-      const g = node.gen;
-      if (!genMaxCols[g]) genMaxCols[g] = { blood: 0, center: 0, wife: 0 };
-      genMaxCols[g][node.col]++;
-    }
-
-    // Max nodes per column across all gens
-    const maxBlood  = Math.max(...genSet.map(g => (genMaxCols[g]?.blood  || 0)), 1);
-    const maxCenter = Math.max(...genSet.map(g => (genMaxCols[g]?.center || 0)), 1);
-    const maxWife   = Math.max(...genSet.map(g => (genMaxCols[g]?.wife   || 0)), 1);
-
-    const bloodW  = maxBlood  * (NODE_W + H_GAP);
-    const centerW = maxCenter * (NODE_W + H_GAP);
-    const wifesW  = maxWife   * (NODE_W + H_GAP);
-
-    const totalW  = bloodW + centerW + wifesW + MARGIN.left + MARGIN.right + 40;
-    const totalH  = genSet.length * (NODE_H + V_GAP) + MARGIN.top + MARGIN.bottom;
-
-    // Column x origins
-    const bloodX  = MARGIN.left;
-    const centerX = bloodX + bloodW + 20;
-    const wifeX   = centerX + centerW + 20;
-
-    // Assign positions
-    for (const node of nodes) {
-      const rowIdx  = genSet.indexOf(node.gen);
-      const y       = MARGIN.top + rowIdx * (NODE_H + V_GAP);
-      const key     = `${node.gen}_${node.col}`;
-      const group   = groups[key];
-      const posIdx  = group.indexOf(node);
-      const colCount = group.length;
-
-      let colStart;
-      if (node.col === 'blood')  colStart = bloodX  + (bloodW  - colCount * (NODE_W + H_GAP)) / 2;
-      if (node.col === 'center') colStart = centerX + (centerW - colCount * (NODE_W + H_GAP)) / 2;
-      if (node.col === 'wife')   colStart = wifeX   + (wifesW  - colCount * (NODE_W + H_GAP)) / 2;
-
-      node.x = colStart + posIdx * (NODE_W + H_GAP) + NODE_W / 2;
-      node.y = y + NODE_H / 2;
-    }
-
-    // ── Build edges ──────────────────────────────────────
-    const edges = [];
-    const selfNode = nodes.find(n => n.isYou);
-
-    for (const rel of (relationships || [])) {
-      const person = rel.to_user || (rel.is_offline ? { id: `offline-${rel.id}` } : null);
-      if (!person) continue;
-      const target = nodes.find(n => n.id === person.id);
-      if (!target || !selfNode) continue;
-
-      edges.push({
-        source: selfNode,
-        target,
-        label: rel.relation_tamil || rel.relation_type,
-        verified: rel.verification_status === 'verified',
+      edges.filter(e => e.from === uid).forEach(e => {
+        if (!bfsVisited.has(e.to)) {
+          const delta = GEN_DELTA[e.relation_type] ?? 0;
+          // Only set gen if not already set (first path wins)
+          if (!genMap.has(e.to)) genMap.set(e.to, currentGen + delta);
+          bfsVisited.add(e.to);
+          bfsQueue.push(e.to);
+        }
       });
     }
 
-    // ── SVG setup ─────────────────────────────────────────
-    const svg = d3.select(container)
-      .attr('width', totalW)
-      .attr('height', totalH);
+    // Assign default gen 0 for any unvisited nodes
+    nodes.forEach(n => { if (!genMap.has(n.id)) genMap.set(n.id, 0); });
+
+    // ── Group nodes by generation ─────────────────────────
+    const genGroups = new Map();
+    nodes.forEach(n => {
+      const g = genMap.get(n.id) ?? 0;
+      if (!genGroups.has(g)) genGroups.set(g, []);
+      genGroups.get(g).push(n);
+    });
+
+    const allGens   = [...genGroups.keys()].sort((a,b) => a - b);
+    const minGen    = allGens[0];
+    const maxGen    = allGens[allGens.length - 1];
+
+    // ── Calculate positions ───────────────────────────────
+    // Root is at center; generations go up/down
+    const centerX = 0; // relative — will be adjusted
+
+    allGens.forEach(gen => {
+      const group = genGroups.get(gen);
+      const totalW = group.length * NODE_W + (group.length - 1) * H_GAP;
+      const startX = -totalW / 2;
+      const y = gen * (NODE_H + V_GAP);
+      group.forEach((node, idx) => {
+        posMap.set(node.id, {
+          x: startX + idx * (NODE_W + H_GAP),
+          y,
+        });
+      });
+    });
+
+    // ── SVG dimensions ────────────────────────────────────
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    posMap.forEach(({ x, y }) => {
+      minX = Math.min(minX, x - NODE_W/2);
+      maxX = Math.max(maxX, x + NODE_W/2);
+      minY = Math.min(minY, y - NODE_H/2);
+      maxY = Math.max(maxY, y + NODE_H/2);
+    });
+
+    const padding = 80;
+    const svgW = maxX - minX + padding * 2;
+    const svgH = maxY - minY + padding * 2;
+    const offsetX = -minX + padding;
+    const offsetY = -minY + padding;
+
+    const svg = d3.select(svgRef.current)
+      .attr('width', svgW)
+      .attr('height', svgH);
 
     // Zoom + pan
     const g = svg.append('g');
-    svg.call(d3.zoom().scaleExtent([0.3, 2]).on('zoom', (e) => {
-      g.attr('transform', e.transform);
-    }));
+    svg.call(d3.zoom()
+      .scaleExtent([0.2, 2.5])
+      .on('zoom', (e) => g.attr('transform', e.transform)));
 
-    // ── Draw generation band labels ───────────────────────
-    const bandsG = g.append('g').attr('class', 'bands');
-    for (const gen of genSet) {
-      const rowIdx = genSet.indexOf(gen);
-      const y = MARGIN.top + rowIdx * (NODE_H + V_GAP) - 22;
-      bandsG.append('text')
-        .attr('x', MARGIN.left)
-        .attr('y', y)
-        .attr('font-size', '11px')
-        .attr('font-weight', '600')
-        .attr('fill', '#94A3B8')
-        .text(GEN_LABELS[gen] || `Gen ${gen}`);
-    }
-
-    // ── Draw column header labels ─────────────────────────
-    const headerY = MARGIN.top - 36;
-    [
-      { x: bloodX + bloodW / 2,   label: '← My Blood Relations', color: '#818CF8' },
-      { x: centerX + centerW / 2, label: 'Direct Line',          color: '#A78BFA' },
-      { x: wifeX + wifesW / 2,    label: "Wife's Relations →",   color: '#FCD34D' },
-    ].forEach(({ x, label, color }) => {
-      g.append('text')
-        .attr('x', x).attr('y', headerY)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '12px')
-        .attr('font-weight', '700')
-        .attr('fill', color)
-        .text(label);
-    });
-
-    // ── Draw column separator lines ───────────────────────
-    const lineH = totalH - MARGIN.bottom;
-    [centerX - 10, wifeX - 10].forEach(lx => {
-      g.append('line')
-        .attr('x1', lx).attr('y1', MARGIN.top - 40)
-        .attr('x2', lx).attr('y2', lineH)
-        .attr('stroke', '#334155').attr('stroke-width', 1)
-        .attr('stroke-dasharray', '4,4');
-    });
-
-    // ── Arrow marker definition ───────────────────────────
+    // Arrow marker
     const defs = svg.append('defs');
-    defs.append('marker')
-      .attr('id', 'arrowhead')
-      .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 10).attr('refY', 0)
-      .attr('markerWidth', 6).attr('markerHeight', 6)
-      .attr('orient', 'auto')
-      .append('path')
-      .attr('d', 'M0,-5L10,0L0,5')
-      .attr('fill', '#7C3AED');
+    ['verified', 'pending'].forEach(type => {
+      defs.append('marker')
+        .attr('id', `arrow-${type}`)
+        .attr('viewBox', '0 -4 8 8')
+        .attr('refX', 8).attr('refY', 0)
+        .attr('markerWidth', 5).attr('markerHeight', 5)
+        .attr('orient', 'auto')
+        .append('path')
+        .attr('d', 'M0,-4L8,0L0,4')
+        .attr('fill', type === 'verified' ? '#7C3AED' : '#F59E0B');
+    });
 
-    defs.append('marker')
-      .attr('id', 'arrowhead-pending')
-      .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 10).attr('refY', 0)
-      .attr('markerWidth', 6).attr('markerHeight', 6)
-      .attr('orient', 'auto')
-      .append('path')
-      .attr('d', 'M0,-5L10,0L0,5')
-      .attr('fill', '#F59E0B');
+    // Generation labels (left side)
+    const GEN_LABEL = {
+      '-3': 'Past Gen 3', '-2': 'Past Gen 2', '-1': 'Past Gen 1',
+      '0': 'Current', '1': 'Next Gen 1', '2': 'Next Gen 2',
+    };
 
-    // ── Draw edges ───────────────────────────────────────
+    allGens.forEach(gen => {
+      const y = gen * (NODE_H + V_GAP) + offsetY;
+      g.append('text')
+        .attr('x', 8)
+        .attr('y', y + NODE_H / 2 + 4)
+        .attr('font-size', '10px')
+        .attr('fill', '#475569')
+        .attr('font-weight', '600')
+        .text(GEN_LABEL[gen] || `Gen ${gen}`);
+    });
+
+    // ── Draw edges ────────────────────────────────────────
     const edgesG = g.append('g').attr('class', 'edges');
 
-    for (const edge of edges) {
-      const { source: s, target: t, label, verified } = edge;
-      if (!s.x || !t.x) continue;
+    edges.forEach(edge => {
+      const sp = posMap.get(edge.from);
+      const tp = posMap.get(edge.to);
+      if (!sp || !tp) return;
 
-      // Path from source node edge to target node edge
-      const sx = s.x;
-      const sy = s.y;
-      const tx = t.x;
-      const ty = t.y;
+      const sx = sp.x + offsetX + NODE_W / 2;
+      const sy = sp.y + offsetY + NODE_H / 2;
+      const tx = tp.x + offsetX + NODE_W / 2;
+      const ty = tp.y + offsetY + NODE_H / 2;
 
-      // Offset to node border
-      const dx = tx - sx;
-      const dy = ty - sy;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      const ux = dx / dist;
-      const uy = dy / dist;
+      // Direction vector for arrow offset
+      const dx = tx - sx, dy = ty - sy;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      const ux = dx/dist, uy = dy/dist;
 
-      const startX = sx + ux * (NODE_W / 2 + 4);
-      const startY = sy + uy * (NODE_H / 2 + 4);
-      const endX   = tx - ux * (NODE_W / 2 + 14);
-      const endY   = ty - uy * (NODE_H / 2 + 14);
+      // Start/end at node border
+      const startX = sx + ux * (NODE_W/2 + 2);
+      const startY = sy + uy * (NODE_H/2 + 2);
+      const endX   = tx - ux * (NODE_W/2 + 12);
+      const endY   = ty - uy * (NODE_H/2 + 12);
 
-      // Curved path
-      const midX = (startX + endX) / 2;
-      const midY = (startY + endY) / 2;
-      const cpX  = midX + (uy * 20);
-      const cpY  = midY - (ux * 20);
+      // Slight curve
+      const mx = (startX + endX) / 2 + uy * 15;
+      const my = (startY + endY) / 2 - ux * 15;
 
-      const pathD = `M ${startX},${startY} Q ${cpX},${cpY} ${endX},${endY}`;
+      const color = edge.verified ? '#7C3AED' : '#F59E0B';
 
       edgesG.append('path')
-        .attr('d', pathD)
+        .attr('d', `M${startX},${startY} Q${mx},${my} ${endX},${endY}`)
         .attr('fill', 'none')
-        .attr('stroke', verified ? '#7C3AED' : '#F59E0B')
-        .attr('stroke-width', 1.5)
-        .attr('stroke-dasharray', verified ? 'none' : '5,3')
-        .attr('marker-end', `url(#${verified ? 'arrowhead' : 'arrowhead-pending'})`);
+        .attr('stroke', color)
+        .attr('stroke-width', 1.8)
+        .attr('stroke-dasharray', edge.verified ? 'none' : '5,3')
+        .attr('marker-end', `url(#arrow-${edge.verified ? 'verified' : 'pending'})`);
 
-      // Relation label on edge
-      const labelX = (startX + cpX + endX) / 3;
-      const labelY = (startY + cpY + endY) / 3;
-      const labelTrunc = label && label.length > 12 ? label.substring(0,12) + '…' : label;
+      // Relation label on edge midpoint
+      const lx = (startX + mx + endX) / 3;
+      const ly = (startY + my + endY) / 3;
+      const label = edge.relation_tamil || '';
+      const labelShort = label.length > 14 ? label.substring(0,14)+'…' : label;
 
-      if (labelTrunc) {
-        const lw = labelTrunc.length * 5.5 + 10;
+      if (labelShort) {
+        const lw = labelShort.length * 5.5 + 12;
         edgesG.append('rect')
-          .attr('x', labelX - lw/2).attr('y', labelY - 9)
+          .attr('x', lx - lw/2).attr('y', ly - 9)
           .attr('width', lw).attr('height', 14)
-          .attr('rx', 4).attr('fill', '#1e1b4b').attr('opacity', 0.85);
-
+          .attr('rx', 5)
+          .attr('fill', '#0f0c29')
+          .attr('opacity', 0.9);
         edgesG.append('text')
-          .attr('x', labelX).attr('y', labelY + 1)
+          .attr('x', lx).attr('y', ly + 1)
           .attr('text-anchor', 'middle')
           .attr('font-size', '8px')
           .attr('font-weight', '700')
-          .attr('fill', verified ? '#A78BFA' : '#FCD34D')
-          .text(labelTrunc);
+          .attr('fill', color)
+          .text(labelShort);
       }
-    }
+    });
 
-    // ── Draw nodes ───────────────────────────────────────
+    // ── Draw nodes ────────────────────────────────────────
     const nodesG = g.append('g').attr('class', 'nodes');
 
-    for (const node of nodes) {
-      if (!node.x) continue;
+    nodes.forEach(node => {
+      const pos = posMap.get(node.id);
+      if (!pos) return;
 
-      const ng = nodesG.append('g')
-        .attr('transform', `translate(${node.x - NODE_W/2},${node.y - NODE_H/2})`)
-        .style('cursor', 'pointer');
+      const nx = pos.x + offsetX;
+      const ny = pos.y + offsetY;
+      const isRoot = node.id === root_id;
 
-      // Colors
+      // Color
       let color;
-      if (node.isYou)    color = YOU_COLOR;
-      else if (node.isOffline) color = OFFLINE_COLOR;
+      if (isRoot)          color = ROOT_COLOR;
+      else if (node.is_offline) color = OFFLINE_COLOR;
       else if (node.kutham) {
         const idx = kuthamMap.get(node.kutham);
         color = KUTHAM_PALETTE[idx % KUTHAM_PALETTE.length];
-      } else             color = UNKNOWN_COLOR;
+      } else               color = UNKNOWN_COLOR;
 
-      // Node background
+      const ng = nodesG.append('g')
+        .attr('transform', `translate(${nx},${ny})`)
+        .style('cursor', 'default');
+
+      // Node rect
       ng.append('rect')
-        .attr('width', NODE_W).attr('height', NODE_H)
-        .attr('rx', 12)
+        .attr('width', NODE_W)
+        .attr('height', NODE_H)
+        .attr('rx', 10)
         .attr('fill', color.fill)
         .attr('stroke', color.stroke)
-        .attr('stroke-width', node.isYou ? 3 : 1.5)
-        .attr('stroke-dasharray', node.isOffline ? '5,3' : 'none');
-
-      // Profile photo or initial
-      if (node.photo) {
-        const clip = `clip-${node.id}`;
-        const clipDefs = svg.select('defs');
-        clipDefs.append('clipPath').attr('id', clip)
-          .append('circle').attr('cx', NODE_W/2).attr('cy', 24).attr('r', 18);
-        ng.append('image')
-          .attr('href', node.photo)
-          .attr('x', NODE_W/2 - 18).attr('y', 6)
-          .attr('width', 36).attr('height', 36)
-          .attr('clip-path', `url(#${clip})`);
-      } else {
-        ng.append('circle')
-          .attr('cx', NODE_W/2).attr('cy', 24).attr('r', 18)
-          .attr('fill', color.stroke).attr('opacity', 0.2);
-        ng.append('text')
-          .attr('x', NODE_W/2).attr('y', 29)
-          .attr('text-anchor', 'middle')
-          .attr('font-size', '14px').attr('font-weight', '700')
-          .attr('fill', color.text)
-          .text((node.name||'?')[0].toUpperCase());
-      }
-
-      // Relation label
-      ng.append('text')
-        .attr('x', NODE_W/2).attr('y', 50)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '9px').attr('fill', color.text).attr('opacity', 0.8)
-        .text(node.tamil?.length > 14 ? node.tamil.substring(0,14)+'…' : node.tamil);
+        .attr('stroke-width', isRoot ? 3 : 1.5)
+        .attr('stroke-dasharray', node.is_offline ? '5,3' : 'none');
 
       // Name
-      const nameShort = (node.name||'').length > 12
-        ? node.name.substring(0,12)+'…' : node.name;
+      const nameShort = (node.name||'').length > 13
+        ? node.name.substring(0,13)+'…' : node.name;
       ng.append('text')
-        .attr('x', NODE_W/2).attr('y', 64)
+        .attr('x', NODE_W/2).attr('y', NODE_H/2 - 6)
         .attr('text-anchor', 'middle')
-        .attr('font-size', '10px').attr('font-weight', '600')
+        .attr('font-size', '12px')
+        .attr('font-weight', '700')
         .attr('fill', color.text)
         .text(nameShort);
 
-      // Verified dot
-      if (!node.isOffline) {
-        ng.append('circle')
-          .attr('cx', NODE_W - 8).attr('cy', 8).attr('r', 5)
-          .attr('fill', node.verified ? '#22C55E' : '#F59E0B');
+      // Kutham or YOU label
+      if (isRoot) {
+        ng.append('text')
+          .attr('x', NODE_W/2).attr('y', NODE_H/2 + 10)
+          .attr('text-anchor', 'middle')
+          .attr('font-size', '9px')
+          .attr('fill', '#A78BFA')
+          .text('(நீங்கள்)');
+      } else if (node.kutham) {
+        const ktShort = node.kutham.length > 14 ? node.kutham.substring(0,14)+'…' : node.kutham;
+        ng.append('text')
+          .attr('x', NODE_W/2).attr('y', NODE_H/2 + 10)
+          .attr('text-anchor', 'middle')
+          .attr('font-size', '8px')
+          .attr('fill', color.stroke)
+          .text(ktShort);
       }
 
       // Deceased icon
-      if (node.isOffline) {
+      if (node.is_offline) {
         ng.append('text')
-          .attr('x', 8).attr('y', 14)
+          .attr('x', 6).attr('y', 14)
           .attr('font-size', '10px').text('🕊️');
       }
 
-      // YOU badge
-      if (node.isYou) {
-        ng.append('rect')
-          .attr('x', NODE_W/2 - 16).attr('y', NODE_H - 14)
-          .attr('width', 32).attr('height', 12)
-          .attr('rx', 4).attr('fill', '#4ADE80');
-        ng.append('text')
-          .attr('x', NODE_W/2).attr('y', NODE_H - 5)
-          .attr('text-anchor', 'middle')
-          .attr('font-size', '7px').attr('font-weight', '700')
-          .attr('fill', '#14532D').text('நீங்கள்');
+      // Verified/pending dot
+      if (!node.is_offline && !isRoot) {
+        // Check if any edge to/from this node is verified
+        const isVerified = edges.some(e =>
+          (e.from === node.id || e.to === node.id) && e.verified
+        );
+        ng.append('circle')
+          .attr('cx', NODE_W - 7).attr('cy', 7).attr('r', 5)
+          .attr('fill', isVerified ? '#22C55E' : '#F59E0B');
       }
-    }
+    });
   };
 
+  if (loading) return (
+    <VStack py={10} spacing={3}>
+      <Spinner color="purple.300" size="lg"/>
+      <Text color="whiteAlpha.500" fontSize="sm">குடும்ப நெட்வொர்க் ஏற்றுகிறோம்...</Text>
+    </VStack>
+  );
+
+  if (error) return (
+    <VStack py={8}>
+      <Text color="red.300" fontSize="sm">⚠️ {error}</Text>
+    </VStack>
+  );
+
   return (
-    <div style={{ width: '100%', overflowX: 'auto', overflowY: 'auto',
-      background: 'linear-gradient(to bottom, #0f0c29, #1e1b4b)',
-      borderRadius: '16px', padding: '8px', minHeight: '400px' }}>
-      <svg ref={svgRef} style={{ display: 'block' }} />
-    </div>
+    <Box w="100%" overflowX="auto" overflowY="auto"
+      bg="linear-gradient(to bottom, #0f0c29, #1e1b4b)"
+      borderRadius="xl" p={2} minH="300px">
+      <svg ref={svgRef} style={{ display: 'block' }}/>
+    </Box>
   );
 }
