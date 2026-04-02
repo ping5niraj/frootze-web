@@ -125,36 +125,37 @@ export default function FamilyNetwork({ currentUser }) {
     const maxGen    = allGens[allGens.length - 1];
 
     // ── Calculate positions ───────────────────────────────
-    // Root is at center; generations go up/down
-    const centerX = 0; // relative — will be adjusted
+    // Generations: minGen at top (y=0), maxGen at bottom
+    // Row index 0 = oldest generation (most negative gen number)
 
-    allGens.forEach(gen => {
+    allGens.forEach((gen, rowIdx) => {
       const group = genGroups.get(gen);
       const totalW = group.length * NODE_W + (group.length - 1) * H_GAP;
       const startX = -totalW / 2;
-      const y = gen * (NODE_H + V_GAP);
+      const y = rowIdx * (NODE_H + V_GAP); // rowIdx 0 = top
       group.forEach((node, idx) => {
         posMap.set(node.id, {
           x: startX + idx * (NODE_W + H_GAP),
           y,
+          gen,
+          rowIdx,
         });
       });
     });
 
     // ── SVG dimensions ────────────────────────────────────
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    posMap.forEach(({ x, y }) => {
-      minX = Math.min(minX, x - NODE_W/2);
-      maxX = Math.max(maxX, x + NODE_W/2);
-      minY = Math.min(minY, y - NODE_H/2);
-      maxY = Math.max(maxY, y + NODE_H/2);
+    let minX = Infinity, maxX = -Infinity;
+    posMap.forEach(({ x }) => {
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x + NODE_W);
     });
 
     const padding = 80;
-    const svgW = maxX - minX + padding * 2;
-    const svgH = maxY - minY + padding * 2;
-    const offsetX = -minX + padding;
-    const offsetY = -minY + padding;
+    const numRows = allGens.length;
+    const svgW = Math.max(maxX - minX + padding * 2 + 100, 600);
+    const svgH = numRows * (NODE_H + V_GAP) + padding * 2;
+    const offsetX = -minX + padding + 80; // +80 for gen labels on left
+    const offsetY = padding;
 
     const svg = d3.select(svgRef.current)
       .attr('width', svgW)
@@ -182,19 +183,19 @@ export default function FamilyNetwork({ currentUser }) {
 
     // Generation labels (left side)
     const GEN_LABEL = {
-      '-3': 'Past Gen 3', '-2': 'Past Gen 2', '-1': 'Past Gen 1',
-      '0': 'Current', '1': 'Next Gen 1', '2': 'Next Gen 2',
+      3: 'Past Gen 3', 2: 'Past Gen 2', 1: 'Past Gen 1',
+      0: 'Current', '-1': 'Next Gen 1', '-2': 'Next Gen 2',
     };
 
-    allGens.forEach(gen => {
-      const y = gen * (NODE_H + V_GAP) + offsetY;
+    allGens.forEach((gen, rowIdx) => {
+      const y = rowIdx * (NODE_H + V_GAP) + offsetY;
       g.append('text')
         .attr('x', 8)
         .attr('y', y + NODE_H / 2 + 4)
         .attr('font-size', '10px')
         .attr('fill', '#475569')
         .attr('font-weight', '600')
-        .text(GEN_LABEL[gen] || `Gen ${gen}`);
+        .text(GEN_LABEL[gen] ?? `Gen ${gen}`);
     });
 
     // ── Draw edges ────────────────────────────────────────
