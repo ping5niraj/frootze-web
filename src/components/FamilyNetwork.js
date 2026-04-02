@@ -84,8 +84,21 @@ export default function FamilyNetwork({ currentUser }) {
 
   const drawNetwork = (data) => {
     console.log('[FamilyNetwork] nodes:', data.nodes?.length, 'edges:', data.edges?.length);
-    const { nodes, edges, root_id } = data;
+    const { nodes, root_id } = data;
     if (!svgRef.current || !nodes?.length) return;
+
+    // Remove bidirectional duplicate edges
+    // Rule: for any A↔B pair, keep only ONE edge
+    // Priority: root→X edges always kept; for others keep from < to alphabetically
+    const pairSeen = new Set();
+    const edges = (data.edges || []).filter(e => {
+      const key = [e.from, e.to].sort().join('|');
+      if (pairSeen.has(key)) return false;
+      pairSeen.add(key);
+      return true;
+    });
+    console.log('[FamilyNetwork] edges after dedup:', edges.length);
+
     d3.select(svgRef.current).selectAll('*').remove();
 
     // ── Build kutham color map ────────────────────────────
