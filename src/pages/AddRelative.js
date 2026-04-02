@@ -155,12 +155,31 @@ export default function AddRelative() {
   const ChainCard = () => {
     if (!chainData || isOffline) return null;
 
-    if (!chainData.target_found) return (
-      <Box bg="orange.900" border="1px solid" borderColor="orange.600" borderRadius="xl" px={4} py={3}>
-        <Text color="orange.200" fontSize="sm" fontWeight="700">⚠️ frootze-ல் பதிவு செய்யப்படவில்லை</Text>
-        <Text color="orange.300" fontSize="xs" mt={1}>WhatsApp மூலம் அழைக்கவும்</Text>
-      </Box>
-    );
+    if (!chainData.target_found) {
+      const digits = phone.replace(/\D/g,'');
+      const waMsg = encodeURIComponent(
+        `வணக்கம்! நான் frootze-ல் என் குடும்ப மரத்தை உருவாக்கினேன்.\n\n` +
+        `நீங்களும் சேர்ந்து உங்கள் இடத்தை சேர்க்கலாம்:\n` +
+        `https://frootze.com\n\n` +
+        `இலவசம் 🌳 #frootze`
+      );
+      const waLink = `https://wa.me/91${digits}?text=${waMsg}`;
+      return (
+        <Box bg="orange.900" border="1px solid" borderColor="orange.600" borderRadius="xl" px={4} py={4}>
+          <Text color="orange.200" fontSize="sm" fontWeight="700" mb={1}>
+            ⚠️ frootze-ல் பதிவு செய்யப்படவில்லை
+          </Text>
+          <Text color="orange.300" fontSize="xs" mb={3}>
+            இந்த எண் frootze-ல் இல்லை. WhatsApp மூலம் சேர அழைக்கவும்.
+          </Text>
+          <Button as="a" href={waLink} target="_blank" w="100%" h="44px"
+            bg="green.600" color="white" borderRadius="xl" fontSize="sm" fontWeight="700"
+            _hover={{ bg: 'green.500' }}>
+            📱 WhatsApp மூலம் அழைக்கவும்
+          </Button>
+        </Box>
+      );
+    }
 
     if (chainData.already_connected) return (
       <Box bg="blue.900" border="1px solid" borderColor="blue.600" borderRadius="xl" px={4} py={3}>
@@ -358,40 +377,7 @@ export default function AddRelative() {
           </Box>
         )}
 
-        {/* WhatsApp invite */}
-        {!success && whatsappLink && (
-          <Box bg="orange.900" border="1px solid" borderColor="orange.500" borderRadius="xl" px={4} py={3}>
-            <Text color="orange.200" fontSize="sm" mb={2}>📲 Invite them to join frootze:</Text>
-            <Button as="a" href={whatsappLink} target="_blank" size="sm"
-              bg="green.600" color="white" borderRadius="xl" _hover={{ bg: 'green.500' }}>
-              💬 WhatsApp Invite
-            </Button>
-          </Box>
-        )}
 
-        {/* WhatsApp invite for unregistered */}
-        {!success && whatsappLink && !isOffline && (
-          <Box bg="orange.900" border="1px solid" borderColor="orange.500" borderRadius="xl" px={4} py={4}>
-            <Text color="orange.200" fontSize="sm" fontWeight="700" mb={1}>
-              ⚠️ frootze-ல் பதிவு செய்யப்படவில்லை
-            </Text>
-            <Text color="orange.300" fontSize="xs" mb={3}>
-              இந்த எண் இன்னும் frootze-ல் இல்லை. WhatsApp மூலம் அழைக்கவும்.
-            </Text>
-            <HStack spacing={3}>
-              <Button as="a" href={whatsappLink} target="_blank" flex={1} h="44px"
-                bg="green.600" color="white" borderRadius="xl" fontSize="sm"
-                fontWeight="700" _hover={{ bg: 'green.500' }}>
-                📱 WhatsApp அழைப்பு
-              </Button>
-              <Button flex={1} h="44px" variant="ghost" color="whiteAlpha.500"
-                borderRadius="xl" fontSize="sm"
-                onClick={() => { setWhatsappLink(''); setError(''); }}>
-                ரத்து
-              </Button>
-            </HStack>
-          </Box>
-        )}
 
         {/* Submit */}
         <Button h="56px" bgGradient="linear(to-r, purple.600, green.500)"
