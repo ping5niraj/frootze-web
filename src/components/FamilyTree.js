@@ -58,35 +58,66 @@ const GENERATIONS = [
 ];
 
 const RELATION_META = {
+  // ── Past Gen 4 ───────────────────────────────────────────
   great_great_grandfather: { gen: 'past-4',   col: 'center', order: 0 },
   great_great_grandmother: { gen: 'past-4',   col: 'center', order: 1 },
+
+  // ── Past Gen 3 ───────────────────────────────────────────
   great_grandfather:       { gen: 'past-3',   col: 'center', order: 0 },
   great_grandmother:       { gen: 'past-3',   col: 'center', order: 1 },
+
+  // ── Past Gen 2 ───────────────────────────────────────────
   grandfather_paternal:    { gen: 'past-2',   col: 'center', order: 0 },
   grandmother_paternal:    { gen: 'past-2',   col: 'center', order: 1 },
   grandfather_maternal:    { gen: 'past-2',   col: 'center', order: 2 },
   grandmother_maternal:    { gen: 'past-2',   col: 'center', order: 3 },
+
+  // ── Past Gen 1 ───────────────────────────────────────────
   father:                  { gen: 'past-1',   col: 'center', order: 0 },
   mother:                  { gen: 'past-1',   col: 'center', order: 1 },
-  spouse:                  { gen: 'current',  col: 'center', order: 0 },
-  son:                     { gen: 'future-1', col: 'center', order: 0 },
-  daughter:                { gen: 'future-1', col: 'center', order: 1 },
-  grandson:                { gen: 'future-2', col: 'center', order: 0 },
-  granddaughter:           { gen: 'future-2', col: 'center', order: 1 },
+  // Blood side — uncles/aunts
   uncle_elder:             { gen: 'past-1',   col: 'left',   order: 0 },
   uncle_younger:           { gen: 'past-1',   col: 'left',   order: 1 },
-  aunt_paternal:           { gen: 'past-1',   col: 'left',   order: 2 },
-  uncle_maternal:          { gen: 'past-1',   col: 'left',   order: 3 },
-  aunt_maternal:           { gen: 'past-1',   col: 'left',   order: 4 },
-  brother:                 { gen: 'current',  col: 'left',   order: null },
-  sister:                  { gen: 'current',  col: 'left',   order: null },
-  cousin_male:             { gen: 'current',  col: 'left',   order: 10 },
-  cousin_female:           { gen: 'current',  col: 'left',   order: 11 },
+  uncle_paternal:          { gen: 'past-1',   col: 'left',   order: 2 },
+  aunt_paternal:           { gen: 'past-1',   col: 'left',   order: 3 },
+  uncle_maternal:          { gen: 'past-1',   col: 'left',   order: 4 },
+  aunt_maternal:           { gen: 'past-1',   col: 'left',   order: 5 },
+  // Wife side — in-laws
   father_in_law:           { gen: 'past-1',   col: 'right',  order: 0 },
   mother_in_law:           { gen: 'past-1',   col: 'right',  order: 1 },
+
+  // ── Current Generation ───────────────────────────────────
+  spouse:                  { gen: 'current',  col: 'center', order: 0 },
+  // Blood side
+  brother:                 { gen: 'current',  col: 'left',   order: null },
+  sister:                  { gen: 'current',  col: 'left',   order: null },
+  cousin:                  { gen: 'current',  col: 'left',   order: 10 },
+  cousin_male:             { gen: 'current',  col: 'left',   order: 11 },
+  cousin_female:           { gen: 'current',  col: 'left',   order: 12 },
+  // Wife side
   brother_in_law:          { gen: 'current',  col: 'right',  order: 0 },
   sister_in_law:           { gen: 'current',  col: 'right',  order: 1 },
-  co_brother:              { gen: 'current',  col: 'right',  order: 2 },
+  aunt_by_marriage:        { gen: 'current',  col: 'right',  order: 2 },
+  uncle_by_marriage:       { gen: 'current',  col: 'right',  order: 3 },
+  co_brother:              { gen: 'current',  col: 'right',  order: 4 },
+
+  // ── Future Gen 1 ─────────────────────────────────────────
+  son:                     { gen: 'future-1', col: 'center', order: 0 },
+  daughter:                { gen: 'future-1', col: 'center', order: 1 },
+  // Blood side — nephews/nieces
+  nephew:                  { gen: 'future-1', col: 'left',   order: 0 },
+  niece:                   { gen: 'future-1', col: 'left',   order: 1 },
+  nephew_by_marriage:      { gen: 'future-1', col: 'left',   order: 2 },
+  // Wife side — children-in-law
+  son_in_law:              { gen: 'future-1', col: 'right',  order: 0 },
+  daughter_in_law:         { gen: 'future-1', col: 'right',  order: 1 },
+  niece_by_marriage:       { gen: 'future-1', col: 'right',  order: 2 },
+  stepson:                 { gen: 'future-1', col: 'right',  order: 3 },
+  stepdaughter:            { gen: 'future-1', col: 'right',  order: 4 },
+
+  // ── Future Gen 2 ─────────────────────────────────────────
+  grandson:                { gen: 'future-2', col: 'center', order: 0 },
+  granddaughter:           { gen: 'future-2', col: 'center', order: 1 },
 };
 
 function drawNode(g, node, photoMap, kuthamMap) {
