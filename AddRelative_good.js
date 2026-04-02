@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, VStack, HStack, Text, Heading, Button, Input,
   Select, FormControl, FormLabel, SimpleGrid,
-  InputGroup, InputLeftAddon, Spinner
+  InputGroup, InputLeftAddon
 } from '@chakra-ui/react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -62,48 +62,6 @@ export default function AddRelative() {
   const [whatsappLink, setWhatsappLink] = useState('');
 
   const selectedRelation = RELATIONS.find(r => r.value === relationType);
-
-  // ── Chain detection ──────────────────────────────────────
-  const [chainLoading, setChainLoading] = useState(false);
-  const [chainData, setChainData]       = useState(null);
-  const [overrideRelation, setOverride] = useState(false);
-  const chainTimer = useRef(null);
-
-  const suggestedRelation = chainData?.suggested_relation;
-  const hasSuggestion     = !!suggestedRelation?.type && !!chainData?.chain;
-
-  useEffect(() => {
-    if (isOffline) return;
-    const digits = phone.replace(/\D/g, '');
-    if (digits.length === 10) {
-      clearTimeout(chainTimer.current);
-      chainTimer.current = setTimeout(() => detectChain(digits), 700);
-    } else {
-      setChainData(null);
-      setOverride(false);
-    }
-    return () => clearTimeout(chainTimer.current);
-  }, [phone, isOffline]);
-
-  useEffect(() => {
-    if (hasSuggestion && !overrideRelation) {
-      setRelationType(suggestedRelation.type);
-    }
-  }, [chainData, overrideRelation]);
-
-  const detectChain = async (digits) => {
-    setChainLoading(true);
-    setOverride(false);
-    try {
-      const res = await api.get(`/api/relationships/chain-detect?to_phone=${digits}`);
-      setChainData(res.data);
-      // If not found — show invite prompt immediately
-      if (!res.data.target_found) {
-        setShowInvitePrompt(true);
-      }
-    } catch(e) { setChainData(null); }
-    finally { setChainLoading(false); }
-  };
 
   const handleAdd = async () => {
     setError(''); setSuccess(''); setShowInvitePrompt(false);
@@ -255,39 +213,6 @@ export default function AddRelative() {
               α«àα«ƒα«┐α«¬α»ìα«¬α«ƒα»ê α«╡α«┐α«╡α«░α««α»ì / Basic Details
             </Text>
 
-            {/* Chain detection status */}
-            {!isOffline && chainLoading && (
-              <HStack px={1}>
-                <Spinner color="purple.300" size="sm"/>
-                <Text color="whiteAlpha.500" fontSize="sm">தொடர்பு தேடுகிறோம்...</Text>
-              </HStack>
-            )}
-
-            {/* Chain suggestion badge — auto-selected relation */}
-            {!isOffline && hasSuggestion && !overrideRelation && (
-              <Box bg="green.900" border="1px solid" borderColor="green.600" borderRadius="xl" px={4} py={3}>
-                <HStack justify="space-between">
-                  <Box>
-                    <Text fontSize="xs" color="green.400" fontWeight="700">🔗 தொடர்பு கண்டறியப்பட்டது — தானாக தேர்வு:</Text>
-                    <Text fontSize="md" color="white" fontWeight="800" mt={1}>{suggestedRelation.tamil} / {suggestedRelation.type}</Text>
-                  </Box>
-                  <Button size="xs" variant="ghost" color="whiteAlpha.500"
-                    onClick={() => { setOverride(true); setRelationType(''); }}
-                    _hover={{ color: 'white' }}>✏️ மாற்று</Button>
-                </HStack>
-              </Box>
-            )}
-
-            {!isOffline && overrideRelation && (
-              <HStack>
-                <Text fontSize="xs" color="whiteAlpha.500">கைமுறையாக தேர்வு செய்கிறீர்கள்</Text>
-                <Button size="xs" variant="ghost" color="purple.300"
-                  onClick={() => { setOverride(false); setRelationType(suggestedRelation?.type || ''); }}>
-                  ↩ திரும்பு
-                </Button>
-              </HStack>
-            )}
-
             <FormControl>
               <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>α«ëα«▒α«╡α»ü / Relation *</FormLabel>
               <Select placeholder="α«ëα«▒α«╡α»ê α«ñα»çα«░α»ìα«╡α»ü α«Üα»åα«»α»ìα«»α«╡α»üα««α»ì" value={relationType}
@@ -334,7 +259,7 @@ export default function AddRelative() {
                       ≡ƒç«≡ƒç│ +91
                     </InputLeftAddon>
                     <Input type="tel" maxLength={10} placeholder="9999999999"
-                      value={phone} onChange={e => { setPhone(e.target.value.replace(/\D/g, '')); setShowInvitePrompt(false); setChainData(null); }}
+                      value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
                       {...inputStyle} />
                   </InputGroup>
                 </FormControl>
