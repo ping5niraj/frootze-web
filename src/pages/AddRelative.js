@@ -134,11 +134,20 @@ export default function AddRelative() {
         setChainData(null); setOverride(false);
       }
     } catch (e) {
-      const msg = e.response?.data?.error || 'பிழை ஏற்பட்டது';
-      if (e.response?.status === 404 && e.response?.data?.invite_saved) {
-        setError('இந்த எண் பதிவு செய்யப்படவில்லை.');
-        setWhatsappLink(e.response?.data?.whatsapp_link || '');
-      } else { setError(msg); }
+      const errData = e.response?.data;
+      if (e.response?.status === 404 && errData?.invite_saved) {
+        // Not registered — show WhatsApp invite only, no error text
+        const digits = phone.replace(/\D/g,'');
+        const waMsg = encodeURIComponent(
+          `வணக்கம்! நான் frootze-ல் என் குடும்ப மரத்தை உருவாக்கினேன்.\n\n` +
+          `நீங்களும் சேர்ந்து உங்கள் இடத்தை சேர்க்கலாம்:\n` +
+          `https://frootze.com\n\n` +
+          `இலவசம் 🌳 #frootze`
+        );
+        setWhatsappLink(errData?.whatsapp_link || `https://wa.me/91${digits}?text=${waMsg}`);
+      } else {
+        setError(errData?.error || 'பிழை ஏற்பட்டது');
+      }
     } finally { setLoading(false); }
   };
 
@@ -357,6 +366,30 @@ export default function AddRelative() {
               bg="green.600" color="white" borderRadius="xl" _hover={{ bg: 'green.500' }}>
               💬 WhatsApp Invite
             </Button>
+          </Box>
+        )}
+
+        {/* WhatsApp invite for unregistered */}
+        {!success && whatsappLink && !isOffline && (
+          <Box bg="orange.900" border="1px solid" borderColor="orange.500" borderRadius="xl" px={4} py={4}>
+            <Text color="orange.200" fontSize="sm" fontWeight="700" mb={1}>
+              ⚠️ frootze-ல் பதிவு செய்யப்படவில்லை
+            </Text>
+            <Text color="orange.300" fontSize="xs" mb={3}>
+              இந்த எண் இன்னும் frootze-ல் இல்லை. WhatsApp மூலம் அழைக்கவும்.
+            </Text>
+            <HStack spacing={3}>
+              <Button as="a" href={whatsappLink} target="_blank" flex={1} h="44px"
+                bg="green.600" color="white" borderRadius="xl" fontSize="sm"
+                fontWeight="700" _hover={{ bg: 'green.500' }}>
+                📱 WhatsApp அழைப்பு
+              </Button>
+              <Button flex={1} h="44px" variant="ghost" color="whiteAlpha.500"
+                borderRadius="xl" fontSize="sm"
+                onClick={() => { setWhatsappLink(''); setError(''); }}>
+                ரத்து
+              </Button>
+            </HStack>
           </Box>
         )}
 
