@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import { Box, Spinner, Text, VStack } from '@chakra-ui/react';
 import api from '../services/api';
@@ -53,25 +53,34 @@ export default function FamilyNetwork({ currentUser }) {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
 
+  const [netData, setNetData] = useState(null);
+
   useEffect(() => {
     if (!currentUser?.id) return;
     setLoading(true);
-    console.log('[FamilyNetwork] calling:', `/api/relationships/network/${currentUser.id}`);
+    console.log('[FamilyNetwork] fetching network for:', currentUser.id);
     api.get(`/api/relationships/network/${currentUser.id}`)
       .then(res => {
         setLoading(false);
-        if (res.data?.nodes) {
-          drawNetwork(res.data);
-        } else {
-          setError('No network data returned');
-        }
+        console.log('[FamilyNetwork] got data, nodes:', res.data?.nodes?.length, 'edges:', res.data?.edges?.length);
+        if (res.data?.nodes) setNetData(res.data);
+        else setError('No data');
       })
       .catch(err => {
         setLoading(false);
-        console.error('Network fetch error:', err?.response?.status, err?.message);
-        setError('Network fetch failed — check backend deployment');
+        console.error('[FamilyNetwork] fetch error:', err?.message);
+        setError('Fetch failed');
       });
   }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (!netData || !svgRef.current) {
+      console.log('[FamilyNetwork] draw skipped — netData:', !!netData, 'svgRef:', !!svgRef.current);
+      return;
+    }
+    console.log('[FamilyNetwork] drawing now');
+    drawNetwork(netData);
+  }, [netData]);
 
   const drawNetwork = (data) => {
     console.log('[FamilyNetwork] nodes:', data.nodes?.length, 'edges:', data.edges?.length);
