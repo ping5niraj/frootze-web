@@ -56,15 +56,25 @@ export default function FamilyNetwork({ currentUser }) {
   useEffect(() => {
     if (!currentUser?.id) return;
     setLoading(true);
+    console.log('[FamilyNetwork] calling:', `/api/relationships/network/${currentUser.id}`);
     api.get(`/api/relationships/network/${currentUser.id}`)
       .then(res => {
         setLoading(false);
-        if (res.data.nodes) drawNetwork(res.data);
+        if (res.data?.nodes) {
+          drawNetwork(res.data);
+        } else {
+          setError('No network data returned');
+        }
       })
-      .catch(() => { setLoading(false); setError('Network fetch failed'); });
+      .catch(err => {
+        setLoading(false);
+        console.error('Network fetch error:', err?.response?.status, err?.message);
+        setError('Network fetch failed — check backend deployment');
+      });
   }, [currentUser?.id]);
 
   const drawNetwork = (data) => {
+    console.log('[FamilyNetwork] nodes:', data.nodes?.length, 'edges:', data.edges?.length);
     const { nodes, edges, root_id } = data;
     if (!svgRef.current || !nodes?.length) return;
     d3.select(svgRef.current).selectAll('*').remove();
