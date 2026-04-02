@@ -78,7 +78,12 @@ export default function FamilyNetwork({ currentUser }) {
       profile_photo: currentUser.profile_photo, kutham: currentUser.kutham,
     });
 
-    for (const rel of rels) {
+    // Process extended (chain) relations FIRST so their gen assignments take priority
+    const directRels   = rels.filter(r => DIRECT_TYPES.has(r.relation_type));
+    const extendedRels = rels.filter(r => !DIRECT_TYPES.has(r.relation_type));
+    const orderedRels  = [...extendedRels, ...directRels];
+
+    for (const rel of orderedRels) {
       const relType = rel.relation_type;
       const person  = rel.to_user;
       if (!person) continue;
@@ -86,7 +91,7 @@ export default function FamilyNetwork({ currentUser }) {
       const isDirect = DIRECT_TYPES.has(relType);
 
       if (isDirect) {
-        // Direct relation — simple node + edge from self
+        // Direct relation — only add if not already placed by chain traversal
         if (!nodeMap.has(person.id)) {
           nodeMap.set(person.id, {
             id: person.id, name: person.name,
@@ -94,13 +99,25 @@ export default function FamilyNetwork({ currentUser }) {
             horizIdx: 0, isRoot: false, isChain: false,
             profile_photo: person.profile_photo, kutham: person.kutham,
           });
+        } else {
+          // Update with profile info even if gen already set by chain
+          const existing = nodeMap.get(person.id);
+          if (!existing.profile_photo && person.profile_photo) {
+            existing.profile_photo = person.profile_photo;
+            existing.kutham = person.kutham;
+            existing.isChain = false; // direct relation — not a chain intermediate
+          }
         }
-        edges.push({
-          from: currentUser.id, to: person.id,
-          label: rel.relation_tamil || relType,
-          verified: rel.verification_status === 'verified',
-          isChain: false,
-        });
+        // Add direct edge only if not already added by chain
+        const edgeExists = edges.find(e => e.from===currentUser.id && e.to===person.id);
+        if (!edgeExists) {
+          edges.push({
+            from: currentUser.id, to: person.id,
+            label: rel.relation_tamil || relType,
+            verified: rel.verification_status === 'verified',
+            isChain: false,
+          });
+        }
       } else {
         // Extended — get chain path
         const phone = person.phone?.replace(/\D/g,'');
@@ -125,13 +142,16 @@ export default function FamilyNetwork({ currentUser }) {
               const thisGen   = prevGen + delta;
               const isTarget  = i === chain.length - 1;
 
-              if (!nodeMap.has(nodeId)) {
+              // Always update with chain gen (chain gen is more accurate than direct guess)
+              const existingNode = nodeMap.get(nodeId);
+              if (!existingNode || (existingNode.gen !== thisGen)) {
                 nodeMap.set(nodeId, {
                   id: nodeId, name: node.user.name,
                   gen: thisGen, horizIdx: 0,
                   isRoot: false,
-                  isChain: !isTarget, // intermediates are chain nodes, target is not
-                  profile_photo: null, kutham: null,
+                  isChain: !isTarget,
+                  profile_photo: existingNode?.profile_photo || null,
+                  kutham: existingNode?.kutham || null,
                 });
               }
               prevGen = thisGen;
