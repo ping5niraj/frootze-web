@@ -12,22 +12,34 @@ import axios from 'axios';
 const BASE_URL = process.env.REACT_APP_PMF_API || 'https://pingmyfamily-backend-production.up.railway.app';
 
 const RELATIONS = [
-  { value: 'father',               tamil: 'α«àα«¬α»ìα«¬α«╛',                   english: 'Father'             },
-  { value: 'mother',               tamil: 'α«àα««α»ìα««α«╛',                   english: 'Mother'             },
-  { value: 'spouse',               tamil: 'α««α«⌐α»êα«╡α«┐/α«òα«úα«╡α«⌐α»ì',            english: 'Spouse'             },
-  { value: 'brother',              tamil: 'α«àα«úα»ìα«úα«⌐α»ì/α«ñα««α»ìα«¬α«┐',           english: 'Brother'            },
-  { value: 'sister',               tamil: 'α«àα«òα»ìα«òα«╛/α«ñα«Öα»ìα«òα»ê',            english: 'Sister'             },
-  { value: 'son',                  tamil: 'α««α«òα«⌐α»ì',                    english: 'Son'                },
-  { value: 'daughter',             tamil: 'α««α«òα«│α»ì',                    english: 'Daughter'           },
-  { value: 'grandfather_paternal', tamil: 'α«ñα«╛α«ñα»ìα«ñα«╛ (α«àα«¬α»ìα«¬α«╛ α«¬α«òα»ìα«òα««α»ì)', english: 'Grandfather (Paternal)' },
-  { value: 'grandmother_paternal', tamil: 'α«¬α«╛α«ƒα»ìα«ƒα«┐ (α«àα«¬α»ìα«¬α«╛ α«¬α«òα»ìα«òα««α»ì)', english: 'Grandmother (Paternal)' },
-  { value: 'grandfather_maternal', tamil: 'α«ñα«╛α«ñα»ìα«ñα«╛ (α«àα««α»ìα««α«╛ α«¬α«òα»ìα«òα««α»ì)', english: 'Grandfather (Maternal)' },
-  { value: 'grandmother_maternal', tamil: 'α«¬α«╛α«ƒα»ìα«ƒα«┐ (α«àα««α»ìα««α«╛ α«¬α«òα»ìα«òα««α»ì)', english: 'Grandmother (Maternal)' },
-  { value: 'grandson',             tamil: 'α«¬α»çα«░α«⌐α»ì',                   english: 'Grandson'           },
-  { value: 'granddaughter',        tamil: 'α«¬α»çα«ñα»ìα«ñα«┐',                  english: 'Granddaughter'      },
+  { value: 'father',               tamil: 'அப்பா',                   english: 'Father'             },
+  { value: 'mother',               tamil: 'அம்மா',                   english: 'Mother'             },
+  { value: 'spouse',               tamil: 'மனைவி/கணவன்',            english: 'Spouse'             },
+  { value: 'brother',              tamil: 'அண்ணன்/தம்பி',           english: 'Brother'            },
+  { value: 'sister',               tamil: 'அக்கா/தங்கை',            english: 'Sister'             },
+  { value: 'son',                  tamil: 'மகன்',                    english: 'Son'                },
+  { value: 'daughter',             tamil: 'மகள்',                    english: 'Daughter'           },
+  { value: 'grandfather_paternal', tamil: 'தாத்தா (அப்பா பக்கம்)', english: 'Grandfather (Paternal)' },
+  { value: 'grandmother_paternal', tamil: 'பாட்டி (அப்பா பக்கம்)', english: 'Grandmother (Paternal)' },
+  { value: 'grandfather_maternal', tamil: 'தாத்தா (அம்மா பக்கம்)', english: 'Grandfather (Maternal)' },
+  { value: 'grandmother_maternal', tamil: 'பாட்டி (அம்மா பக்கம்)', english: 'Grandmother (Maternal)' },
+  { value: 'grandson',             tamil: 'பேரன்',                   english: 'Grandson'           },
+  { value: 'granddaughter',        tamil: 'பேத்தி',                  english: 'Granddaughter'      },
+  { value: 'nephew',               tamil: 'மருமகன்',                 english: 'Nephew'             },
+  { value: 'niece',                tamil: 'மருமகள்',                 english: 'Niece'              },
+  { value: 'uncle_paternal',       tamil: 'பெரியப்பா/சித்தப்பா',   english: 'Uncle (Paternal)'   },
+  { value: 'aunt_paternal',        tamil: 'அத்தை',                   english: 'Aunt (Paternal)'    },
+  { value: 'uncle_maternal',       tamil: 'மாமா',                    english: 'Uncle (Maternal)'   },
+  { value: 'aunt_maternal',        tamil: 'சித்தி',                  english: 'Aunt (Maternal)'    },
+  { value: 'aunt_by_marriage',     tamil: 'மாமி',                    english: 'Aunt (by marriage)' },
+  { value: 'father_in_law',        tamil: 'மாமனார்',                 english: 'Father-in-law'      },
+  { value: 'mother_in_law',        tamil: 'மாமியார்',                english: 'Mother-in-law'      },
+  { value: 'brother_in_law',       tamil: 'மைத்துனன்',              english: 'Brother-in-law'     },
+  { value: 'sister_in_law',        tamil: 'நாத்தனார்',               english: 'Sister-in-law'      },
+  { value: 'cousin',               tamil: 'உறவினர்',                 english: 'Cousin'             },
 ];
 
-const CHILD_RELATIONS = ['son','daughter','grandson','granddaughter'];
+const CHILD_RELATIONS = ['son', 'daughter', 'grandson', 'granddaughter'];
 
 const sectionBox = {
   w: '100%', bg: 'whiteAlpha.100', border: '1px solid',
@@ -46,29 +58,28 @@ export default function AddRelative() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [isOffline, setIsOffline] = useState(false);
-  const [isMinor, setIsMinor] = useState(false);
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [offlineName, setOfflineName] = useState('');
-  const [offlineGender, setOfflineGender] = useState('');
-  const [relationType, setRelationType] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [isOffline, setIsOffline]               = useState(false);
+  const [isMinor, setIsMinor]                   = useState(false);
+  const [phone, setPhone]                       = useState('');
+  const [email, setEmail]                       = useState('');
+  const [offlineName, setOfflineName]           = useState('');
+  const [offlineGender, setOfflineGender]       = useState('');
+  const [relationType, setRelationType]         = useState('');
+  const [loading, setLoading]                   = useState(false);
+  const [inviteLoading, setInviteLoading]       = useState(false);
+  const [error, setError]                       = useState('');
+  const [success, setSuccess]                   = useState('');
   const [showInvitePrompt, setShowInvitePrompt] = useState(false);
-  const [notifStatus, setNotifStatus] = useState({ whatsapp: false, email: false, telegram: false });
-  const [whatsappLink, setWhatsappLink] = useState('');
+  const [notifStatus, setNotifStatus]           = useState({ whatsapp: false, email: false, telegram: false });
+  const [whatsappLink, setWhatsappLink]         = useState('');
 
-  const selectedRelation = RELATIONS.find(r => r.value === relationType);
-
-  // ── Chain detection ──────────────────────────────────────
+  // Chain detection
   const [chainLoading, setChainLoading] = useState(false);
   const [chainData, setChainData]       = useState(null);
   const [overrideRelation, setOverride] = useState(false);
   const chainTimer = useRef(null);
 
+  const selectedRelation  = RELATIONS.find(r => r.value === relationType);
   const suggestedRelation = chainData?.suggested_relation;
   const hasSuggestion     = !!suggestedRelation?.type && !!chainData?.chain;
 
@@ -81,6 +92,7 @@ export default function AddRelative() {
     } else {
       setChainData(null);
       setOverride(false);
+      setShowInvitePrompt(false);
     }
     return () => clearTimeout(chainTimer.current);
   }, [phone, isOffline]);
@@ -97,26 +109,23 @@ export default function AddRelative() {
     try {
       const res = await api.get(`/api/relationships/chain-detect?to_phone=${digits}`);
       setChainData(res.data);
-      // If not found — show invite prompt immediately
-      if (!res.data.target_found) {
-        setShowInvitePrompt(true);
-      }
+      if (!res.data.target_found) setShowInvitePrompt(true);
     } catch(e) { setChainData(null); }
     finally { setChainLoading(false); }
   };
 
   const handleAdd = async () => {
     setError(''); setSuccess(''); setShowInvitePrompt(false);
-    if (!relationType) { setError('α«ëα«▒α«╡α»ê α«ñα»çα«░α»ìα«╡α»ü α«Üα»åα«»α»ìα«»α«╡α»üα««α»ì'); return; }
+    if (!relationType) { setError('உறவு முறை தேர்வு செய்யவும்'); return; }
     const isChildRelation = CHILD_RELATIONS.includes(relationType);
     if (isOffline) {
-      if (!offlineName.trim()) { setError('α«¬α»åα«»α«░α»ì α«ëα«│α»ìα«│α«┐α«ƒα«╡α»üα««α»ì'); return; }
-      if (!offlineGender) { setError('α«¬α«╛α«▓α«┐α«⌐α««α»ì α«ñα»çα«░α»ìα«╡α»ü α«Üα»åα«»α»ìα«»α«╡α»üα««α»ì'); return; }
+      if (!offlineName.trim()) { setError('பெயர் உள்ளிடவும்'); return; }
+      if (!offlineGender) { setError('பாலினம் தேர்வு செய்யவும்'); return; }
     } else if (isChildRelation && isMinor) {
-      if (!offlineName.trim()) { setError('α«òα»üα«┤α«¿α»ìα«ñα»êα«»α«┐α«⌐α»ì α«¬α»åα«»α«░α»ì α«ëα«│α»ìα«│α«┐α«ƒα«╡α»üα««α»ì'); return; }
-      if (!offlineGender) { setError('α«¬α«╛α«▓α«┐α«⌐α««α»ì α«ñα»çα«░α»ìα«╡α»ü α«Üα»åα«»α»ìα«»α«╡α»üα««α»ì'); return; }
+      if (!offlineName.trim()) { setError('குழந்தையின் பெயர் உள்ளிடவும்'); return; }
+      if (!offlineGender) { setError('பாலினம் தேர்வு செய்யவும்'); return; }
     } else {
-      if (!phone || phone.length < 10) { setError('α«Üα«░α«┐α«»α«╛α«⌐ 10 α«çα«▓α«òα»ìα«ò α«Äα«úα»ì α«ëα«│α»ìα«│α«┐α«ƒα«╡α»üα««α»ì'); return; }
+      if (!phone || phone.length < 10) { setError('சரியான 10 இலக்க எண் உள்ளிடவும்'); return; }
     }
     setLoading(true);
     try {
@@ -126,8 +135,7 @@ export default function AddRelative() {
           relation_type: relationType, relation_tamil: selectedRelation?.tamil,
           is_offline: true, offline_name: offlineName.trim(), offline_gender: offlineGender,
         });
-        const label = isOffline ? '≡ƒòè∩╕Å' : '≡ƒæ╢';
-        setSuccess(`${label} ${offlineName} α«òα»üα«ƒα»üα««α»ìα«¬ α««α«░α«ñα»ìα«ñα«┐α«▓α»ì α«Üα»çα«░α»ìα«òα»ìα«òα«¬α»ìα«¬α«ƒα»ìα«ƒα«╛α«░α»ì`);
+        setSuccess(`${isOffline ? '🕊️' : '👶'} ${offlineName} குடும்ப மரத்தில் சேர்க்கப்பட்டார்`);
       } else {
         const res = await api.post('/api/relationships', {
           to_user_phone: phone, relation_type: relationType,
@@ -140,7 +148,7 @@ export default function AddRelative() {
         };
         setNotifStatus(notifResults);
         setWhatsappLink(res.data.whatsapp_link || '');
-        setSuccess(`Γ£à α«òα»ïα«░α«┐α«òα»ìα«òα»ê α«àα«⌐α»üα«¬α»ìα«¬α«¬α»ìα«¬α«ƒα»ìα«ƒα«ñα»ü! ${selectedRelation?.tamil} α«ëα«Öα»ìα«òα«│α»ì α«òα»ïα«░α«┐α«òα»ìα«òα»êα«»α»ê Dashboard-α«▓α»ì α«òα«╛α«úα»ìα«¬α«╛α«░α»ì.`);
+        setSuccess(`✅ கோரிக்கை அனுப்பப்பட்டது! ${selectedRelation?.tamil} என்று கோரிக்கையை Dashboard-ல் காண்பார்.`);
         if (res.data.whatsapp_link) {
           window.open(res.data.whatsapp_link, '_blank');
           notifResults.whatsapp = true;
@@ -161,7 +169,7 @@ export default function AddRelative() {
       if (errorMsg.includes('No user found') || errorMsg.includes('register')) {
         setShowInvitePrompt(true);
       } else {
-        setError(errorMsg || 'α«Üα»çα«░α»ìα«òα»ìα«ò α«ñα»ïα«▓α»ìα«╡α«┐ / Failed');
+        setError(errorMsg || 'சேர்க்க முடியவில்லை / Failed');
       }
     } finally { setLoading(false); }
   };
@@ -170,7 +178,6 @@ export default function AddRelative() {
     setInviteLoading(true);
     setShowInvitePrompt(false);
     try {
-      // Download cached tree image if available
       const cachedTree = sessionStorage.getItem('pmf_tree_image');
       if (cachedTree) {
         const a = document.createElement('a');
@@ -178,30 +185,24 @@ export default function AddRelative() {
         a.download = `${user?.name}-frootze-family-tree.png`;
         a.click();
       }
-
-      // Build WhatsApp message
       const res2 = await api.get('/api/relationships/mine');
       const members2 = (res2.data.my_relationships || []).slice(0, 5);
       const memberLines = members2.map(m => {
         const nm = m.to_user?.name || m.offline_name || '';
-        return `ΓÇó ${nm} (${m.relation_tamil})`;
+        return `• ${nm} (${m.relation_tamil})`;
       }).join('\n');
-
       const waText =
-        `≡ƒî│ ${user?.name} α«ëα«Öα»ìα«òα«│α»ê frootze α«òα»üα«ƒα»üα««α»ìα«¬ α««α«░α«ñα»ìα«ñα«┐α«▓α»ì α«Üα»çα«░ α«àα«┤α»êα«òα»ìα«òα«┐α«▒α«╛α«░α»ì!\n\n` +
-        (memberLines ? `α«¿α««α«ñα»ü α«òα»üα«ƒα»üα««α»ìα«¬α«ñα»ìα«ñα«┐α«⌐α«░α»ì:\n${memberLines}\n\n` : '') +
-        `α«çα«¬α»ìα«¬α»ïα«ñα»ç α«Üα»çα«░α»üα«Öα»ìα«òα«│α»ì:\nhttps://frootze.com\n\nα«çα«▓α«╡α«Üα««α»ì ≡ƒî│`;
-
+        `🌳 ${user?.name} என்னோடு frootze குடும்ப மரத்தில் சேர அழைக்கிறார்!\n\n` +
+        (memberLines ? `நமது குடும்பத்தினர்:\n${memberLines}\n\n` : '') +
+        `இப்போதே சேருங்கள்:\nhttps://frootze.com\n\nஇலவசம் 🌳`;
       setTimeout(() => {
         window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(waText)}`, '_blank');
       }, cachedTree ? 800 : 0);
-
       setSuccess(cachedTree
-        ? 'Γ£à α«¬α«ƒα««α»ì α«¬α«ñα«┐α«╡α«┐α«▒α«òα»ìα«òα««α»ì α«åα«⌐α«ñα»ü! WhatsApp α«ñα«┐α«▒α«òα»ìα«òα»üα««α»ì ΓÇö α«¬α«ƒα«ñα»ìα«ñα»ê ≡ƒôÄ α««α»éα«▓α««α»ì α«çα«úα»êα«ñα»ìα«ñα»ü α«àα«⌐α»üα«¬α»ìα«¬α«╡α»üα««α»ì.\nImage downloaded! Open WhatsApp ΓåÆ tap ≡ƒôÄ ΓåÆ attach image ΓåÆ Send'
-        : '≡ƒô¿ α«àα«┤α»êα«¬α»ìα«¬α»ü α«àα«⌐α»üα«¬α»ìα«¬α«¬α»ìα«¬α«ƒα»ìα«ƒα«ñα»ü!');
-
+        ? '✅ படம் பதிவிறக்கம் ஆனது! WhatsApp திறக்கும் — படத்தை 📎 மூலம் இணைத்து அனுப்பவும்.'
+        : '📨 அழைப்பு அனுப்பப்பட்டது!');
     } catch(e) {
-      setSuccess('≡ƒô¿ α«àα«┤α»êα«¬α»ìα«¬α»ü α«àα«⌐α»üα«¬α»ìα«¬α«¬α»ìα«¬α«ƒα»ìα«ƒα«ñα»ü!');
+      setSuccess('📨 அழைப்பு அனுப்பப்பட்டது!');
     } finally { setInviteLoading(false); }
   };
 
@@ -213,10 +214,15 @@ export default function AddRelative() {
         {/* Header */}
         <Box {...sectionBox} py={5}>
           <HStack spacing={3}>
-            <Box as="button" onClick={() => navigate('/dashboard')} color="whiteAlpha.600" fontSize="xl" _hover={{ color: 'white' }}>ΓåÉ</Box>
+            <Box as="button" onClick={() => navigate('/dashboard')}
+              color="whiteAlpha.600" fontSize="xl" _hover={{ color: 'white' }}>&#8592;</Box>
             <Box>
-              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="white">≡ƒæ¿ΓÇì≡ƒæ⌐ΓÇì≡ƒæº α«òα»üα«ƒα»üα««α»ìα«¬α«ñα»ìα«ñα«┐α«⌐α«░α»ê α«Üα»çα«░α»ì</Heading>
-              <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.500">Add Family Member</Text>
+              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="white">
+                Add Family Member
+              </Heading>
+              <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.500">
+                குடும்பத்தினரை சேர்
+              </Text>
             </Box>
           </HStack>
         </Box>
@@ -224,7 +230,7 @@ export default function AddRelative() {
         {/* Online / Offline Toggle */}
         <Box {...sectionBox} py={4}>
           <Text fontSize="sm" fontWeight="600" color="whiteAlpha.700" mb={3}>
-            α«çα«╡α«░α»ì frootze-α«▓α»ì α«ëα«│α»ìα«│α«╛α«░α«╛? / Are they on frootze?
+            Are they on frootze? / இவர் frootze-ல் உள்ளாரா?
           </Text>
           <HStack spacing={3}>
             <Button flex={1} h="48px"
@@ -232,18 +238,18 @@ export default function AddRelative() {
               color={!isOffline ? 'white' : 'whiteAlpha.600'}
               border="1px solid" borderColor={!isOffline ? 'purple.400' : 'whiteAlpha.200'}
               borderRadius="xl" fontSize="sm" fontWeight="700"
-              onClick={() => { setIsOffline(false); setError(''); setSuccess(''); }}
+              onClick={() => { setIsOffline(false); setError(''); setSuccess(''); setChainData(null); setShowInvitePrompt(false); }}
               _hover={{ bg: !isOffline ? 'purple.700' : 'whiteAlpha.200' }}>
-              ≡ƒô▒ α«åα««α»ì ΓÇö frootze-α«▓α»ì α«ëα«│α»ìα«│α«╛α«░α»ì / Yes
+              Yes — on frootze
             </Button>
             <Button flex={1} h="48px"
               bg={isOffline ? 'orange.700' : 'whiteAlpha.100'}
               color={isOffline ? 'white' : 'whiteAlpha.600'}
               border="1px solid" borderColor={isOffline ? 'orange.400' : 'whiteAlpha.200'}
               borderRadius="xl" fontSize="sm" fontWeight="700"
-              onClick={() => { setIsOffline(true); setError(''); setSuccess(''); }}
+              onClick={() => { setIsOffline(true); setError(''); setSuccess(''); setChainData(null); setShowInvitePrompt(false); }}
               _hover={{ bg: isOffline ? 'orange.800' : 'whiteAlpha.200' }}>
-              ≡ƒòè∩╕Å α«çα«▓α»ìα«▓α»ê ΓÇö α«òα«╛α«▓α««α«╛α«⌐α«╡α«░α»ì / Deceased
+              Deceased / Offline
             </Button>
           </HStack>
         </Box>
@@ -251,46 +257,13 @@ export default function AddRelative() {
         {/* Form */}
         <Box {...sectionBox} py={{ base: 6, md: 8 }}>
           <VStack spacing={5} align="stretch">
-            <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="600" color="whiteAlpha.800">
-              α«àα«ƒα«┐α«¬α»ìα«¬α«ƒα»ê α«╡α«┐α«╡α«░α««α»ì / Basic Details
-            </Text>
 
-            {/* Chain detection status */}
-            {!isOffline && chainLoading && (
-              <HStack px={1}>
-                <Spinner color="purple.300" size="sm"/>
-                <Text color="whiteAlpha.500" fontSize="sm">தொடர்பு தேடுகிறோம்...</Text>
-              </HStack>
-            )}
-
-            {/* Chain suggestion badge — auto-selected relation */}
-            {!isOffline && hasSuggestion && !overrideRelation && (
-              <Box bg="green.900" border="1px solid" borderColor="green.600" borderRadius="xl" px={4} py={3}>
-                <HStack justify="space-between">
-                  <Box>
-                    <Text fontSize="xs" color="green.400" fontWeight="700">🔗 தொடர்பு கண்டறியப்பட்டது — தானாக தேர்வு:</Text>
-                    <Text fontSize="md" color="white" fontWeight="800" mt={1}>{suggestedRelation.tamil} / {suggestedRelation.type}</Text>
-                  </Box>
-                  <Button size="xs" variant="ghost" color="whiteAlpha.500"
-                    onClick={() => { setOverride(true); setRelationType(''); }}
-                    _hover={{ color: 'white' }}>✏️ மாற்று</Button>
-                </HStack>
-              </Box>
-            )}
-
-            {!isOffline && overrideRelation && (
-              <HStack>
-                <Text fontSize="xs" color="whiteAlpha.500">கைமுறையாக தேர்வு செய்கிறீர்கள்</Text>
-                <Button size="xs" variant="ghost" color="purple.300"
-                  onClick={() => { setOverride(false); setRelationType(suggestedRelation?.type || ''); }}>
-                  ↩ திரும்பு
-                </Button>
-              </HStack>
-            )}
-
+            {/* Relation selector */}
             <FormControl>
-              <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>α«ëα«▒α«╡α»ü / Relation *</FormLabel>
-              <Select placeholder="α«ëα«▒α«╡α»ê α«ñα»çα«░α»ìα«╡α»ü α«Üα»åα«»α»ìα«»α«╡α»üα««α»ì" value={relationType}
+              <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
+                Relation / உறவு *
+              </FormLabel>
+              <Select placeholder="Select relation / உறவை தேர்வு செய்யவும்" value={relationType}
                 onChange={e => setRelationType(e.target.value)} {...inputStyle}>
                 {RELATIONS.map(r => (
                   <option key={r.value} value={r.value} style={{ background: '#1e1b4b' }}>
@@ -300,92 +273,139 @@ export default function AddRelative() {
               </Select>
             </FormControl>
 
+            {/* Minor toggle */}
             {!isOffline && CHILD_RELATIONS.includes(relationType) && (
               <Box bg={isMinor ? 'blue.900' : 'whiteAlpha.100'}
                 border="1px solid" borderColor={isMinor ? 'blue.500' : 'whiteAlpha.200'}
                 borderRadius="xl" px={4} py={3}>
                 <HStack justify="space-between" alignItems="center">
                   <Box>
-                    <Text fontSize="sm" color="white" fontWeight="600">≡ƒæ╢ 18 α«╡α«»α«ñα»üα«òα»ìα«òα»ü α«òα»Çα«┤α«╛? / Under 18?</Text>
-                    <Text fontSize="xs" color="whiteAlpha.500">Minor ΓÇö phone number optional</Text>
+                    <Text fontSize="sm" color="white" fontWeight="600">Under 18? / 18 வயதுக்கு குறைவா?</Text>
+                    <Text fontSize="xs" color="whiteAlpha.500">Minor — phone number optional</Text>
                   </Box>
                   <HStack spacing={2}>
                     <Button size="xs" bg={!isMinor ? 'purple.600' : 'whiteAlpha.200'} color="white"
-                      onClick={() => setIsMinor(false)}>α«çα«▓α»ìα«▓α»ê</Button>
+                      onClick={() => setIsMinor(false)}>No</Button>
                     <Button size="xs" bg={isMinor ? 'blue.600' : 'whiteAlpha.200'} color="white"
-                      onClick={() => setIsMinor(true)}>α«åα««α»ì</Button>
+                      onClick={() => setIsMinor(true)}>Yes</Button>
                   </HStack>
                 </HStack>
-                {isMinor && (
-                  <Text fontSize="xs" color="blue.300" mt={2}>
-                    α«¬α»åα«»α«░α»ì α««α«ƒα»ìα«ƒα»üα««α»ì α«¬α»ïα«ñα»üα««α»ì ΓÇö α«ñα»èα«▓α»êα«¬α»çα«Üα«┐ α«ñα»çα«╡α»êα«»α«┐α«▓α»ìα«▓α»ê / Phone not required for minors
-                  </Text>
-                )}
               </Box>
             )}
 
+            {/* Phone + Email */}
             {!isOffline && (!CHILD_RELATIONS.includes(relationType) || !isMinor) && (
               <>
                 <FormControl>
-                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>α«ñα»èα«▓α»êα«¬α»çα«Üα«┐ α«Äα«úα»ì / Phone *</FormLabel>
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
+                    Phone / மொபைல் எண் *
+                  </FormLabel>
                   <InputGroup size="lg">
                     <InputLeftAddon bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
                       color="white" fontSize="sm" fontWeight="600" h={{ base: '50px', md: '56px' }} px={4}>
-                      ≡ƒç«≡ƒç│ +91
+                      +91
                     </InputLeftAddon>
                     <Input type="tel" maxLength={10} placeholder="9999999999"
-                      value={phone} onChange={e => { setPhone(e.target.value.replace(/\D/g, '')); setShowInvitePrompt(false); setChainData(null); }}
+                      value={phone}
+                      onChange={e => {
+                        setPhone(e.target.value.replace(/\D/g, ''));
+                        setError(''); setSuccess(''); setShowInvitePrompt(false);
+                      }}
                       {...inputStyle} />
                   </InputGroup>
+                  {chainLoading && (
+                    <HStack mt={2} px={1}>
+                      <Spinner color="purple.300" size="sm"/>
+                      <Text color="whiteAlpha.500" fontSize="sm">Detecting connection...</Text>
+                    </HStack>
+                  )}
                 </FormControl>
+
+                {/* Chain suggestion badge */}
+                {!chainLoading && hasSuggestion && !overrideRelation && (
+                  <Box bg="green.900" border="1px solid" borderColor="green.600" borderRadius="xl" px={4} py={3}>
+                    <HStack justify="space-between">
+                      <Box>
+                        <Text fontSize="xs" color="green.400" fontWeight="700">
+                          Connection found — auto-selected:
+                        </Text>
+                        <Text fontSize="md" color="white" fontWeight="800" mt={1}>
+                          {suggestedRelation.tamil} / {suggestedRelation.type}
+                        </Text>
+                      </Box>
+                      <Button size="xs" variant="ghost" color="whiteAlpha.500"
+                        onClick={() => { setOverride(true); setRelationType(''); }}
+                        _hover={{ color: 'white' }}>Change</Button>
+                    </HStack>
+                  </Box>
+                )}
+
+                {overrideRelation && (
+                  <HStack>
+                    <Text fontSize="xs" color="whiteAlpha.500">Selecting manually</Text>
+                    <Button size="xs" variant="ghost" color="purple.300"
+                      onClick={() => { setOverride(false); setRelationType(suggestedRelation?.type || ''); }}>
+                      Revert
+                    </Button>
+                  </HStack>
+                )}
+
                 <FormControl>
-                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>≡ƒôº Email (optional)</FormLabel>
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
+                    Email (optional)
+                  </FormLabel>
                   <Input type="email" placeholder="relative@email.com"
                     value={email} onChange={e => setEmail(e.target.value)} {...inputStyle} />
                 </FormControl>
+
                 <Box bg="purple.900" border="1px solid" borderColor="purple.600" borderRadius="xl" px={4} py={3}>
-                  <Text fontSize="xs" color="purple.300" fontWeight="600" mb={1}>≡ƒÆí α«òα»üα«▒α«┐α«¬α»ìα«¬α»ü / Note</Text>
-                  <Text fontSize="xs" color="purple.200">α«òα»ïα«░α«┐α«òα»ìα«òα»ê α«àα«⌐α»üα«¬α»ìα«¬α«┐α«»α«ñα»üα««α»ì WhatsApp α«ñα«╛α«⌐α«╛α«ò α«ñα«┐α«▒α«òα»ìα«òα»üα««α»ì. α«àα«╡α«░α»ì frootze Dashboard-α«▓α»ì α«Åα«▒α»ìα«òα«▓α«╛α««α»ì.</Text>
+                  <Text fontSize="xs" color="purple.300" fontWeight="600" mb={1}>Note</Text>
+                  <Text fontSize="xs" color="purple.200">
+                    A WhatsApp notification will be sent. They can accept from their Dashboard.
+                  </Text>
                 </Box>
               </>
             )}
 
-            {/* Minor child name+gender fields */}
+            {/* Minor child fields */}
             {!isOffline && CHILD_RELATIONS.includes(relationType) && isMinor && (
               <>
                 <FormControl>
-                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>α«òα»üα«┤α«¿α»ìα«ñα»êα«»α«┐α«⌐α»ì α«¬α»åα«»α«░α»ì / Child's Name *</FormLabel>
-                  <Input placeholder="α«ëα«ñα«╛: Raman Kumar" value={offlineName}
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>Child's Name *</FormLabel>
+                  <Input placeholder="e.g. Raman Kumar" value={offlineName}
                     onChange={e => setOfflineName(e.target.value)} {...inputStyle} />
                 </FormControl>
                 <FormControl>
-                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>α«¬α«╛α«▓α«┐α«⌐α««α»ì / Gender *</FormLabel>
-                  <Select placeholder="α«ñα»çα«░α»ìα«╡α»ü α«Üα»åα«»α»ìα«»α«╡α»üα««α»ì" value={offlineGender}
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>Gender *</FormLabel>
+                  <Select placeholder="Select gender" value={offlineGender}
                     onChange={e => setOfflineGender(e.target.value)} {...inputStyle}>
-                    <option value="male" style={{ background: '#1e1b4b' }}>α«åα«úα»ì / Male</option>
-                    <option value="female" style={{ background: '#1e1b4b' }}>α«¬α»åα«úα»ì / Female</option>
+                    <option value="male" style={{ background: '#1e1b4b' }}>Male</option>
+                    <option value="female" style={{ background: '#1e1b4b' }}>Female</option>
                   </Select>
                 </FormControl>
               </>
             )}
 
+            {/* Offline/Deceased fields */}
             {isOffline && (
               <>
                 <Box bg="orange.900" border="1px solid" borderColor="orange.600" borderRadius="xl" px={4} py={3}>
-                  <Text fontSize="xs" color="orange.300" fontWeight="600" mb={1}>≡ƒòè∩╕Å α«òα«╛α«▓α««α«╛α«⌐α«╡α«░α»ì / Deceased Member</Text>
-                  <Text fontSize="xs" color="orange.200">α«çα«╡α«░α»ì α«¿α»çα«░α«ƒα«┐α«»α«╛α«ò α«òα»üα«ƒα»üα««α»ìα«¬ α««α«░α«ñα»ìα«ñα«┐α«▓α»ì α«Üα»çα«░α»ìα«òα»ìα«òα«¬α»ìα«¬α«ƒα»üα«╡α«╛α«░α»ì. α«ñα»èα«▓α»êα«¬α»çα«Üα«┐ α«ñα»çα«╡α»êα«»α«┐α«▓α»ìα«▓α»ê.</Text>
+                  <Text fontSize="xs" color="orange.300" fontWeight="600" mb={1}>Deceased / Offline Member</Text>
+                  <Text fontSize="xs" color="orange.200">
+                    This person will be added directly to the tree without needing a phone number.
+                  </Text>
                 </Box>
                 <FormControl>
-                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>α«¬α»åα«»α«░α»ì / Name *</FormLabel>
-                  <Input placeholder="α«ëα«ñα«╛: Raman Kumar" value={offlineName}
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>Name *</FormLabel>
+                  <Input placeholder="e.g. Raman Kumar" value={offlineName}
                     onChange={e => setOfflineName(e.target.value)} {...inputStyle} />
                 </FormControl>
                 <FormControl>
-                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>α«¬α«╛α«▓α«┐α«⌐α««α»ì / Gender *</FormLabel>
-                  <Select placeholder="α«ñα»çα«░α»ìα«╡α»ü α«Üα»åα«»α»ìα«»α«╡α»üα««α»ì" value={offlineGender}
+                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>Gender *</FormLabel>
+                  <Select placeholder="Select gender" value={offlineGender}
                     onChange={e => setOfflineGender(e.target.value)} {...inputStyle}>
-                    <option value="male" style={{ background: '#1e1b4b' }}>α«åα«úα»ì / Male</option>
-                    <option value="female" style={{ background: '#1e1b4b' }}>α«¬α»åα«úα»ì / Female</option>
+                    <option value="male" style={{ background: '#1e1b4b' }}>Male</option>
+                    <option value="female" style={{ background: '#1e1b4b' }}>Female</option>
                   </Select>
                 </FormControl>
               </>
@@ -397,40 +417,35 @@ export default function AddRelative() {
         <Box {...sectionBox} py={{ base: 5, md: 6 }}>
           <VStack spacing={4} align="stretch">
 
-            {/* Unregistered invite prompt */}
+            {/* Invite prompt for unregistered */}
             {showInvitePrompt && (
               <Box bg="yellow.900" border="1px solid" borderColor="yellow.500" borderRadius="xl" px={4} py={4}>
                 <Text color="yellow.200" fontSize={{ base: 'sm', md: 'md' }} fontWeight="700" mb={1}>
-                  ΓÜá∩╕Å α«çα«¿α»ìα«ñ α«Äα«úα»ì frootze-α«▓α»ì α«¬α«ñα«┐α«╡α»ü α«Üα»åα«»α»ìα«»α«¬α»ìα«¬α«ƒα«╡α«┐α«▓α»ìα«▓α»ê
+                  This number is not on frootze yet
                 </Text>
                 <Text color="yellow.300" fontSize="sm" mb={3}>
-                  This number is not on frootze yet.
+                  இந்த எண் frootze-ல் பதிவு செய்யப்படவில்லை. Invite அனுப்பலாம்.
                 </Text>
                 <Box bg="blue.900" border="1px solid" borderColor="blue.600"
                   borderRadius="xl" px={3} py={3} mb={3}>
-                  <Text fontSize="xs" color="blue.200" fontWeight="700" mb={1}>
-                    ≡ƒôï How to share with family tree image:
-                  </Text>
-                  <Text fontSize="xs" color="blue.300">1∩╕ÅΓâú Click "Send Invite" below</Text>
-                  <Text fontSize="xs" color="blue.300">2∩╕ÅΓâú Tree image downloads automatically</Text>
-                  <Text fontSize="xs" color="blue.300">3∩╕ÅΓâú WhatsApp opens with invite message</Text>
-                  <Text fontSize="xs" color="blue.300">4∩╕ÅΓâú Tap ≡ƒôÄ in WhatsApp ΓåÆ attach image ΓåÆ Send</Text>
-                  <Text fontSize="xs" color="blue.400" mt={1} fontStyle="italic">
-                    Full auto-share available in the frootze mobile app
-                  </Text>
+                  <Text fontSize="xs" color="blue.200" fontWeight="700" mb={1}>How to share with family tree image:</Text>
+                  <Text fontSize="xs" color="blue.300">1. Click "Send Invite" below</Text>
+                  <Text fontSize="xs" color="blue.300">2. Tree image downloads automatically</Text>
+                  <Text fontSize="xs" color="blue.300">3. WhatsApp opens with invite message</Text>
+                  <Text fontSize="xs" color="blue.300">4. Attach image in WhatsApp and Send</Text>
                 </Box>
                 <HStack spacing={3}>
                   <Button flex={1} h="44px" bgGradient="linear(to-r, purple.600, green.500)"
                     color="white" fontSize="sm" fontWeight="700" borderRadius="xl"
-                    isLoading={inviteLoading} loadingText="α«àα«⌐α»üα«¬α»ìα«¬α»üα«òα«┐α«▒α»ïα««α»ì..."
+                    isLoading={inviteLoading} loadingText="Sending..."
                     onClick={handleSendInvite}>
-                    ≡ƒô¿ α«àα«┤α»êα«¬α»ìα«¬α»ü α«àα«⌐α»üα«¬α»ìα«¬α»ü / Send Invite
+                    Send Invite / அழைப்பு அனுப்பு
                   </Button>
                   <Button flex={1} h="44px" variant="ghost" color="whiteAlpha.500"
                     fontSize="sm" borderRadius="xl"
                     onClick={() => setShowInvitePrompt(false)}
                     _hover={{ color: 'white' }}>
-                    α«░α«ñα»ìα«ñα»ü / Cancel
+                    Cancel
                   </Button>
                 </HStack>
               </Box>
@@ -448,32 +463,33 @@ export default function AddRelative() {
               </Box>
             )}
 
+            {/* Notification badges */}
             {!isOffline && success && whatsappLink && (
               <SimpleGrid columns={3} spacing={3}>
                 {[
-                  { key: 'whatsapp', icon: '≡ƒô▒', label: 'WhatsApp' },
-                  { key: 'email',    icon: '≡ƒôº', label: 'Email'    },
-                  { key: 'telegram', icon: 'Γ£ê∩╕Å', label: 'Telegram' },
+                  { key: 'whatsapp', icon: 'WhatsApp', label: 'WhatsApp' },
+                  { key: 'email',    icon: 'Email',    label: 'Email'    },
+                  { key: 'telegram', icon: 'Telegram', label: 'Telegram' },
                 ].map(n => (
                   <Box key={n.key}
                     bg={notifStatus[n.key] ? 'green.900' : 'whiteAlpha.100'}
                     border="1px solid"
                     borderColor={notifStatus[n.key] ? 'green.500' : 'whiteAlpha.200'}
                     borderRadius="xl" px={3} py={3} textAlign="center">
-                    <Text fontSize="xl">{n.icon}</Text>
-                    <Text fontSize="xs" color={notifStatus[n.key] ? 'green.300' : 'whiteAlpha.400'} mt={1}>
-                      {notifStatus[n.key] ? 'Γ£ô Sent' : n.label}
+                    <Text fontSize="xs" color={notifStatus[n.key] ? 'green.300' : 'whiteAlpha.400'}>
+                      {notifStatus[n.key] ? 'Sent' : n.label}
                     </Text>
                   </Box>
                 ))}
               </SimpleGrid>
             )}
 
+            {/* Submit */}
             {!success && !showInvitePrompt && (
               <Button w="100%" h={{ base: '50px', md: '56px' }}
                 bgGradient={isOffline ? 'linear(to-r, orange.600, orange.500)' : 'linear(to-r, purple.600, green.500)'}
                 color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
-                isLoading={loading} loadingText="α«Üα»çα«░α»ìα«òα»ìα«òα«┐α«▒α»ïα««α»ì..."
+                isLoading={loading} loadingText="Adding..."
                 isDisabled={
                   isOffline ? (!offlineName.trim() || !offlineGender || !relationType) :
                   (CHILD_RELATIONS.includes(relationType) && isMinor) ? (!offlineName.trim() || !offlineGender || !relationType) :
@@ -482,9 +498,11 @@ export default function AddRelative() {
                 onClick={handleAdd}
                 _hover={{ transform: 'translateY(-2px)' }}
                 _disabled={{ opacity: 0.4, cursor: 'not-allowed' }}>
-                {isOffline ? '≡ƒòè∩╕Å α«òα»üα«ƒα»üα««α»ìα«¬ α««α«░α«ñα»ìα«ñα«┐α«▓α»ì α«Üα»çα«░α»ì / Add to Tree' :
-                     (CHILD_RELATIONS.includes(relationType) && isMinor) ? '≡ƒæ╢ α«òα»üα«┤α«¿α»ìα«ñα»êα«»α»ê α«Üα»çα«░α»ì / Add Child' :
-                     '≡ƒæ¿ΓÇì≡ƒæ⌐ΓÇì≡ƒæº α«òα»ïα«░α«┐α«òα»ìα«òα»ê α«àα«⌐α»üα«¬α»ìα«¬α»ü / Send Request'}
+                {isOffline
+                  ? 'Add to Tree'
+                  : (CHILD_RELATIONS.includes(relationType) && isMinor)
+                  ? 'Add Child'
+                  : 'Send Request'}
               </Button>
             )}
 
@@ -493,12 +511,12 @@ export default function AddRelative() {
                 {whatsappLink && (
                   <Button flex={1} h="50px" colorScheme="whatsapp" borderRadius="xl"
                     onClick={() => window.open(whatsappLink, '_blank')}>
-                    ≡ƒô▒ WhatsApp α««α»Çα«úα»ìα«ƒα»üα««α»ì α«ñα«┐α«▒
+                    Open WhatsApp
                   </Button>
                 )}
                 <Button flex={1} h="50px" variant="ghost" color="whiteAlpha.600" borderRadius="xl"
                   onClick={() => navigate('/dashboard')} _hover={{ color: 'white' }}>
-                  ΓåÉ Dashboard
+                  Back to Dashboard
                 </Button>
               </HStack>
             )}
