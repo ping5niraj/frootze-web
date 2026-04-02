@@ -7,6 +7,7 @@ import {
 import api, { getMyRelationships, verifyRelationship, rejectRelationship } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import FamilyTree from '../components/FamilyTree';
+import FamilyNetwork from '../components/FamilyNetwork';
 import ShareTree from '../components/ShareTree';
 import BirthdayBanner from '../components/BirthdayBanner';
 
@@ -235,8 +236,9 @@ export default function Dashboard() {
           {/* Tree Mode Toggle */}
           <HStack bg="whiteAlpha.100" borderRadius="xl" p={1} mb={4}>
             {[
-              { key: 'direct',   label: '👤 நேரடி / Direct'          },
-              { key: 'extended', label: '🌳 விரிவான / Extended Family' },
+              { key: 'direct',   label: '👤 நேரடி'     },
+              { key: 'extended', label: '🌳 விரிவான'    },
+              { key: 'network',  label: '🕸️ நெட்வொர்க்' },
             ].map(t => (
               <Button key={t.key} flex={1} size="sm"
                 bg={treeMode === t.key ? 'purple.600' : 'transparent'}
@@ -275,6 +277,11 @@ export default function Dashboard() {
                   + குடும்பத்தினரை சேர்
                 </Button>
               </VStack>
+            ) : treeMode === 'network' ? (
+              <FamilyNetwork
+                currentUser={user}
+                relationships={relationships}
+              />
             ) : (
               <Box ref={treeRef} overflowX="auto">
                 <FamilyTree
