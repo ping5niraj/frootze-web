@@ -157,9 +157,18 @@ export default function FamilyNetwork({ currentUser }) {
     const offsetX = -minX + padding + 80; // +80 for gen labels on left
     const offsetY = padding;
 
+    console.log('[FamilyNetwork] svgW:', svgW, 'svgH:', svgH, 'offsetX:', offsetX, 'offsetY:', offsetY);
+    console.log('[FamilyNetwork] allGens:', allGens, 'minX:', minX, 'maxX:', maxX);
+    // Log first 3 node positions
+    let posCount = 0;
+    posMap.forEach((pos, id) => {
+      if (posCount++ < 3) console.log('[FamilyNetwork] node pos:', id.substring(0,8), 'x:', pos.x + offsetX, 'y:', pos.y + offsetY);
+    });
+
     const svg = d3.select(svgRef.current)
       .attr('width', svgW)
-      .attr('height', svgH);
+      .attr('height', svgH)
+      .style('background', '#1a1040');
 
     // Zoom + pan
     const g = svg.append('g');
