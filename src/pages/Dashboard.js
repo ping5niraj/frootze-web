@@ -8,22 +8,9 @@ import api, { getMyRelationships, verifyRelationship, rejectRelationship } from 
 import { useAuth } from '../context/AuthContext';
 import FamilyTree from '../components/FamilyTree';
 import FamilyNetwork from '../components/FamilyNetwork';
+import SuggestionsBanner from '../components/SuggestionsBanner';
 import ShareTree from '../components/ShareTree';
 import BirthdayBanner from '../components/BirthdayBanner';
-
-// Relations allowed in Direct Tree (1 gen up + current + 1 gen down only)
-const DIRECT_RELATIONS = new Set([
-  // Past Gen 1
-  'father','mother','father_in_law','mother_in_law',
-  'uncle_paternal','uncle_maternal','uncle_elder','uncle_younger',
-  'aunt_paternal','aunt_maternal','aunt_by_marriage','uncle_by_marriage',
-  // Current
-  'spouse','brother','sister','brother_in_law','sister_in_law','co_brother','cousin',
-  // Future Gen 1
-  'son','daughter','son_in_law','daughter_in_law',
-  'nephew','niece','nephew_by_marriage','niece_by_marriage',
-  'stepson','stepdaughter',
-]);
 
 const navItems = [
   { path: '/dashboard',  icon: '🌳', ta: 'மரம்'      },
@@ -88,16 +75,10 @@ export default function Dashboard() {
       .catch(() => setExtendedRelationships([]));
   }, [user?.id]);
 
-  // Direct tree = filter to 1 gen up/down only
-  const [directRelationships, setDirectRelationships] = useState([]);
-
   const fetchData = async () => {
     try {
       const res = await getMyRelationships();
-      const all = res.data.my_relationships || [];
-      setRelationships(all);
-      // Filter for direct tree — 1 generation up/down only
-      setDirectRelationships(all.filter(r => DIRECT_RELATIONS.has(r.relation_type)));
+      setRelationships(res.data.my_relationships || []);
       setPending(res.data.pending_verification || []);
       setSummary(res.data.summary || {});
     } catch (e) {
@@ -107,7 +88,13 @@ export default function Dashboard() {
 
   const handleVerify = async (id) => {
     setActionLoading(id);
-    try { await verifyRelationship(id); await fetchData(); } catch (e) {}
+    try {
+      await verifyRelationship(id);
+      await fetchData();
+      // After accepting — redirect to suggestions page
+      // Small delay so fetchData completes first
+      setTimeout(() => navigate('/family-suggestions'), 300);
+    } catch (e) {}
     finally { setActionLoading(''); }
   };
 
@@ -182,6 +169,7 @@ export default function Dashboard() {
 
         {/* Section 3 — Birthday Banner */}
         <BirthdayBanner />
+        <SuggestionsBanner />
 
         {/* Section 4 — Pending Verifications */}
         {pending.length > 0 && (
@@ -305,13 +293,9 @@ export default function Dashboard() {
             ) : (
               <Box ref={treeRef} overflowX="auto">
                 <FamilyTree
-                  relationships={
-                    treeMode === 'extended' && extendedRelationships.length > 0
-                      ? extendedRelationships
-                      : treeMode === 'direct'
-                      ? directRelationships
-                      : relationships
-                  }
+                  relationships={treeMode === 'extended' && extendedRelationships.length > 0
+                    ? extendedRelationships
+                    : relationships}
                   currentUser={user}
                 />
                 {treeMode === 'extended' && extendedRelationships.length === 0 && (
