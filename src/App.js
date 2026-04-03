@@ -13,7 +13,6 @@ import LocationPage from './pages/LocationPage';
 import Birthdays from './pages/Birthdays';
 import Quiz from './pages/Quiz';
 import TreeInvite from './pages/TreeInvite';
-import Admin from './pages/Admin';
 import FamilySuggestions from './pages/FamilySuggestions';
 
 function App() {
@@ -33,9 +32,8 @@ function App() {
           <Route path="/birthdays" element={<ProtectedRoute><Birthdays /></ProtectedRoute>} />
           <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
           <Route path="/tree-invite/:token" element={<TreeInvite />} />
-          <Route path="/admin" element={<Admin />} />
+          <Route path="/family-suggestions" element={<ProtectedRoute><FamilySuggestions /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
-		  <Route path="/family-suggestions" element={<ProtectedRoute><FamilySuggestions /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

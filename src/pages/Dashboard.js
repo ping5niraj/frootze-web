@@ -7,8 +7,8 @@ import {
 import api, { getMyRelationships, verifyRelationship, rejectRelationship } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import FamilyTree from '../components/FamilyTree';
-import FamilyNetwork from '../components/FamilyNetwork';
 import SuggestionsBanner from '../components/SuggestionsBanner';
+import FamilyNetwork from '../components/FamilyNetwork';
 import ShareTree from '../components/ShareTree';
 import BirthdayBanner from '../components/BirthdayBanner';
 
@@ -78,9 +78,20 @@ export default function Dashboard() {
   const fetchData = async () => {
     try {
       const res = await getMyRelationships();
-      setRelationships(res.data.my_relationships || []);
-      setPending(res.data.pending_verification || []);
+      const allRels  = res.data.my_relationships || [];
+      const pendingList = res.data.pending_verification || [];
+      setRelationships(allRels);
+      setPending(pendingList);
       setSummary(res.data.summary || {});
+
+      // First login: 0 verified relations + pending requests exist
+      // → redirect to family suggestions immediately
+      const isFirstLogin = allRels.length === 0 && pendingList.length > 0;
+      const alreadyShown = sessionStorage.getItem('pmf_suggestions_shown');
+      if (isFirstLogin && !alreadyShown) {
+        sessionStorage.setItem('pmf_suggestions_shown', 'true');
+        navigate('/family-suggestions');
+      }
     } catch (e) {
       setRelationships([]); setPending([]); setSummary({});
     } finally { setLoading(false); }
@@ -91,8 +102,7 @@ export default function Dashboard() {
     try {
       await verifyRelationship(id);
       await fetchData();
-      // After accepting — redirect to suggestions page
-      // Small delay so fetchData completes first
+      // After accepting — redirect to suggestions to show related family
       setTimeout(() => navigate('/family-suggestions'), 300);
     } catch (e) {}
     finally { setActionLoading(''); }
