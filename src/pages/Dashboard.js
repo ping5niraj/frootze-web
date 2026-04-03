@@ -2,9 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, VStack, HStack, Text, Heading, Button,
-  SimpleGrid, Avatar, Badge, Spinner,
-  Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
-  Select, useDisclosure
+  SimpleGrid, Avatar, Badge, Spinner
 } from '@chakra-ui/react';
 import api, { getMyRelationships, verifyRelationship, rejectRelationship } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -12,46 +10,6 @@ import FamilyTree from '../components/FamilyTree';
 import FamilyNetwork from '../components/FamilyNetwork';
 import ShareTree from '../components/ShareTree';
 import BirthdayBanner from '../components/BirthdayBanner';
-
-const ALL_RELATIONS = [
-  { value: 'father',               tamil: 'அப்பா'                   },
-  { value: 'mother',               tamil: 'அம்மா'                   },
-  { value: 'spouse',               tamil: 'மனைவி/கணவன்'            },
-  { value: 'brother',              tamil: 'அண்ணன்/தம்பி'           },
-  { value: 'sister',               tamil: 'அக்கா/தங்கை'            },
-  { value: 'son',                  tamil: 'மகன்'                    },
-  { value: 'daughter',             tamil: 'மகள்'                    },
-  { value: 'grandfather_paternal', tamil: 'தாத்தா (அப்பா பக்கம்)' },
-  { value: 'grandmother_paternal', tamil: 'பாட்டி (அப்பா பக்கம்)' },
-  { value: 'grandfather_maternal', tamil: 'தாத்தா (அம்மா பக்கம்)' },
-  { value: 'grandmother_maternal', tamil: 'பாட்டி (அம்மா பக்கம்)' },
-  { value: 'grandson',             tamil: 'பேரன்'                   },
-  { value: 'granddaughter',        tamil: 'பேத்தி'                  },
-  { value: 'nephew',               tamil: 'மருமகன்'                 },
-  { value: 'niece',                tamil: 'மருமகள்'                 },
-  { value: 'uncle_paternal',       tamil: 'பெரியப்பா/சித்தப்பா'   },
-  { value: 'aunt_paternal',        tamil: 'அத்தை'                   },
-  { value: 'uncle_maternal',       tamil: 'மாமா'                    },
-  { value: 'aunt_maternal',        tamil: 'சித்தி'                  },
-  { value: 'aunt_by_marriage',     tamil: 'மாமி'                    },
-  { value: 'father_in_law',        tamil: 'மாமனார்'                 },
-  { value: 'mother_in_law',        tamil: 'மாமியார்'                },
-  { value: 'brother_in_law',       tamil: 'மைத்துனன்'              },
-  { value: 'sister_in_law',        tamil: 'நாத்தனார்'               },
-  { value: 'son_in_law',           tamil: 'மருமகன்'                 },
-  { value: 'daughter_in_law',      tamil: 'மருமகள்'                 },
-  { value: 'cousin',               tamil: 'உறவினர்'                 },
-];
-
-const DIRECT_RELATIONS = new Set([
-  'father','mother','father_in_law','mother_in_law',
-  'uncle_paternal','uncle_maternal','uncle_elder','uncle_younger',
-  'aunt_paternal','aunt_maternal','aunt_by_marriage','uncle_by_marriage',
-  'spouse','brother','sister','brother_in_law','sister_in_law','co_brother','cousin',
-  'son','daughter','son_in_law','daughter_in_law',
-  'nephew','niece','nephew_by_marriage','niece_by_marriage',
-  'stepson','stepdaughter',
-]);
 
 const navItems = [
   { path: '/dashboard',  icon: '🌳', ta: 'மரம்'      },
@@ -76,7 +34,6 @@ export default function Dashboard() {
   const { user, login, logout } = useAuth();
   const navigate = useNavigate();
   const [relationships, setRelationships] = useState([]);
-  const [directRelationships, setDirectRelationships] = useState([]);
   const [extendedRelationships, setExtendedRelationships] = useState([]);
   const [pending, setPending] = useState([]);
   const [summary, setSummary] = useState({});
@@ -85,11 +42,6 @@ export default function Dashboard() {
   const [treeMode, setTreeMode] = useState('direct'); // 'direct' or 'extended'
   const [actionLoading, setActionLoading] = useState('');
   const treeRef = useRef(null);
-  const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
-  const [editNode, setEditNode]           = useState(null);
-  const [editRelationType, setEditRelationType] = useState('');
-  const [editLoading, setEditLoading]     = useState(false);
-  const [editError, setEditError]         = useState('');
 
   useEffect(() => {
     if (user?.id) fetchData();
@@ -100,23 +52,53 @@ export default function Dashboard() {
     if (!user?.id) return;
     api.get(`/api/relationships/tree/${user.id}`)
       .then(treeRes => {
-        const extNodes = (treeRes.data.nodes || []).map(n => ({
-          id: n.id,
-          relation_type: n.relation_type,
-          relation_tamil: n.relation_tamil,
-          verification_status: 'verified',
-          is_offline: n.is_offline,
-          offline_name: n.offline_name,
-          offline_gender: n.offline_gender,
-          to_user: {
-            id: n.id,
-            name: n.name,
-            phone: null,
-            kutham: n.kutham,
-            is_offline: n.is_offline,
-            offline_gender: n.offline_gender,
+        // Map generation number to RELATION_META key
+        const genToRelType = (gen, relType) => {
+          // Use generation number to determine correct gen key
+          // Override relation_type so FamilyTree places node in correct row
+          const GEN_MAP = {
+            3: 'great_grandfather', '-3': 'great_grandfather',
+            2: 'grandfather_paternal', '-2': 'grandson',
+            1: relType, // keep original for gen 1
+            0: relType, // keep original for gen 0
+            '-1': relType, // keep original for gen -1
+          };
+          // For gen 2 — use paternal/maternal based on relation
+          if (gen === 2) {
+            if (relType.includes('maternal') || relType.includes('mother')) return 'grandfather_maternal';
+            return 'grandfather_paternal';
           }
-        }));
+          if (gen === -2) return 'grandson';
+          if (gen === 3) return 'great_grandfather';
+          return relType;
+        };
+
+        // Deduplicate nodes by id
+        const seenIds = new Set();
+        const extNodes = (treeRes.data.nodes || [])
+          .filter(n => {
+            const key = n.id;
+            if (seenIds.has(key)) return false;
+            seenIds.add(key);
+            return true;
+          })
+          .map(n => ({
+            id: n.id,
+            relation_type: genToRelType(n.generation, n.relation_type),
+            relation_tamil: n.relation_tamil,
+            verification_status: 'verified',
+            is_offline: n.is_offline,
+            offline_name: n.offline_name,
+            offline_gender: n.offline_gender,
+            to_user: {
+              id: n.id,
+              name: n.name,
+              phone: null,
+              kutham: n.kutham,
+              is_offline: n.is_offline,
+              offline_gender: n.offline_gender,
+            }
+          }));
         setExtendedRelationships(extNodes);
       })
       .catch(() => setExtendedRelationships([]));
@@ -125,31 +107,17 @@ export default function Dashboard() {
   const fetchData = async () => {
     try {
       const res = await getMyRelationships();
-      const allRels = res.data.my_relationships || [];
-      const pendingList = res.data.pending_verification || [];
-      setRelationships(allRels);
-      setDirectRelationships(allRels.filter(r => DIRECT_RELATIONS.has(r.relation_type)));
-      setPending(pendingList);
+      setRelationships(res.data.my_relationships || []);
+      setPending(res.data.pending_verification || []);
       setSummary(res.data.summary || {});
-
-      // First login: 0 verified + pending requests → redirect to suggestions
-      const alreadyShown = sessionStorage.getItem('pmf_suggestions_shown');
-      if (allRels.length === 0 && pendingList.length > 0 && !alreadyShown) {
-        sessionStorage.setItem('pmf_suggestions_shown', 'true');
-        navigate('/family-suggestions');
-      }
     } catch (e) {
-      setRelationships([]); setDirectRelationships([]); setPending([]); setSummary({});
+      setRelationships([]); setPending([]); setSummary({});
     } finally { setLoading(false); }
   };
 
   const handleVerify = async (id) => {
     setActionLoading(id);
-    try {
-      await verifyRelationship(id);
-      await fetchData();
-      setTimeout(() => navigate('/family-suggestions'), 300);
-    } catch (e) {}
+    try { await verifyRelationship(id); await fetchData(); } catch (e) {}
     finally { setActionLoading(''); }
   };
 
@@ -157,32 +125,6 @@ export default function Dashboard() {
     setActionLoading(id);
     try { await rejectRelationship(id); await fetchData(); } catch (e) {}
     finally { setActionLoading(''); }
-  };
-
-  const handleNodeClick = (node) => {
-    setEditNode(node);
-    setEditRelationType(node.relationType || '');
-    setEditError('');
-    onEditOpen();
-  };
-
-  const handleEditSave = async () => {
-    if (!editNode || !editRelationType) return;
-    setEditLoading(true);
-    setEditError('');
-    try {
-      const newTamil = ALL_RELATIONS.find(r => r.value === editRelationType)?.tamil || editRelationType;
-      await api.put(`/api/relationships/${editNode.relationId}`, {
-        relation_type: editRelationType,
-        relation_tamil: newTamil,
-      });
-      onEditClose();
-      await fetchData();
-    } catch(e) {
-      setEditError(e.response?.data?.error || 'Failed to update');
-    } finally {
-      setEditLoading(false);
-    }
   };
 
   if (loading) {
@@ -375,11 +317,8 @@ export default function Dashboard() {
                 <FamilyTree
                   relationships={treeMode === 'extended' && extendedRelationships.length > 0
                     ? extendedRelationships
-                    : treeMode === 'direct'
-                    ? directRelationships
                     : relationships}
                   currentUser={user}
-                  onNodeClick={handleNodeClick}
                 />
                 {treeMode === 'extended' && extendedRelationships.length === 0 && (
                   <Text color="whiteAlpha.400" fontSize="sm" textAlign="center" py={4}>
@@ -418,49 +357,6 @@ export default function Dashboard() {
         </Box>
 
       </VStack>
-
-      {/* Edit Relation Modal */}
-      <Modal isOpen={isEditOpen} onClose={onEditClose} isCentered>
-        <ModalOverlay bg="blackAlpha.800"/>
-        <ModalContent bg="#1e1b4b" border="1px solid" borderColor="purple.500" borderRadius="2xl" mx={4}>
-          <ModalHeader color="white" fontSize="md">
-            ✏️ உறவு மாற்று — {editNode?.name}
-          </ModalHeader>
-          <ModalBody>
-            <Text fontSize="sm" color="whiteAlpha.600" mb={3}>
-              தற்போதைய உறவு: <Text as="span" color="purple.300" fontWeight="700">
-                {ALL_RELATIONS.find(r => r.value === editNode?.relationType)?.tamil || editNode?.relationType}
-              </Text>
-            </Text>
-            <Select
-              value={editRelationType}
-              onChange={e => setEditRelationType(e.target.value)}
-              bg="whiteAlpha.100" color="white" borderColor="whiteAlpha.300"
-              _focus={{ borderColor: 'purple.400' }}>
-              {ALL_RELATIONS.map(r => (
-                <option key={r.value} value={r.value} style={{ background: '#1e1b4b' }}>
-                  {r.tamil} / {r.value}
-                </option>
-              ))}
-            </Select>
-            {editError && (
-              <Text color="red.300" fontSize="sm" mt={2}>{editError}</Text>
-            )}
-          </ModalBody>
-          <ModalFooter gap={3}>
-            <Button variant="ghost" color="whiteAlpha.500" onClick={onEditClose}>
-              ரத்து
-            </Button>
-            <Button bgGradient="linear(to-r, purple.600, green.500)"
-              color="white" borderRadius="xl" fontWeight="700"
-              isLoading={editLoading}
-              isDisabled={!editRelationType || editRelationType === editNode?.relationType}
-              onClick={handleEditSave}>
-              சேமி / Save
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
 
       {/* FAB */}
       <Box position="fixed" bottom={6} right={6} zIndex={100}>
