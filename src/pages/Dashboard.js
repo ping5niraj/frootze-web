@@ -43,6 +43,16 @@ const ALL_RELATIONS = [
   { value: 'cousin',               tamil: 'உறவினர்'                 },
 ];
 
+const DIRECT_RELATIONS = new Set([
+  'father','mother','father_in_law','mother_in_law',
+  'uncle_paternal','uncle_maternal','uncle_elder','uncle_younger',
+  'aunt_paternal','aunt_maternal','aunt_by_marriage','uncle_by_marriage',
+  'spouse','brother','sister','brother_in_law','sister_in_law','co_brother','cousin',
+  'son','daughter','son_in_law','daughter_in_law',
+  'nephew','niece','nephew_by_marriage','niece_by_marriage',
+  'stepson','stepdaughter',
+]);
+
 const navItems = [
   { path: '/dashboard',  icon: '🌳', ta: 'மரம்'      },
   { path: '/directory',  icon: '📚', ta: 'அகராதி'    },
@@ -66,6 +76,7 @@ export default function Dashboard() {
   const { user, login, logout } = useAuth();
   const navigate = useNavigate();
   const [relationships, setRelationships] = useState([]);
+  const [directRelationships, setDirectRelationships] = useState([]);
   const [extendedRelationships, setExtendedRelationships] = useState([]);
   const [pending, setPending] = useState([]);
   const [summary, setSummary] = useState({});
@@ -114,17 +125,31 @@ export default function Dashboard() {
   const fetchData = async () => {
     try {
       const res = await getMyRelationships();
-      setRelationships(res.data.my_relationships || []);
-      setPending(res.data.pending_verification || []);
+      const allRels = res.data.my_relationships || [];
+      const pendingList = res.data.pending_verification || [];
+      setRelationships(allRels);
+      setDirectRelationships(allRels.filter(r => DIRECT_RELATIONS.has(r.relation_type)));
+      setPending(pendingList);
       setSummary(res.data.summary || {});
+
+      // First login: 0 verified + pending requests → redirect to suggestions
+      const alreadyShown = sessionStorage.getItem('pmf_suggestions_shown');
+      if (allRels.length === 0 && pendingList.length > 0 && !alreadyShown) {
+        sessionStorage.setItem('pmf_suggestions_shown', 'true');
+        navigate('/family-suggestions');
+      }
     } catch (e) {
-      setRelationships([]); setPending([]); setSummary({});
+      setRelationships([]); setDirectRelationships([]); setPending([]); setSummary({});
     } finally { setLoading(false); }
   };
 
   const handleVerify = async (id) => {
     setActionLoading(id);
-    try { await verifyRelationship(id); await fetchData(); } catch (e) {}
+    try {
+      await verifyRelationship(id);
+      await fetchData();
+      setTimeout(() => navigate('/family-suggestions'), 300);
+    } catch (e) {}
     finally { setActionLoading(''); }
   };
 
