@@ -12,6 +12,7 @@ import FamilyTree from '../components/FamilyTree';
 import FamilyNetwork from '../components/FamilyNetwork';
 import ShareTree from '../components/ShareTree';
 import BirthdayBanner from '../components/BirthdayBanner';
+import SuggestionsBanner from '../components/SuggestionsBanner';
 
 const DIRECT_RELATIONS = new Set([
   'father','mother','father_in_law','mother_in_law',
@@ -283,6 +284,9 @@ export default function Dashboard() {
 
         {/* Section 3 — Birthday Banner */}
         <BirthdayBanner />
+
+        {/* Section 3b — Family Suggestions Banner */}
+        <SuggestionsBanner onRelationAdded={fetchData} />
 
         {/* Section 4 — Pending Verifications */}
         {pending.length > 0 && (
