@@ -130,7 +130,7 @@ export default function Dashboard() {
             return true;
           })
           .map(n => ({
-            id: n.id,
+            id: n.relationship_id || null,
             relation_type: genToRelType(n.generation, n.relation_type),
             relation_tamil: n.relation_tamil,
             verification_status: 'verified',
@@ -187,7 +187,14 @@ export default function Dashboard() {
   };
 
   const handleNodeClick = (node) => {
-    if (!node.relationId) return;
+    if (!node.relationId) {
+      // Extended tree inferred node — no direct relationship record to edit
+      setEditNode(node);
+      setEditRelationType('');
+      setEditError('இந்த உறவு நேரடியாக சேர்க்கப்படவில்லை — திருத்த முடியாது / This is an inferred relation and cannot be edited directly.');
+      onEditOpen();
+      return;
+    }
     setEditNode(node);
     setEditRelationType(node.relationType || '');
     setEditError('');
@@ -477,7 +484,7 @@ export default function Dashboard() {
             <Button bgGradient="linear(to-r, purple.600, green.500)"
               color="white" borderRadius="xl" fontWeight="700"
               isLoading={editLoading}
-              isDisabled={!editRelationType || editRelationType === editNode?.relationType}
+              isDisabled={!editRelationType || editRelationType === editNode?.relationType || !editNode?.relationId}
               onClick={handleEditSave}>
               சேமி / Save
             </Button>
