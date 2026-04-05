@@ -410,7 +410,7 @@ export default function Dashboard() {
                 relationships={relationships}
               />
             ) : treeMode === 'linkedin' ? (
-              <FamilyLinkedIn currentUser={user} />
+              <FamilyLinkedIn currentUser={user} onRelationAdded={fetchData} />
             ) : (
               <Box ref={treeRef} overflowX="auto">
                 <FamilyTree
