@@ -13,6 +13,7 @@ import FamilyNetwork from '../components/FamilyNetwork';
 import ShareTree from '../components/ShareTree';
 import BirthdayBanner from '../components/BirthdayBanner';
 import SuggestionsBanner from '../components/SuggestionsBanner';
+import FamilyLinkedIn from '../components/FamilyLinkedIn';
 
 const DIRECT_RELATIONS = new Set([
   'father','mother','father_in_law','mother_in_law',
@@ -361,9 +362,10 @@ export default function Dashboard() {
           {/* Tree Mode Toggle */}
           <HStack bg="whiteAlpha.100" borderRadius="xl" p={1} mb={4}>
             {[
-              { key: 'direct',   label: '👤 நேரடி'     },
-              { key: 'extended', label: '🌳 விரிவான'    },
-              { key: 'network',  label: '🕸️ நெட்வொர்க்' },
+              { key: 'direct',   label: '👤 நேரடி'          },
+              { key: 'extended', label: '🌳 விரிவான'         },
+              { key: 'network',  label: '🕸️ நெட்வொர்க்'     },
+              { key: 'linkedin', label: '🔗 வலைதளம்'        },
             ].map(t => (
               <Button key={t.key} flex={1} size="sm"
                 bg={treeMode === t.key ? 'purple.600' : 'transparent'}
@@ -407,6 +409,8 @@ export default function Dashboard() {
                 currentUser={user}
                 relationships={relationships}
               />
+            ) : treeMode === 'linkedin' ? (
+              <FamilyLinkedIn currentUser={user} />
             ) : (
               <Box ref={treeRef} overflowX="auto">
                 <FamilyTree
