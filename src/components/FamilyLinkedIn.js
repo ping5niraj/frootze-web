@@ -86,7 +86,8 @@ function computeLayout(nodes, edges) {
   const sortedGens = Object.keys(byGen).map(Number).sort((a, b) => b - a);
 
   // Canvas width based on max nodes in any row
-  const maxNodes = Math.max(...Object.values(byGen).map(arr => arr.length));
+  const rowCounts = Object.values(byGen).map(arr => arr.length);
+  const maxNodes = rowCounts.length > 0 ? Math.max(...rowCounts) : 1;
   const totalW = Math.max(600, maxNodes * (NODE_W + H_GAP) + PAD * 2);
 
   // Assign y position per generation row
@@ -268,10 +269,10 @@ export default function FamilyLinkedIn({ currentUser, onRelationAdded }) {
       const { nodes, edges } = res.data;
 
       // Pure geometry — no business logic
-      const l = computeLayout(nodes, edges);
+      const l = computeLayout(nodes || [], edges || []);
       setLayout(l);
     } catch (e) {
-      console.error('FamilyLinkedIn load error:', e);
+      console.error('FamilyLinkedIn load error:', e?.message, e?.stack);
       setError('குடும்ப வலைதளம் ஏற்றுவதில் பிழை / Error loading tree');
     } finally {
       setLoading(false);
