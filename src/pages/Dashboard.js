@@ -322,26 +322,6 @@ export default function Dashboard() {
           </Box>
         )}
 
-        {/* Section 5 — Quick Actions */}
-        <Box {...sectionBox}>
-          <SimpleGrid columns={{ base: 3, sm: 6 }} spacing={3}>
-            {navItems.map((item, i) => (
-              <VStack key={i} spacing={1} align="center" cursor="pointer"
-                onClick={() => navigate(item.path)}
-                bg={window.location.pathname === item.path ? 'purple.800' : 'whiteAlpha.50'}
-                border="1px solid"
-                borderColor={window.location.pathname === item.path ? 'purple.400' : 'whiteAlpha.100'}
-                borderRadius="xl" py={3}
-                _hover={{ bg: 'purple.800', borderColor: 'purple.400' }}
-                transition="all 0.2s"
-              >
-                <Text fontSize="xl">{item.icon}</Text>
-                <Text fontSize={{ base: '9px', md: 'xs' }} color="whiteAlpha.700" fontWeight="600">{item.ta}</Text>
-              </VStack>
-            ))}
-          </SimpleGrid>
-        </Box>
-
         {/* Section 6 — Family Tree */}
         <Box {...sectionBox}>
           <HStack justify="space-between" mb={4}>
