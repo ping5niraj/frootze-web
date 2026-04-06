@@ -530,10 +530,6 @@ function PostCard({ post, currentUserId, onDeleted }) {
     </Box>
   );
 }
-      </VStack>
-    </Box>
-  );
-}
 
 // ─────────────────────────────────────────
 // Main FamilyFeed Component
