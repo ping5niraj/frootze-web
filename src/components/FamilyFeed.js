@@ -141,43 +141,53 @@ function CreatePost({ currentUser, onPostCreated }) {
   };
 
   return (
-    <Box bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.200"
-      borderRadius="2xl" px={4} py={4}>
+    <Box
+      bg="white" border="1.5px solid" borderColor="purple.200"
+      borderRadius="2xl" px={5} py={4}
+      boxShadow="0 2px 12px rgba(124,58,237,0.08)"
+    >
+      {/* Section label */}
+      <Text fontSize="13px" fontWeight="700" color="purple.600" mb={3}>
+        ✍️ குடும்பத்துடன் பகிரவும்
+      </Text>
 
       <HStack spacing={3} align="flex-start">
-        <Avatar size="sm" name={currentUser?.name} src={currentUser?.profile_photo}
-          border="2px solid" borderColor="purple.400" />
+        <Avatar size="md" name={currentUser?.name} src={currentUser?.profile_photo}
+          border="2px solid" borderColor="purple.300" flexShrink={0} />
+
         <VStack flex={1} spacing={3} align="stretch">
           <Textarea
-            placeholder="உங்கள் குடும்பத்துடன் பகிரவும்... / Share with your family..."
+            placeholder="என்ன நடக்கிறது? / What's on your mind?"
             value={caption}
             onChange={e => setCaption(e.target.value)}
-            bg="whiteAlpha.100"
-            color="white"
-            borderColor="whiteAlpha.200"
+            bg="purple.50"
+            color="purple.900"
+            border="1.5px solid"
+            borderColor="purple.200"
             borderRadius="xl"
             resize="none"
             rows={3}
-            fontSize="sm"
-            _placeholder={{ color: 'whiteAlpha.400' }}
-            _focus={{ borderColor: 'purple.400', boxShadow: 'none' }}
+            fontSize="14px"
+            _placeholder={{ color: 'purple.300' }}
+            _focus={{ bg: 'white', borderColor: 'purple.400', boxShadow: '0 0 0 3px rgba(124,58,237,0.1)' }}
           />
 
           {/* Media previews */}
           {mediaList.length > 0 && (
             <HStack spacing={2} flexWrap="wrap">
               {mediaList.map((m, idx) => (
-                <Box key={idx} position="relative" w="80px" h="80px" borderRadius="lg" overflow="hidden"
-                  border="1px solid" borderColor="whiteAlpha.300">
+                <Box key={idx} position="relative" w="80px" h="80px" borderRadius="xl" overflow="hidden"
+                  border="2px solid" borderColor="purple.200">
                   {m.media_type === 'image' ? (
                     <img src={m.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <video src={m.preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   )}
                   <Box position="absolute" top={1} right={1}
-                    bg="blackAlpha.700" borderRadius="full" px={1}
+                    bg="blackAlpha.700" borderRadius="full" w="18px" h="18px"
+                    display="flex" alignItems="center" justifyContent="center"
                     cursor="pointer" onClick={() => removeMedia(idx)}
-                    fontSize="10px" color="white" lineHeight="16px">
+                    fontSize="10px" color="white">
                     ✕
                   </Box>
                   {m.media_type === 'video' && (
@@ -192,27 +202,31 @@ function CreatePost({ currentUser, onPostCreated }) {
           )}
 
           {error && (
-            <Text color="red.300" fontSize="xs">{error}</Text>
+            <Text color="red.500" fontSize="12px">{error}</Text>
           )}
 
-          <HStack justify="space-between">
-            {/* Hidden file input */}
+          {/* Divider */}
+          <Box borderTop="1px solid" borderColor="purple.100" />
+
+          <HStack justify="space-between" align="center">
             <input
-              type="file"
-              ref={fileRef}
+              type="file" ref={fileRef}
               style={{ display: 'none' }}
-              accept="image/*,video/*"
-              multiple
+              accept="image/*,video/*" multiple
               onChange={handleFileSelect}
             />
-            <HStack spacing={2}>
-              <Button size="sm" variant="ghost" color="whiteAlpha.600"
-                _hover={{ color: 'white' }}
+            <HStack spacing={1}>
+              <Button size="sm" variant="ghost"
+                color="purple.500" fontWeight="600" fontSize="13px"
+                borderRadius="xl"
+                _hover={{ bg: 'purple.50' }}
                 onClick={() => fileRef.current?.click()}>
                 📷 படம்
               </Button>
-              <Button size="sm" variant="ghost" color="whiteAlpha.600"
-                _hover={{ color: 'white' }}
+              <Button size="sm" variant="ghost"
+                color="purple.500" fontWeight="600" fontSize="13px"
+                borderRadius="xl"
+                _hover={{ bg: 'purple.50' }}
                 onClick={() => fileRef.current?.click()}>
                 🎬 வீடியோ
               </Button>
@@ -220,10 +234,12 @@ function CreatePost({ currentUser, onPostCreated }) {
             <Button size="sm"
               bgGradient="linear(to-r, purple.600, green.500)"
               color="white" borderRadius="xl" fontWeight="700"
+              px={5}
               isLoading={posting || uploading}
               loadingText={uploading ? 'Uploading...' : 'Posting...'}
               onClick={handlePost}
-              isDisabled={!caption.trim() && mediaList.length === 0}>
+              isDisabled={!caption.trim() && mediaList.length === 0}
+              _hover={{ opacity: 0.92 }}>
               பகிர் / Share
             </Button>
           </HStack>
