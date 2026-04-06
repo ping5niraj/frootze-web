@@ -496,6 +496,7 @@ export default function AddRelative() {
                     </HStack>
                   </Box>
                 )}
+                {!selectedOfflineUser && (
                 <FormControl>
                   <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>Gender *</FormLabel>
                   <Select placeholder="Select gender" value={offlineGender}
@@ -504,6 +505,7 @@ export default function AddRelative() {
                     <option value="female" style={{ background: '#1e1b4b' }}>Female</option>
                   </Select>
                 </FormControl>
+                )}
               </>
             )}
           </VStack>
