@@ -152,28 +152,38 @@ function SVGRenderer({ positionedNodes, positionedEdges, totalW, totalH }) {
 
       {/* Edges */}
       {positionedEdges.map((e, i) => {
-        const midX = (e.x1 + e.x2) / 2;
-        const midY = (e.y1 + e.y2) / 2;
         const color  = e.verified ? '#A78BFA' : '#FCD34D';
         const marker = e.verified ? 'lk-arrow-v' : 'lk-arrow-p';
         const label  = e.relation_tamil || '';
+
+        // Place label 25% from source — spreads labels naturally when edges fan out
+        const labelX = e.x1 + (e.x2 - e.x1) * 0.25;
+        const labelY = e.y1 + (e.y2 - e.y1) * 0.25;
+
+        // Use curved path for vertical edges to reduce visual clutter
+        const isSameGen = e.isSameGen;
+        const pathD = isSameGen
+          ? `M ${e.x1} ${e.y1} L ${e.x2} ${e.y2}`
+          : `M ${e.x1} ${e.y1} C ${e.x1} ${labelY + 20}, ${e.x2} ${labelY + 20}, ${e.x2} ${e.y2}`;
+
         return (
           <g key={`e${i}`}>
-            <line
-              x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2}
-              stroke={color} strokeWidth={1.5}
+            <path
+              d={pathD}
+              stroke={color} strokeWidth={1.5} fill="none"
               strokeDasharray={e.verified ? 'none' : '4,3'}
               markerEnd={`url(#${marker})`}
             />
             {label && (
               <>
                 <rect
-                  x={midX - 32} y={midY - 9}
+                  x={labelX - 32} y={labelY - 9}
                   width={64} height={16} rx={8}
                   fill="#1e1b4b" stroke="#4C1D95" strokeWidth={1}
+                  opacity={0.92}
                 />
                 <text
-                  x={midX} y={midY + 3}
+                  x={labelX} y={labelY + 3}
                   textAnchor="middle" fontSize="8" fontWeight="600" fill="#C4B5FD"
                 >
                   {label.length > 12 ? label.substring(0, 11) + '…' : label}
