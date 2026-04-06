@@ -338,7 +338,7 @@ export default function Dashboard() {
         boxShadow="0 2px 12px rgba(124,58,237,0.08)"
         px={{ base: 3, md: 8 }} py={3}
       >
-        <HStack maxW="900px" mx="auto" spacing={2}>
+        <HStack maxW="1200px" mx="auto" spacing={2}>
           {/* Logo */}
           <HStack
             spacing={2} cursor="pointer" flexShrink={0}
@@ -387,12 +387,21 @@ export default function Dashboard() {
               cursor="pointer"
               onClick={() => setActiveNav('profile')}
             />
+            <Button
+              size="sm" variant="ghost"
+              color="gray.400" fontSize="12px"
+              borderRadius="xl" px={3}
+              _hover={{ bg: 'red.50', color: 'red.500' }}
+              onClick={() => { logout(); window.location.href = '/'; }}
+            >
+              வெளியேறு
+            </Button>
           </HStack>
         </HStack>
       </Box>
 
       {/* ── PAGE CONTENT ────────────────────────────────────── */}
-      <Box maxW="680px" mx="auto" px={{ base: 3, md: 4 }} pt={5}>
+      <Box maxW="900px" mx="auto" px={{ base: 3, md: 6 }} pt={5}>
 
         {/* ══════════════════════════════════════════
             HOME TAB
@@ -795,7 +804,7 @@ export default function Dashboard() {
         boxShadow="0 -2px 16px rgba(124,58,237,0.08)"
         py={2}
       >
-        <HStack justify="space-around" maxW="680px" mx="auto">
+        <HStack justify="space-around" maxW="900px" mx="auto">
           {BOTTOM_NAV.map(n => {
             const isActive = activeNav === n.key;
             return (
