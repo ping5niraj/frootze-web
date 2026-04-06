@@ -295,31 +295,35 @@ function CommentSection({ postId, currentUserId, commentCount }) {
 
   return (
     <VStack align="stretch" spacing={0}>
-      <Button size="xs" variant="ghost" color="whiteAlpha.500"
-        _hover={{ color: 'white' }} alignSelf="flex-start"
+      <Button size="xs" variant="ghost"
+        color="gray.400" fontWeight="600"
+        _hover={{ color: 'purple.600', bg: 'purple.50' }}
+        alignSelf="flex-start"
         onClick={handleOpen}>
         💬 {commentCount > 0 ? `${commentCount} கருத்து` : 'கருத்து சேர்'}
       </Button>
 
       {open && (
         <VStack align="stretch" spacing={2} mt={2}
-          bg="whiteAlpha.50" borderRadius="xl" p={3}>
+          bg="purple.50" borderRadius="xl" p={3}
+          border="1px solid" borderColor="purple.100">
 
-          {loading && <Spinner size="sm" color="purple.300" alignSelf="center" />}
+          {loading && <Spinner size="sm" color="purple.400" alignSelf="center" />}
 
           {comments.map(c => (
             <HStack key={c.id} spacing={2} align="flex-start">
               <Avatar size="xs" name={c.user?.name} src={c.user?.profile_photo} />
-              <Box flex={1} bg="whiteAlpha.100" borderRadius="lg" px={3} py={2}>
+              <Box flex={1} bg="white" borderRadius="lg" px={3} py={2}
+                border="1px solid" borderColor="purple.100">
                 <HStack justify="space-between">
-                  <Text fontSize="xs" fontWeight="700" color="purple.300">{c.user?.name}</Text>
-                  <Text fontSize="9px" color="whiteAlpha.400">{timeAgo(c.created_at)}</Text>
+                  <Text fontSize="xs" fontWeight="700" color="purple.700">{c.user?.name}</Text>
+                  <Text fontSize="9px" color="gray.400">{timeAgo(c.created_at)}</Text>
                 </HStack>
-                <Text fontSize="xs" color="whiteAlpha.800" mt={1}>{c.content}</Text>
+                <Text fontSize="xs" color="gray.700" mt={1}>{c.content}</Text>
               </Box>
               {c.user?.id === currentUserId && (
-                <Button size="xs" variant="ghost" color="whiteAlpha.300"
-                  _hover={{ color: 'red.300' }} px={1}
+                <Button size="xs" variant="ghost" color="gray.300"
+                  _hover={{ color: 'red.400' }} px={1}
                   onClick={() => handleDelete(c.id)}>
                   ✕
                 </Button>
@@ -335,12 +339,12 @@ function CommentSection({ postId, currentUserId, commentCount }) {
               onChange={e => setText(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleSend(); }}
               size="sm"
-              bg="whiteAlpha.100"
-              color="white"
-              borderColor="whiteAlpha.200"
+              bg="white"
+              color="purple.900"
+              borderColor="purple.200"
               borderRadius="xl"
               fontSize="xs"
-              _placeholder={{ color: 'whiteAlpha.400' }}
+              _placeholder={{ color: 'purple.300' }}
               _focus={{ borderColor: 'purple.400', boxShadow: 'none' }}
             />
             <Button size="sm" colorScheme="purple" borderRadius="xl"
@@ -398,27 +402,31 @@ function PostCard({ post, currentUserId, onDeleted }) {
   const media = post.media || [];
 
   return (
-    <Box bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.200"
-      borderRadius="2xl" overflow="hidden">
+    <Box
+      bg="white"
+      border="1.5px solid" borderColor="purple.100"
+      borderRadius="2xl" overflow="hidden"
+      boxShadow="0 2px 12px rgba(124,58,237,0.07)"
+    >
 
       {/* Post header */}
       <HStack justify="space-between" px={4} pt={4} pb={2}>
         <HStack spacing={3}>
           <Avatar size="sm" name={post.user?.name} src={post.user?.profile_photo}
-            border="2px solid" borderColor="purple.400" />
+            border="2px solid" borderColor="purple.300" />
           <Box>
-            <Text fontSize="sm" fontWeight="700" color="white">{post.user?.name}</Text>
+            <Text fontSize="sm" fontWeight="700" color="purple.900">{post.user?.name}</Text>
             <HStack spacing={1}>
               {post.user?.kutham && (
-                <Text fontSize="9px" color="purple.300">{post.user.kutham}</Text>
+                <Text fontSize="9px" color="purple.500" fontWeight="600">{post.user.kutham}</Text>
               )}
-              <Text fontSize="9px" color="whiteAlpha.400">• {timeAgo(post.created_at)}</Text>
+              <Text fontSize="9px" color="gray.400">• {timeAgo(post.created_at)}</Text>
             </HStack>
           </Box>
         </HStack>
         {isOwner && (
-          <Button size="xs" variant="ghost" color="whiteAlpha.300"
-            _hover={{ color: 'red.300' }}
+          <Button size="xs" variant="ghost" color="gray.300"
+            _hover={{ color: 'red.400', bg: 'red.50' }}
             isLoading={deleting}
             onClick={handleDelete}>
             🗑
@@ -428,63 +436,70 @@ function PostCard({ post, currentUserId, onDeleted }) {
 
       {/* Caption */}
       {post.caption && (
-        <Text fontSize="sm" color="whiteAlpha.800" px={4} pb={3} lineHeight="1.6">
+        <Text fontSize="14px" color="gray.700" px={4} pb={3} lineHeight="1.6">
           {post.caption}
         </Text>
       )}
 
-      {/* Media */}
+      {/* Media — white background, no black bars */}
       {media.length > 0 && (
-        <Box position="relative" bg="black">
+        <Box position="relative" bg="gray.50"
+          borderTop="1px solid" borderBottom="1px solid" borderColor="purple.50">
           {media[mediaIndex].media_type === 'image' ? (
             <img
               src={media[mediaIndex].media_url}
               alt=""
-              style={{ width: '100%', maxHeight: '400px', objectFit: 'contain', display: 'block' }}
+              style={{
+                width: '100%',
+                maxHeight: '420px',
+                objectFit: 'contain',
+                display: 'block',
+                background: '#fafafa',
+              }}
             />
           ) : (
             <video
               src={media[mediaIndex].media_url}
               controls
-              style={{ width: '100%', maxHeight: '400px', display: 'block' }}
+              style={{ width: '100%', maxHeight: '420px', display: 'block' }}
             />
           )}
 
-          {/* Multi-media navigation dots */}
+          {/* Multi-media dots */}
           {media.length > 1 && (
             <HStack position="absolute" bottom={2} left={0} right={0}
               justify="center" spacing={1}>
               {media.map((_, idx) => (
-                <Box key={idx} w={idx === mediaIndex ? '16px' : '6px'} h="6px"
+                <Box key={idx}
+                  w={idx === mediaIndex ? '16px' : '6px'} h="6px"
                   borderRadius="full"
-                  bg={idx === mediaIndex ? 'purple.400' : 'whiteAlpha.500'}
-                  cursor="pointer"
-                  transition="all 0.2s"
+                  bg={idx === mediaIndex ? 'purple.500' : 'purple.200'}
+                  cursor="pointer" transition="all 0.2s"
                   onClick={() => setMediaIndex(idx)} />
               ))}
             </HStack>
           )}
 
-          {/* Swipe arrows for multi-media */}
-          {media.length > 1 && (
-            <>
-              {mediaIndex > 0 && (
-                <Box position="absolute" left={2} top="50%" transform="translateY(-50%)"
-                  bg="blackAlpha.600" borderRadius="full" p={1} cursor="pointer"
-                  onClick={() => setMediaIndex(prev => prev - 1)}
-                  color="white" fontSize="sm">
-                  ‹
-                </Box>
-              )}
-              {mediaIndex < media.length - 1 && (
-                <Box position="absolute" right={2} top="50%" transform="translateY(-50%)"
-                  bg="blackAlpha.600" borderRadius="full" p={1} cursor="pointer"
-                  onClick={() => setMediaIndex(prev => prev + 1)}
-                  color="white" fontSize="sm">
-                  ›
-                </Box>
-              )}
-            </>
+          {/* Prev/Next arrows */}
+          {media.length > 1 && mediaIndex > 0 && (
+            <Box position="absolute" left={2} top="50%" transform="translateY(-50%)"
+              bg="whiteAlpha.800" borderRadius="full" w="28px" h="28px"
+              display="flex" alignItems="center" justifyContent="center"
+              cursor="pointer" boxShadow="sm"
+              onClick={() => setMediaIndex(prev => prev - 1)}
+              color="purple.600" fontSize="lg" fontWeight="bold">
+              ‹
+            </Box>
+          )}
+          {media.length > 1 && mediaIndex < media.length - 1 && (
+            <Box position="absolute" right={2} top="50%" transform="translateY(-50%)"
+              bg="whiteAlpha.800" borderRadius="full" w="28px" h="28px"
+              display="flex" alignItems="center" justifyContent="center"
+              cursor="pointer" boxShadow="sm"
+              onClick={() => setMediaIndex(prev => prev + 1)}
+              color="purple.600" fontSize="lg" fontWeight="bold">
+              ›
+            </Box>
           )}
         </Box>
       )}
@@ -493,22 +508,28 @@ function PostCard({ post, currentUserId, onDeleted }) {
       <VStack align="stretch" px={4} pt={3} pb={4} spacing={2}>
         <HStack spacing={4}>
           <Button size="sm" variant="ghost"
-            color={liked ? 'red.400' : 'whiteAlpha.500'}
-            _hover={{ color: 'red.300' }}
+            color={liked ? 'red.500' : 'gray.400'}
+            _hover={{ color: 'red.400', bg: 'red.50' }}
             leftIcon={<Text>{liked ? '❤️' : '🤍'}</Text>}
             onClick={handleLike}
             isLoading={liking}>
-            <Text fontSize="sm">{likeCount > 0 ? likeCount : ''}</Text>
+            <Text fontSize="sm" color={liked ? 'red.500' : 'gray.500'}>
+              {likeCount > 0 ? likeCount : ''}
+            </Text>
           </Button>
         </HStack>
 
-        <Divider borderColor="whiteAlpha.100" />
+        <Divider borderColor="purple.100" />
 
         <CommentSection
           postId={post.id}
           currentUserId={currentUserId}
           commentCount={post.comment_count}
         />
+      </VStack>
+    </Box>
+  );
+}
       </VStack>
     </Box>
   );
