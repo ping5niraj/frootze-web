@@ -65,10 +65,11 @@ function computeLayout(nodes, edges) {
       const kc = node.kutham ? KUTHAM_PAL[kuthamMap.get(node.kutham) % KUTHAM_PAL.length] : null;
       return { fill: kc?.stroke || '#7C3AED', stroke: kc?.stroke || '#5B21B6', text: '#FFFFFF' };
     }
-    if (node.is_offline) return { fill: '#374151', stroke: '#6B7280', text: '#9CA3AF' };
-    if (!node.kutham)    return { fill: '#F3F4F6', stroke: '#9CA3AF', text: '#6B7280' };
+    // Deceased/offline — soft warm sepia, not harsh gray
+    if (node.is_offline) return { fill: '#FEF3C7', stroke: '#B45309', text: '#92400E' };
+    if (!node.kutham)    return { fill: '#F5F3FF', stroke: '#7C3AED', text: '#5B21B6' };
     const kc = KUTHAM_PAL[kuthamMap.get(node.kutham) % KUTHAM_PAL.length];
-    return kc || { fill: '#F3F4F6', stroke: '#9CA3AF', text: '#6B7280' };
+    return kc || { fill: '#F5F3FF', stroke: '#7C3AED', text: '#5B21B6' };
   };
 
   const byGen = {};
@@ -216,55 +217,101 @@ function SVGRenderer({ positionedNodes, positionedEdges, totalW, totalH }) {
         const cx = x + NODE_W / 2;
         return (
           <g key={`n${node.id}${i}`}>
-            {/* Shadow */}
-            <rect x={x+2} y={y+3} width={NODE_W} height={NODE_H} rx={12} fill="rgba(0,0,0,0.15)" />
-            {/* Card */}
+            {/* Drop shadow */}
+            <rect x={x+2} y={y+4} width={NODE_W} height={NODE_H} rx={14}
+              fill="rgba(0,0,0,0.10)" />
+
+            {/* Card background */}
             <rect
-              x={x} y={y} width={NODE_W} height={NODE_H} rx={12}
-              fill={color.fill} stroke={color.stroke}
-              strokeWidth={is_root ? 2.5 : 1.5}
-              strokeDasharray={is_offline ? '4,3' : 'none'}
-              opacity={is_offline ? 0.7 : 1}
+              x={x} y={y} width={NODE_W} height={NODE_H} rx={14}
+              fill={color.fill}
+              stroke={color.stroke}
+              strokeWidth={is_root ? 3 : is_offline ? 1.5 : 2}
+              strokeDasharray="none"
+              opacity={1}
             />
-            {/* Top bar */}
-            <rect x={x} y={y} width={NODE_W} height={6} rx={12} fill={color.stroke} opacity={0.8} />
-            {/* Avatar */}
-            <circle cx={cx} cy={y+32} r={20}
-              fill={is_root ? color.stroke : '#E9D5FF'}
-              stroke={color.stroke} strokeWidth={1.5}
+
+            {/* Top colour bar */}
+            <rect x={x} y={y} width={NODE_W} height={7} rx={14}
+              fill={color.stroke} />
+            {/* Cover bottom rounded corners of top bar */}
+            <rect x={x} y={y+4} width={NODE_W} height={3} fill={color.stroke} />
+
+            {/* Avatar circle */}
+            <circle cx={cx} cy={y+34} r={22}
+              fill={is_offline ? '#FDE68A' : is_root ? color.stroke : color.fill}
+              stroke={color.stroke}
+              strokeWidth={is_root ? 0 : 2}
             />
-            <text x={cx} y={y+37} textAnchor="middle" fontSize="14" fontWeight="bold"
-              fill={is_root ? '#FFF' : color.stroke}>
-              {is_offline ? '🕊' : (node.name?.charAt(0) || '?')}
-            </text>
+
+            {/* Avatar content */}
+            {is_offline ? (
+              <>
+                {/* Deceased — simple cross / rest symbol */}
+                <text x={cx} y={y+40} textAnchor="middle"
+                  fontSize="15" fill="#92400E" fontWeight="900">
+                  †
+                </text>
+              </>
+            ) : (
+              <text x={cx} y={y+40} textAnchor="middle"
+                fontSize="16" fontWeight="800"
+                fill={is_root ? '#FFF' : color.stroke}>
+                {node.name?.charAt(0)?.toUpperCase() || '?'}
+              </text>
+            )}
+
+            {/* Deceased label */}
+            {is_offline && (
+              <text x={cx} y={y+58} textAnchor="middle"
+                fontSize="8" fontWeight="700" fill="#B45309"
+                letterSpacing="0.5">
+                காலமானவர்
+              </text>
+            )}
+
             {/* Name */}
-            <text x={cx} y={y+62} textAnchor="middle" fontSize="9" fontWeight="700"
+            <text x={cx} y={is_offline ? y+70 : y+66}
+              textAnchor="middle" fontSize="10" fontWeight="700"
               fill={is_root ? '#FFF' : color.text || '#374151'}>
               {node.name?.length > 10 ? node.name.substring(0, 9) + '…' : node.name}
             </text>
+
             {/* Kutham */}
-            {node.kutham && (
-              <text x={cx} y={y+74} textAnchor="middle" fontSize="7"
-                fill={is_root ? '#C4B5FD' : '#9CA3AF'}>
-                {node.kutham.length > 12 ? node.kutham.substring(0, 11) + '…' : node.kutham}
+            {node.kutham && !is_offline && (
+              <text x={cx} y={y+79} textAnchor="middle" fontSize="8"
+                fill={is_root ? '#DDD6FE' : color.stroke} opacity={0.8}>
+                {node.kutham.length > 11 ? node.kutham.substring(0, 10) + '…' : node.kutham}
               </text>
             )}
-            {/* நீங்கள் */}
+
+            {/* நீங்கள் label for root */}
             {is_root && (
-              <text x={cx} y={y+86} textAnchor="middle" fontSize="8" fill="#C4B5FD">நீங்கள்</text>
+              <text x={cx} y={y+90} textAnchor="middle"
+                fontSize="8" fontWeight="700" fill="#DDD6FE">
+                நீங்கள்
+              </text>
             )}
-            {/* Verified badge */}
+
+            {/* Verified / pending badge — top right */}
             {!is_root && !is_offline && (
               <>
-                <circle cx={x+NODE_W-8} cy={y+8} r={7}
+                <circle cx={x+NODE_W-9} cy={y+9} r={8}
                   fill={verified ? '#10B981' : '#F59E0B'}
                   stroke="white" strokeWidth={1.5}
                 />
-                <text x={x+NODE_W-8} y={y+12} textAnchor="middle" fontSize="8"
-                  fill="white" fontWeight="bold">
+                <text x={x+NODE_W-9} y={y+13} textAnchor="middle"
+                  fontSize="9" fill="white" fontWeight="800">
                   {verified ? '✓' : '?'}
                 </text>
               </>
+            )}
+
+            {/* Deceased badge — top right */}
+            {is_offline && (
+              <circle cx={x+NODE_W-9} cy={y+9} r={8}
+                fill="#B45309" stroke="white" strokeWidth={1.5}
+              />
             )}
           </g>
         );
@@ -310,7 +357,7 @@ export default function FamilyLinkedIn({ currentUser, onRelationAdded }) {
       <HStack spacing={4} flexWrap="wrap" fontSize="10px" color="whiteAlpha.600" px={1}>
         <HStack spacing={1}><Box w={2} h={2} borderRadius="full" bg="#10B981" /><Text>சரிபார்க்கப்பட்டது</Text></HStack>
         <HStack spacing={1}><Box w={2} h={2} borderRadius="full" bg="#F59E0B" /><Text>நிலுவை</Text></HStack>
-        <HStack spacing={1}><Text>🕊️</Text><Text>காலமானவர்</Text></HStack>
+        <HStack spacing={1}><Box w={2} h={2} borderRadius="full" bg="#B45309" /><Text>காலமானவர்</Text></HStack>
       </HStack>
 
       {loading && (
