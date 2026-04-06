@@ -10,8 +10,8 @@ import { useAuth } from '../context/AuthContext';
 const MAPS_KEY = process.env.REACT_APP_GOOGLE_MAPS;
 
 const sectionBox = {
-  w: '100%', bg: 'whiteAlpha.100', border: '1px solid',
-  borderColor: 'whiteAlpha.200', borderRadius: '2xl',
+  w: '100%', bg: 'white', border: '1.5px solid',
+  borderColor: 'purple.100', borderRadius: '2xl',
   px: { base: 5, md: 8 },
 };
 
@@ -143,23 +143,23 @@ export default function LocationPage() {
   const openMaps = (lat, lng, name) => window.open(`https://www.google.com/maps?q=${lat},${lng}&label=${encodeURIComponent(name)}`, '_blank');
 
   if (loading) return (
-    <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)" display="flex" alignItems="center" justifyContent="center">
-      <VStack><Text fontSize="3xl">📍</Text><Spinner color="purple.300" /><Text color="whiteAlpha.600">ஏற்றுகிறோம்...</Text></VStack>
+    <Box minH="100vh" w="100vw" bg="#f5f3ff" display="flex" alignItems="center" justifyContent="center">
+      <VStack><Text fontSize="3xl">📍</Text><Spinner color="purple.500" /><Text color="gray.500">ஏற்றுகிறோம்...</Text></VStack>
     </Box>
   );
 
   return (
-    <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)"
+    <Box minH="100vh" w="100vw" bg="#f5f3ff"
       px={{ base: 4, md: 8 }} py={6} pb={24}>
       <VStack w="100%" maxW="900px" mx="auto" spacing={4} align="stretch">
 
         {/* Section 1 — Header */}
         <Box {...sectionBox} py={5}>
           <HStack spacing={3}>
-            <Box as="button" onClick={() => navigate('/dashboard')} color="whiteAlpha.600" fontSize="xl" _hover={{ color: 'white' }}>←</Box>
+            <Box as="button" onClick={() => navigate('/dashboard')} color="gray.500" fontSize="xl" _hover={{ color: 'purple.900' }}>←</Box>
             <Box>
-              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="white">📍 குடும்ப இடங்கள்</Heading>
-              <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.500">Family Locations</Text>
+              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="purple.900">📍 குடும்ப இடங்கள்</Heading>
+              <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.500">Family Locations</Text>
             </Box>
           </HStack>
         </Box>
@@ -167,12 +167,12 @@ export default function LocationPage() {
         {/* Section 2 — My Location */}
         <Box {...sectionBox} py={{ base: 5, md: 6 }}>
           <VStack spacing={4} align="stretch">
-            <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" color="white">
+            <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" color="purple.900">
               என் இடம் / My Location
             </Text>
 
             {myLocation?.is_active ? (
-              <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={4}>
+              <Box bg="green.50" border="1px solid" borderColor="green.200" borderRadius="xl" px={4} py={4}>
                 <HStack justify="space-between" mb={2}>
                   <VStack align="start" spacing={0}>
                     <Text fontSize="sm" fontWeight="700" color="green.300">✅ இடம் பகிரப்படுகிறது</Text>
@@ -199,7 +199,7 @@ export default function LocationPage() {
 
                 {/* Update permissions */}
                 <VStack spacing={2} align="stretch">
-                  <Text fontSize="xs" color="whiteAlpha.600" fontWeight="600">யாருக்கு தெரிய வேண்டும்?</Text>
+                  <Text fontSize="xs" color="gray.500" fontWeight="600">யாருக்கு தெரிய வேண்டும்?</Text>
                   <Box maxH="140px" overflowY="auto">
                     <VStack spacing={1} align="stretch">
                       {familyMembers.map(m => (
@@ -209,7 +209,7 @@ export default function LocationPage() {
                           borderRadius="lg" px={3} py={2}
                           onClick={() => toggleMember(m.id)} transition="all 0.2s">
                           <Avatar size="xs" name={m.name} src={m.profile_photo} />
-                          <Text fontSize="sm" color="white" flex={1}>{m.name}</Text>
+                          <Text fontSize="sm" color="purple.900" flex={1}>{m.name}</Text>
                           <Text color={selectedIds.includes(m.id) ? 'green.300' : 'whiteAlpha.300'} fontSize="sm">
                             {selectedIds.includes(m.id) ? '✓' : '○'}
                           </Text>
@@ -223,15 +223,15 @@ export default function LocationPage() {
                 </VStack>
               </Box>
             ) : (
-              <Box bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.200" borderRadius="xl" px={4} py={3}>
-                <Text color="whiteAlpha.500" fontSize="sm">📍 இடம் பகிரவில்லை / Location not shared</Text>
+              <Box bg="white" border="1px solid" borderColor="whiteAlpha.200" borderRadius="xl" px={4} py={3}>
+                <Text color="gray.500" fontSize="sm">📍 இடம் பகிரவில்லை / Location not shared</Text>
               </Box>
             )}
 
             <HStack spacing={3}>
               <Button flex={1} h={{ base: '50px', md: '56px' }}
                 bgGradient="linear(to-r, purple.600, green.500)"
-                color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
+                color="purple.900" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
                 isLoading={gettingLocation} loadingText="இடம் பெறுகிறோம்..."
                 onClick={handleGetLocation}
                 _hover={{ bgGradient: 'linear(to-r, purple.700, green.600)', transform: 'translateY(-2px)' }}>
@@ -248,8 +248,8 @@ export default function LocationPage() {
               )}
             </HStack>
 
-            {error && <Box bg="red.900" border="1px solid" borderColor="red.500" borderRadius="xl" px={4} py={3}><Text color="red.200" fontSize="sm">{error}</Text></Box>}
-            {success && <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={3}><Text color="green.200" fontSize="sm">{success}</Text></Box>}
+            {error && <Box bg="red.50" border="1px solid" borderColor="red.200" borderRadius="xl" px={4} py={3}><Text color="red.600" fontSize="sm">{error}</Text></Box>}
+            {success && <Box bg="green.50" border="1px solid" borderColor="green.200" borderRadius="xl" px={4} py={3}><Text color="green.700" fontSize="sm">{success}</Text></Box>}
           </VStack>
         </Box>
 
@@ -257,15 +257,15 @@ export default function LocationPage() {
         {familyLocations.length > 0 && (
           <Box {...sectionBox} p={0} overflow="hidden">
             <Box px={{ base: 5, md: 8 }} py={4} borderBottom="1px solid" borderColor="whiteAlpha.200">
-              <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" color="white">
+              <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" color="purple.900">
                 🗺️ குடும்ப வரைபடம் / Family Map
               </Text>
-              <Text fontSize="xs" color="whiteAlpha.500">{familyLocations.length} members sharing location</Text>
+              <Text fontSize="xs" color="gray.500">{familyLocations.length} members sharing location</Text>
             </Box>
-            <Box id="family-map" h="280px" w="100%" bg="whiteAlpha.100">
+            <Box id="family-map" h="280px" w="100%" bg="white">
               {!mapLoaded && (
                 <Box display="flex" alignItems="center" justifyContent="center" h="100%">
-                  <Spinner color="purple.300" />
+                  <Spinner color="purple.500" />
                 </Box>
               )}
             </Box>
@@ -274,27 +274,27 @@ export default function LocationPage() {
 
         {/* Section 4 — Family Locations List */}
         <Box {...sectionBox} py={{ base: 4, md: 5 }}>
-          <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" color="white" mb={4}>
+          <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" color="purple.900" mb={4}>
             குடும்பத்தினர் இடங்கள் / Family Locations
           </Text>
           {familyLocations.length === 0 ? (
             <VStack py={8} spacing={2}>
               <Text fontSize="3xl">🗺️</Text>
-              <Text color="whiteAlpha.500" textAlign="center">யாரும் இடம் பகிரவில்லை</Text>
-              <Text color="whiteAlpha.400" fontSize="sm" textAlign="center">No family members sharing location yet</Text>
+              <Text color="gray.500" textAlign="center">யாரும் இடம் பகிரவில்லை</Text>
+              <Text color="gray.400" fontSize="sm" textAlign="center">No family members sharing location yet</Text>
             </VStack>
           ) : (
             <VStack spacing={3} align="stretch">
               {familyLocations.map(loc => (
-                <HStack key={loc.id} bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.200"
+                <HStack key={loc.id} bg="white" border="1px solid" borderColor="whiteAlpha.200"
                   borderRadius="xl" px={4} py={3} justify="space-between">
                   <HStack spacing={3}>
                     <Avatar size="md" name={loc.user?.name} src={loc.user?.profile_photo}
                       border="2px solid" borderColor="purple.400" />
                     <Box>
-                      <Text fontSize={{ base: 'sm', md: 'md' }} fontWeight="700" color="white">{loc.user?.name}</Text>
-                      {loc.address && <Text fontSize="xs" color="whiteAlpha.500" noOfLines={1}>📍 {loc.address}</Text>}
-                      <Text fontSize="xs" color="whiteAlpha.400">
+                      <Text fontSize={{ base: 'sm', md: 'md' }} fontWeight="700" color="purple.900">{loc.user?.name}</Text>
+                      {loc.address && <Text fontSize="xs" color="gray.500" noOfLines={1}>📍 {loc.address}</Text>}
+                      <Text fontSize="xs" color="gray.400">
                         {new Date(loc.shared_at).toLocaleString('ta-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </Text>
                     </Box>
@@ -320,26 +320,26 @@ export default function LocationPage() {
             <Box px={{ base: 5, md: 8 }} py={4} borderBottom="1px solid" borderColor="whiteAlpha.200">
               <HStack justify="space-between">
                 <Box>
-                  <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" color="white">📍 யாருக்கு பகிர?</Text>
-                  <Text fontSize="xs" color="whiteAlpha.500">Who can see your location?</Text>
+                  <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" color="purple.900">📍 யாருக்கு பகிர?</Text>
+                  <Text fontSize="xs" color="gray.500">Who can see your location?</Text>
                 </Box>
-                <Button size="sm" variant="ghost" color="whiteAlpha.600"
+                <Button size="sm" variant="ghost" color="gray.500"
                   onClick={() => { setShowShareModal(false); setPendingCoords(null); }}
-                  _hover={{ color: 'white' }}>✕</Button>
+                  _hover={{ color: 'purple.900' }}>✕</Button>
               </HStack>
             </Box>
 
             <Box px={{ base: 5, md: 8 }} py={4}>
               {pendingCoords.address && (
-                <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={3} mb={4}>
+                <Box bg="green.50" border="1px solid" borderColor="green.200" borderRadius="xl" px={4} py={3} mb={4}>
                   <Text fontSize="xs" color="green.400" fontWeight="600">📍 உங்கள் இடம்:</Text>
-                  <Text fontSize="sm" color="green.200" mt={1}>{pendingCoords.address}</Text>
+                  <Text fontSize="sm" color="green.700" mt={1}>{pendingCoords.address}</Text>
                 </Box>
               )}
 
               <HStack justify="space-between" mb={3}>
-                <Text fontSize="sm" fontWeight="600" color="whiteAlpha.700">தேர்வு செய்யவும்:</Text>
-                <Text fontSize="xs" color="purple.300" cursor="pointer"
+                <Text fontSize="sm" fontWeight="600" color="gray.600">தேர்வு செய்யவும்:</Text>
+                <Text fontSize="xs" color="purple.500" cursor="pointer"
                   onClick={() => setSelectedIds(familyMembers.map(m => m.id))}>
                   அனைவரும் / All
                 </Text>
@@ -347,7 +347,7 @@ export default function LocationPage() {
 
               <VStack spacing={2} align="stretch" mb={4}>
                 {familyMembers.length === 0 ? (
-                  <Text color="whiteAlpha.400" fontSize="sm" textAlign="center" py={4}>
+                  <Text color="gray.400" fontSize="sm" textAlign="center" py={4}>
                     சரிபார்க்கப்பட்ட குடும்பத்தினர் இல்லை
                   </Text>
                 ) : familyMembers.map(m => (
@@ -358,8 +358,8 @@ export default function LocationPage() {
                     onClick={() => toggleMember(m.id)} transition="all 0.2s">
                     <Avatar size="sm" name={m.name} src={m.profile_photo} />
                     <Box flex={1}>
-                      <Text fontSize="sm" fontWeight="600" color="white">{m.name}</Text>
-                      <Text fontSize="xs" color="whiteAlpha.400">{m.relation_tamil}</Text>
+                      <Text fontSize="sm" fontWeight="600" color="purple.900">{m.name}</Text>
+                      <Text fontSize="xs" color="gray.400">{m.relation_tamil}</Text>
                     </Box>
                     <Text fontSize="xl" color={selectedIds.includes(m.id) ? 'purple.300' : 'whiteAlpha.300'}>
                       {selectedIds.includes(m.id) ? '✓' : '○'}
@@ -370,7 +370,7 @@ export default function LocationPage() {
 
               <Button w="100%" h={{ base: '50px', md: '56px' }}
                 bgGradient="linear(to-r, purple.600, green.500)"
-                color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
+                color="purple.900" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
                 isLoading={sharing} loadingText="பகிருகிறோம்..."
                 isDisabled={selectedIds.length === 0}
                 onClick={handleConfirmShare}

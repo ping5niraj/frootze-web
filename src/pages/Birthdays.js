@@ -4,7 +4,7 @@ import { Box, VStack, HStack, Text, Heading, Avatar, Button, SimpleGrid } from '
 import api from '../services/api';
 
 const TAMIL_MONTHS = ['ஜனவரி','பிப்ரவரி','மார்ச்','ஏப்ரல்','மே','ஜூன்','ஜூலை','ஆகஸ்ட்','செப்டம்பர்','அக்டோபர்','நவம்பர்','டிசம்பர்'];
-const sectionBox = { w: '100%', bg: 'whiteAlpha.100', border: '1px solid', borderColor: 'whiteAlpha.200', borderRadius: '2xl', px: { base: 5, md: 8 }, py: { base: 4, md: 5 } };
+const sectionBox = { w: '100%', bg: 'white', border: '1.5px solid', borderColor: 'purple.100', borderRadius: '2xl', px: { base: 5, md: 8 }, py: { base: 4, md: 5 } };
 
 export default function Birthdays() {
   const navigate = useNavigate();
@@ -29,31 +29,31 @@ export default function Birthdays() {
   };
 
   return (
-    <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)" px={{ base: 4, md: 8 }} py={6} pb={24}>
+    <Box minH="100vh" w="100vw" bg="#f5f3ff" px={{ base: 4, md: 8 }} py={6} pb={24}>
       <VStack w="100%" maxW="900px" mx="auto" spacing={4} align="stretch">
 
         <Box {...sectionBox}>
           <HStack spacing={3}>
-            <Box as="button" onClick={() => navigate('/dashboard')} color="whiteAlpha.600" fontSize="xl" _hover={{ color: 'white' }}>←</Box>
+            <Box as="button" onClick={() => navigate('/dashboard')} color="gray.500" fontSize="xl" _hover={{ color: 'purple.900' }}>←</Box>
             <Box>
-              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="white">🎂 பிறந்தநாள் நாட்காட்டி</Heading>
-              <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.500">Birthday Calendar</Text>
+              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="purple.900">🎂 பிறந்தநாள் நாட்காட்டி</Heading>
+              <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.500">Birthday Calendar</Text>
             </Box>
           </HStack>
         </Box>
 
         {/* Today's birthdays */}
         {todayBirthdays.length > 0 && todayBirthdays.map(b => (
-          <Box key={b.id} bgGradient="linear(to-r, purple.700, green.700)" border="1px solid" borderColor="purple.400" borderRadius="2xl" px={{ base: 5, md: 8 }} py={5}>
+          <Box key={b.id} bgGradient="linear(135deg, #7C3AED, #059669)" border="none" borderRadius="2xl" px={{ base: 5, md: 8 }} py={5}>
             <HStack justify="space-between" mb={3}>
-              <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" color="white">🎉 இன்று பிறந்தநாள்!</Text>
+              <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" color="purple.900">🎉 இன்று பிறந்தநாள்!</Text>
               <Text fontSize="2xl">🎂</Text>
             </HStack>
             <HStack spacing={3} mb={4}>
               <Avatar size="lg" name={b.name} src={b.profile_photo} border="3px solid white" />
               <Box>
-                <Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight="700" color="white">{b.name}</Text>
-                <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.700">{b.relation_tamil} · {b.age} வயது</Text>
+                <Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight="700" color="purple.900">{b.name}</Text>
+                <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.600">{b.relation_tamil} · {b.age} வயது</Text>
               </Box>
             </HStack>
             <Button w="100%" bg="white" color="purple.700" fontWeight="700" borderRadius="xl" onClick={() => wishOnWhatsApp(b)}
@@ -65,37 +65,37 @@ export default function Birthdays() {
 
         {/* Tabs */}
         <Box {...sectionBox} py={3}>
-          <HStack bg="whiteAlpha.100" borderRadius="xl" p={1}>
+          <HStack bg="white" borderRadius="xl" p={1}>
             {[{key:'upcoming',label:`🔔 வரும் (${upcomingBirthdays.length})`},{key:'all',label:'📅 அனைத்தும்'}].map(t => (
               <Button key={t.key} flex={1} size="sm"
-                bg={activeTab === t.key ? 'purple.600' : 'transparent'}
-                color={activeTab === t.key ? 'white' : 'whiteAlpha.600'}
+                bg={activeTab === t.key ? 'purple.600' : 'white'}
+                color={activeTab === t.key ? 'white' : 'purple.500'}
                 borderRadius="lg" onClick={() => setActiveTab(t.key)}
-                _hover={{ bg: activeTab === t.key ? 'purple.600' : 'whiteAlpha.100' }}
+                _hover={{ bg: activeTab === t.key ? 'purple.700' : 'purple.50' }}
               >{t.label}</Button>
             ))}
           </HStack>
         </Box>
 
         <Box {...sectionBox}>
-          {loading ? <Text color="whiteAlpha.500" textAlign="center" py={4}>ஏற்றுகிறோம்...</Text> :
+          {loading ? <Text color="gray.500" textAlign="center" py={4}>ஏற்றுகிறோம்...</Text> :
            (activeTab === 'upcoming' ? upcomingBirthdays : allBirthdays).length === 0 ? (
             <VStack py={8} spacing={2}>
               <Text fontSize="3xl">🎂</Text>
-              <Text color="whiteAlpha.500" textAlign="center">பிறந்தநாள் இல்லை / No birthdays found</Text>
+              <Text color="gray.500" textAlign="center">பிறந்தநாள் இல்லை / No birthdays found</Text>
             </VStack>
           ) : (
             <VStack spacing={3} align="stretch">
               {(activeTab === 'upcoming' ? upcomingBirthdays : allBirthdays).map(b => {
                 const dob = new Date(b.date_of_birth);
                 return (
-                  <HStack key={b.id} bg="whiteAlpha.100" borderRadius="xl" px={4} py={3} justify="space-between">
+                  <HStack key={b.id} bg="white" borderRadius="xl" px={4} py={3} justify="space-between">
                     <HStack spacing={3}>
                       <Avatar size="md" name={b.name} src={b.profile_photo} border="2px solid" borderColor="purple.400" />
                       <Box>
-                        <Text fontSize={{ base: 'sm', md: 'md' }} fontWeight="700" color="white">{b.name}</Text>
-                        <Text fontSize="xs" color="whiteAlpha.500">{b.relation_tamil}</Text>
-                        <Text fontSize="xs" color="whiteAlpha.400">{dob.getDate()} {TAMIL_MONTHS[dob.getMonth()]}
+                        <Text fontSize={{ base: 'sm', md: 'md' }} fontWeight="700" color="purple.900">{b.name}</Text>
+                        <Text fontSize="xs" color="gray.500">{b.relation_tamil}</Text>
+                        <Text fontSize="xs" color="gray.400">{dob.getDate()} {TAMIL_MONTHS[dob.getMonth()]}
                           {b.days_until === 0 ? '' : b.days_until === 1 ? ' · நாளை!' : ` · ${b.days_until} நாட்களில்`}
                         </Text>
                       </Box>

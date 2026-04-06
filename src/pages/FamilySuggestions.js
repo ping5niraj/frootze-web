@@ -99,21 +99,21 @@ export default function FamilySuggestions() {
   };
 
   if (loading) return (
-    <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)"
+    <Box minH="100vh" w="100vw" bg="#f5f3ff"
       display="flex" alignItems="center" justifyContent="center">
       <VStack spacing={4}>
-        <Spinner color="purple.300" size="xl"/>
-        <Text color="whiteAlpha.600">உங்கள் குடும்பத்தை தேடுகிறோம்...</Text>
+        <Spinner color="purple.500" size="xl"/>
+        <Text color="gray.500">உங்கள் குடும்பத்தை தேடுகிறோம்...</Text>
       </VStack>
     </Box>
   );
 
   if (done) return (
-    <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)"
+    <Box minH="100vh" w="100vw" bg="#f5f3ff"
       display="flex" alignItems="center" justifyContent="center" px={6}>
       <VStack spacing={6} textAlign="center">
         <Text fontSize="5xl">🌳</Text>
-        <Text fontSize="2xl" fontWeight="800" color="white">
+        <Text fontSize="2xl" fontWeight="800" color="purple.900">
           {accepted > 0 ? 'குடும்ப மரம் தயார்!' : 'frootze-க்கு வரவேற்கிறோம்!'}
         </Text>
         {accepted > 0 && (
@@ -121,11 +121,11 @@ export default function FamilySuggestions() {
             {accepted} குடும்பத்தினர் சேர்க்கப்பட்டனர் ✅
           </Text>
         )}
-        <Text fontSize="sm" color="whiteAlpha.500">
+        <Text fontSize="sm" color="gray.500">
           நீங்கள் எப்போதும் Dashboard-ல் இருந்து மேலும் சேர்க்கலாம்
         </Text>
         <Button h="52px" px={10} bgGradient="linear(to-r, purple.600, green.500)"
-          color="white" fontSize="lg" fontWeight="700" borderRadius="xl"
+          color="purple.900" fontSize="lg" fontWeight="700" borderRadius="xl"
           onClick={() => navigate('/dashboard')}>
           Dashboard திறக்கவும் →
         </Button>
@@ -136,15 +136,15 @@ export default function FamilySuggestions() {
   if (!current) return null;
 
   return (
-    <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)" px={4} py={6}>
+    <Box minH="100vh" w="100vw" bg="#f5f3ff" px={4} py={6}>
       <VStack w="100%" maxW="500px" mx="auto" spacing={5}>
 
         {/* Header */}
         <VStack spacing={1} textAlign="center">
-          <Text fontSize="xl" fontWeight="800" color="white">
+          <Text fontSize="xl" fontWeight="800" color="purple.900">
             🌳 உங்கள் குடும்பத்தினர்
           </Text>
-          <Text fontSize="sm" color="whiteAlpha.500">
+          <Text fontSize="sm" color="gray.500">
             Family suggestions based on your connections
           </Text>
         </VStack>
@@ -152,14 +152,14 @@ export default function FamilySuggestions() {
         {/* Progress */}
         <Box w="100%">
           <HStack justify="space-between" mb={2}>
-            <Text fontSize="xs" color="whiteAlpha.500">{currentIdx + 1} / {total}</Text>
+            <Text fontSize="xs" color="gray.500">{currentIdx + 1} / {total}</Text>
             <Text fontSize="xs" color="green.300">{accepted} accepted</Text>
           </HStack>
           <Progress value={progress} colorScheme="purple" borderRadius="full" size="sm" bg="whiteAlpha.200"/>
         </Box>
 
         {/* Suggestion Card */}
-        <Box w="100%" bg="whiteAlpha.100" border="1px solid" borderColor="purple.500"
+        <Box w="100%" bg="white" border="1px solid" borderColor="purple.500"
           borderRadius="2xl" px={6} py={8}>
           <VStack spacing={5}>
 
@@ -174,7 +174,7 @@ export default function FamilySuggestions() {
               />
               <VStack spacing={1}>
                 <HStack>
-                  <Text fontSize="xl" fontWeight="800" color="white">
+                  <Text fontSize="xl" fontWeight="800" color="purple.900">
                     {current.suggested_user?.name}
                   </Text>
                   {current.suggested_user?.is_offline && (
@@ -187,7 +187,7 @@ export default function FamilySuggestions() {
                   </Badge>
                 )}
                 {current.via && (
-                  <Text fontSize="xs" color="whiteAlpha.400">
+                  <Text fontSize="xs" color="gray.400">
                     via {current.via}
                   </Text>
                 )}
@@ -201,17 +201,17 @@ export default function FamilySuggestions() {
                 <Text fontSize="xs" color="green.400" fontWeight="700" mb={1}>
                   {current.confidence === 'high' ? '✅ நேரடி தொடர்பு' : '🔗 தொடர்பு வழி'}
                 </Text>
-                <Text fontSize="2xl" fontWeight="900" color="white">
+                <Text fontSize="2xl" fontWeight="900" color="purple.900">
                   {current.suggested_relation_tamil}
                 </Text>
-                <Text fontSize="xs" color="whiteAlpha.500" mt={1}>
+                <Text fontSize="xs" color="gray.500" mt={1}>
                   {current.suggested_relation_type}
                 </Text>
               </Box>
             ) : (
-              <Box w="100%" bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.300"
+              <Box w="100%" bg="white" border="1px solid" borderColor="whiteAlpha.300"
                 borderRadius="xl" px={4} py={4}>
-                <Text fontSize="sm" color="whiteAlpha.600" mb={3}>
+                <Text fontSize="sm" color="gray.500" mb={3}>
                   சரியான உறவை தேர்வு செய்யவும்:
                 </Text>
                 <Box maxH="200px" overflowY="auto">
@@ -220,7 +220,7 @@ export default function FamilySuggestions() {
                       <Button key={r.value} size="sm" borderRadius="lg" justifyContent="flex-start"
                         bg={selectedRelation === r.value ? 'purple.600' : 'whiteAlpha.100'}
                         color={selectedRelation === r.value ? 'white' : 'whiteAlpha.700'}
-                        _hover={{ bg: 'purple.700', color: 'white' }}
+                        _hover={{ bg: 'purple.700', color: 'purple.900' }}
                         onClick={() => setSelected(r.value)}>
                         {r.tamil} / {r.value}
                       </Button>
@@ -234,7 +234,7 @@ export default function FamilySuggestions() {
             {!changing ? (
               <VStack w="100%" spacing={3}>
                 <Button w="100%" h="52px" bgGradient="linear(to-r, purple.600, green.500)"
-                  color="white" fontSize="md" fontWeight="700" borderRadius="xl"
+                  color="purple.900" fontSize="md" fontWeight="700" borderRadius="xl"
                   isLoading={saving}
                   onClick={() => handleAccept(null)}>
                   ✅ ஏற்கிறேன் / Accept
@@ -245,7 +245,7 @@ export default function FamilySuggestions() {
                     onClick={() => setChanging(true)}>
                     ✏️ மாற்று / Change
                   </Button>
-                  <Button flex={1} h="44px" variant="ghost" color="whiteAlpha.400"
+                  <Button flex={1} h="44px" variant="ghost" color="gray.400"
                     borderRadius="xl" fontSize="sm"
                     onClick={handleSkip}>
                     ⏭ தவிர்க்கவும் / Skip
@@ -255,13 +255,13 @@ export default function FamilySuggestions() {
             ) : (
               <VStack w="100%" spacing={3}>
                 <Button w="100%" h="52px" bgGradient="linear(to-r, purple.600, green.500)"
-                  color="white" fontSize="md" fontWeight="700" borderRadius="xl"
+                  color="purple.900" fontSize="md" fontWeight="700" borderRadius="xl"
                   isLoading={saving}
                   isDisabled={!selectedRelation}
                   onClick={() => handleAccept(selectedRelation)}>
                   ✅ இந்த உறவுடன் ஏற்கவும்
                 </Button>
-                <Button w="100%" h="44px" variant="ghost" color="whiteAlpha.400"
+                <Button w="100%" h="44px" variant="ghost" color="gray.400"
                   borderRadius="xl" fontSize="sm"
                   onClick={() => { setChanging(false); setSelected(''); }}>
                   ← திரும்பு / Back

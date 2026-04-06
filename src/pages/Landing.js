@@ -40,9 +40,9 @@ const features = [
 
 const sectionBox = {
   w: '100%',
-  bg: 'whiteAlpha.100',
+  bg: 'white',
   border: '1px solid',
-  borderColor: 'whiteAlpha.200',
+  borderColor: 'purple.100',
   borderRadius: '2xl',
   px: { base: 5, md: 8 },
 };
@@ -94,7 +94,7 @@ export default function Landing() {
   };
 
   return (
-    <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)"
+    <Box minH="100vh" w="100vw" bgGradient="linear(135deg, #f5f3ff 0%, #ede9fe 100%)"
       display="flex" alignItems="center" justifyContent="center"
       py={10} px={{ base: 4, md: 8 }}>
       <VStack w="100%" maxW="900px" spacing={4} align="stretch">
@@ -109,7 +109,7 @@ export default function Landing() {
                 fontSize={{ base: 'xl', md: '2xl' }} boxShadow="0 4px 14px rgba(128,0,255,0.4)">
                 🌳
               </Box>
-              <Text fontSize={{ base: '3xl', md: '4xl' }} fontWeight="800" color="white" letterSpacing="-1px">
+              <Text fontSize={{ base: '3xl', md: '4xl' }} fontWeight="800" color="purple.900" letterSpacing="-1px">
                 frootze
               </Text>
             </HStack>
@@ -123,16 +123,16 @@ export default function Landing() {
 
         {/* Section 2 — Hero Text */}
         <Box {...sectionBox} py={{ base: 3, md: 4 }}>
-          <Heading fontSize={{ base: 'xl', sm: '2xl', md: '3xl' }} fontWeight="700" color="white" lineHeight="1.2" letterSpacing="-0.5px" mb={2}>
+          <Heading fontSize={{ base: 'xl', sm: '2xl', md: '3xl' }} fontWeight="700" color="purple.900" lineHeight="1.2" letterSpacing="-0.5px" mb={2}>
             உங்கள் குடும்ப மரத்தை{' '}
             <Box as="span" bgGradient="linear(to-r, purple.300, green.300)" bgClip="text">
               உருவாக்குங்கள்
             </Box>
           </Heading>
-          <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.600" mb={1}>
+          <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.500" mb={1}>
             உங்கள் குடும்பம். உங்கள் வேர்கள்.
           </Text>
-          <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.400">
+          <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.400">
             Your Family. Your Roots. Connect generations.
           </Text>
         </Box>
@@ -143,13 +143,13 @@ export default function Landing() {
             {features.map((f, i) => (
               <VStack key={i} spacing={1} align="center">
                 <Box w={{ base: '40px', md: '48px' }} h={{ base: '40px', md: '48px' }}
-                  borderRadius="xl" bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.200"
+                  borderRadius="xl" bg="white" border="1px solid" borderColor="whiteAlpha.200"
                   display="flex" alignItems="center" justifyContent="center"
                   fontSize={{ base: 'lg', md: 'xl' }}>
                   {f.icon}
                 </Box>
-                <Text fontSize={{ base: '10px', md: 'xs' }} fontWeight="600" color="whiteAlpha.800" textAlign="center">{f.ta}</Text>
-                <Text fontSize={{ base: '10px', md: 'xs' }} color="whiteAlpha.400" textAlign="center">{f.en}</Text>
+                <Text fontSize={{ base: '10px', md: 'xs' }} fontWeight="600" color="gray.700" textAlign="center">{f.ta}</Text>
+                <Text fontSize={{ base: '10px', md: 'xs' }} color="gray.400" textAlign="center">{f.en}</Text>
               </VStack>
             ))}
           </SimpleGrid>
@@ -160,27 +160,27 @@ export default function Landing() {
           <VStack spacing={5} align="stretch">
 
             <Box>
-              <Heading fontSize={{ base: 'xl', md: '2xl' }} fontWeight="700" color="white" mb={1}>
+              <Heading fontSize={{ base: 'xl', md: '2xl' }} fontWeight="700" color="purple.900" mb={1}>
                 உள்நுழைக 👋
               </Heading>
-              <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.500">
+              <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.500">
                 Sign in to continue to frootze
               </Text>
             </Box>
 
             {/* Tab Toggle */}
-            <HStack bg="whiteAlpha.100" borderRadius="xl" p={1}>
+            <HStack bg="white" borderRadius="xl" p={1}>
               <Button flex={1} size="sm" h="40px"
-                bg={activeTab === 'otp' ? 'purple.600' : 'transparent'}
-                color={activeTab === 'otp' ? 'white' : 'whiteAlpha.600'}
+                bg={activeTab === 'otp' ? 'purple.600' : 'white'}
+                color={activeTab === 'otp' ? 'white' : 'purple.600'}
                 borderRadius="lg" fontWeight="600"
                 onClick={() => { setActiveTab('otp'); setError(''); }}
                 _hover={{ bg: activeTab === 'otp' ? 'purple.600' : 'whiteAlpha.100' }}>
                 📱 OTP உள்நுழைவு
               </Button>
               <Button flex={1} size="sm" h="40px"
-                bg={activeTab === 'password' ? 'purple.600' : 'transparent'}
-                color={activeTab === 'password' ? 'white' : 'whiteAlpha.600'}
+                bg={activeTab === 'password' ? 'purple.600' : 'white'}
+                color={activeTab === 'password' ? 'white' : 'purple.600'}
                 borderRadius="lg" fontWeight="600"
                 onClick={() => { setActiveTab('password'); setError(''); }}
                 _hover={{ bg: activeTab === 'password' ? 'purple.600' : 'whiteAlpha.100' }}>
@@ -192,7 +192,7 @@ export default function Landing() {
             <InputGroup size="lg">
               <InputLeftAddon
                 bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
-                color="white" fontSize="sm" fontWeight="600" h="52px" px={4}>
+                color="purple.900" fontSize="sm" fontWeight="600" h="52px" px={4}>
                 🇮🇳 +91
               </InputLeftAddon>
               <Input
@@ -200,8 +200,8 @@ export default function Landing() {
                 value={phone}
                 onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
                 onKeyDown={e => e.key === 'Enter' && (activeTab === 'otp' ? handleSendOTP() : handlePasswordLogin())}
-                bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.300"
-                color="white" fontSize="xl" letterSpacing="3px" h="52px"
+                bg="white" border="1px solid" borderColor="whiteAlpha.300"
+                color="purple.900" fontSize="xl" letterSpacing="3px" h="52px"
                 _placeholder={{ color: 'whiteAlpha.300', letterSpacing: '0', fontSize: 'md' }}
                 _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 3px rgba(128,0,255,0.2)' }}
               />
@@ -216,8 +216,8 @@ export default function Landing() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handlePasswordLogin()}
-                  bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.300"
-                  color="white" fontSize="lg" h="52px"
+                  bg="white" border="1px solid" borderColor="whiteAlpha.300"
+                  color="purple.900" fontSize="lg" h="52px"
                   _placeholder={{ color: 'whiteAlpha.300', fontSize: 'md' }}
                   _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 3px rgba(128,0,255,0.2)' }}
                 />
@@ -230,8 +230,8 @@ export default function Landing() {
             )}
 
             {error && (
-              <Box bg="red.900" border="1px solid" borderColor="red.500" borderRadius="xl" px={4} py={3}>
-                <Text color="red.200" fontSize="sm">{error}</Text>
+              <Box bg="red.50" border="1px solid" borderColor="red.200" borderRadius="xl" px={4} py={3}>
+                <Text color="red.600" fontSize="sm">{error}</Text>
               </Box>
             )}
 
@@ -241,7 +241,7 @@ export default function Landing() {
             <Button
               w="100%" h={{ base: '50px', md: '56px' }}
               bgGradient="linear(to-r, purple.600, green.500)"
-              color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
+              color="purple.900" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
               isLoading={loading}
               loadingText={activeTab === 'otp' ? 'OTP அனுப்புகிறோம்...' : 'உள்நுழைகிறோம்...'}
               isDisabled={activeTab === 'otp' ? phone.length < 10 : phone.length < 10 || password.length < 6}
@@ -255,7 +255,7 @@ export default function Landing() {
 
             <HStack justify="center" spacing={8}>
               {['🔐 Secure', '⚡ Instant', '🆓 Free'].map((t, i) => (
-                <Text key={i} fontSize={{ base: 'xs', md: 'sm' }} color="whiteAlpha.400">{t}</Text>
+                <Text key={i} fontSize={{ base: 'xs', md: 'sm' }} color="gray.400">{t}</Text>
               ))}
             </HStack>
 

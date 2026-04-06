@@ -7,16 +7,17 @@ import {
 import api from '../services/api';
 
 const sectionBox = {
-  w: '100%', bg: 'whiteAlpha.100', border: '1px solid',
-  borderColor: 'whiteAlpha.200', borderRadius: '2xl',
+  w: '100%', bg: 'white', border: '1.5px solid',
+  borderColor: 'purple.100', borderRadius: '2xl',
   px: { base: 5, md: 8 }, py: { base: 4, md: 5 }
 };
 const inputStyle = {
-  bg: 'whiteAlpha.100', border: '1px solid', borderColor: 'whiteAlpha.300',
-  color: 'white', h: '44px', fontSize: 'sm',
-  _placeholder: { color: 'whiteAlpha.400' },
-  _focus: { borderColor: 'purple.400', boxShadow: '0 0 0 3px rgba(128,0,255,0.2)' }
+  bg: 'purple.50', border: '1.5px solid', borderColor: 'purple.200',
+  color: 'purple.900', h: '44px', fontSize: 'sm',
+  _placeholder: { color: 'purple.300' },
+  _focus: { bg: 'white', borderColor: 'purple.400', boxShadow: '0 0 0 3px rgba(124,58,237,0.1)' },
 };
+
 
 export default function Directory() {
   const navigate = useNavigate();
@@ -80,7 +81,7 @@ export default function Directory() {
   const hasFilters = search || filterKutham || filterDistrict || filterPincode;
 
   return (
-    <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)"
+    <Box minH="100vh" w="100vw" bg="#f5f3ff"
       px={{ base: 4, md: 8 }} py={6} pb={24}>
       <VStack w="100%" maxW="900px" mx="auto" spacing={4} align="stretch">
 
@@ -88,10 +89,10 @@ export default function Directory() {
         <Box {...sectionBox}>
           <HStack spacing={3}>
             <Box as="button" onClick={() => navigate('/dashboard')}
-              color="whiteAlpha.600" fontSize="xl" _hover={{ color: 'white' }}>←</Box>
+              color="gray.500" fontSize="xl" _hover={{ color: 'purple.900' }}>←</Box>
             <Box>
-              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="white">📚 குடும்ப அகராதி</Heading>
-              <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.500">
+              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="purple.900">📚 குடும்ப அகராதி</Heading>
+              <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.500">
                 Family Directory · {filtered.length} / {allMembers.length} members
               </Text>
             </Box>
@@ -113,7 +114,7 @@ export default function Directory() {
                 onChange={e => setFilterKutham(e.target.value)}
                 {...inputStyle}>
                 {kuthams.map(k => (
-                  <option key={k} value={k} style={{background:'#1e1b4b'}}>{k}</option>
+                  <option key={k} value={k} style={{background:'white', color:'#1a1a2e'}}>{k}</option>
                 ))}
               </Select>
 
@@ -123,7 +124,7 @@ export default function Directory() {
                 onChange={e => setFilterDistrict(e.target.value)}
                 {...inputStyle}>
                 {districts.map(d => (
-                  <option key={d} value={d} style={{background:'#1e1b4b'}}>{d}</option>
+                  <option key={d} value={d} style={{background:'white', color:'#1a1a2e'}}>{d}</option>
                 ))}
               </Select>
 
@@ -133,14 +134,14 @@ export default function Directory() {
                 onChange={e => setFilterPincode(e.target.value)}
                 {...inputStyle}>
                 {pincodes.map(p => (
-                  <option key={p} value={p} style={{background:'#1e1b4b'}}>{p}</option>
+                  <option key={p} value={p} style={{background:'white', color:'#1a1a2e'}}>{p}</option>
                 ))}
               </Select>
             </SimpleGrid>
 
             {hasFilters && (
-              <Button size="sm" variant="ghost" color="whiteAlpha.500"
-                onClick={clearFilters} _hover={{ color: 'white' }}>
+              <Button size="sm" variant="ghost" color="gray.500"
+                onClick={clearFilters} _hover={{ color: 'purple.900' }}>
                 ✕ வடிகட்டல் நீக்கு / Clear Filters
               </Button>
             )}
@@ -150,30 +151,30 @@ export default function Directory() {
         {/* Results */}
         <Box {...sectionBox}>
           {loading ? (
-            <Text color="whiteAlpha.500" textAlign="center" py={6}>
+            <Text color="gray.500" textAlign="center" py={6}>
               ஏற்றுகிறோம்... / Loading...
             </Text>
           ) : filtered.length === 0 ? (
-            <Text color="whiteAlpha.500" textAlign="center" py={6}>
+            <Text color="gray.500" textAlign="center" py={6}>
               யாரும் இல்லை / No members found
             </Text>
           ) : (
             <VStack spacing={3} align="stretch">
               {filtered.map(m => (
-                <HStack key={m.id} bg="whiteAlpha.100" borderRadius="xl"
+                <HStack key={m.id} bg="white" borderRadius="xl"
                   px={4} py={3} justify="space-between" flexWrap="wrap" gap={2}>
                   <HStack spacing={3}>
                     <Avatar size="md" name={m.name} src={m.profile_photo}
                       border="2px solid" borderColor="purple.400" />
                     <Box>
-                      <Text fontSize={{ base: 'sm', md: 'md' }} fontWeight="700" color="white">
+                      <Text fontSize={{ base: 'sm', md: 'md' }} fontWeight="700" color="purple.900">
                         {m.name}
                       </Text>
                       {m.district && (
-                        <Text fontSize="xs" color="whiteAlpha.400">📍 {m.district}</Text>
+                        <Text fontSize="xs" color="gray.400">📍 {m.district}</Text>
                       )}
                       {m.pincode && (
-                        <Text fontSize="xs" color="whiteAlpha.400">📮 {m.pincode}</Text>
+                        <Text fontSize="xs" color="gray.400">📮 {m.pincode}</Text>
                       )}
                     </Box>
                   </HStack>

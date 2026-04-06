@@ -53,15 +53,16 @@ export default function EditProfile() {
   }, []);
 
   const inputStyle = {
-    bg: 'whiteAlpha.100', border: '1px solid', borderColor: 'whiteAlpha.300', color: 'white',
-    h: { base: '50px', md: '56px' }, fontSize: { base: 'md', md: 'lg' },
-    _placeholder: { color: 'whiteAlpha.400' },
-    _focus: { borderColor: 'purple.400', boxShadow: '0 0 0 3px rgba(128,0,255,0.2)' },
-  };
-  const labelStyle = { color: 'whiteAlpha.700', fontSize: { base: 'sm', md: 'md' } };
+  bg: 'purple.50', border: '1.5px solid', borderColor: 'purple.200',
+  color: 'purple.900', h: '44px', fontSize: 'sm',
+  _placeholder: { color: 'purple.300' },
+  _focus: { bg: 'white', borderColor: 'purple.400', boxShadow: '0 0 0 3px rgba(124,58,237,0.1)' },
+};
+
+  const labelStyle = { color: 'gray.600', fontSize: { base: 'sm', md: 'md' } };
   const sectionBox = {
-    w: '100%', bg: 'whiteAlpha.100', border: '1px solid',
-    borderColor: 'whiteAlpha.200', borderRadius: '2xl',
+    w: '100%', bg: 'white', border: '1.5px solid',
+    borderColor: 'purple.100', borderRadius: '2xl',
     px: { base: 5, md: 8 }, py: { base: 5, md: 6 }
   };
 
@@ -103,7 +104,7 @@ export default function EditProfile() {
   );
 
   return (
-    <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)"
+    <Box minH="100vh" w="100vw" bg="#f5f3ff"
       px={{ base: 4, md: 8 }} py={6}>
       <VStack w="100%" maxW="900px" mx="auto" spacing={4} align="stretch">
 
@@ -111,10 +112,10 @@ export default function EditProfile() {
         <Box {...sectionBox}>
           <HStack spacing={3}>
             <Box as="button" onClick={() => navigate('/dashboard')}
-              color="whiteAlpha.600" fontSize="xl" _hover={{ color: 'white' }}>←</Box>
+              color="gray.500" fontSize="xl" _hover={{ color: 'purple.900' }}>←</Box>
             <Box>
-              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="white">👤 சுயவிவரம் / Profile</Heading>
-              <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.500">உங்கள் விவரங்களை புதுப்பிக்கவும்</Text>
+              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="purple.900">👤 சுயவிவரம் / Profile</Heading>
+              <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.500">உங்கள் விவரங்களை புதுப்பிக்கவும்</Text>
             </Box>
           </HStack>
         </Box>
@@ -122,7 +123,7 @@ export default function EditProfile() {
         {/* Photo Section */}
         <Box {...sectionBox}>
           <VStack spacing={4} align="center">
-            <Text fontSize="md" fontWeight="600" color="whiteAlpha.800" alignSelf="flex-start">
+            <Text fontSize="md" fontWeight="600" color="gray.700" alignSelf="flex-start">
               📸 புகைப்படம் / Profile Photo
             </Text>
             <input type="file" accept="image/*" ref={fileInputRef}
@@ -136,13 +137,13 @@ export default function EditProfile() {
                 borderRadius="full" w="32px" h="32px"
                 display="flex" alignItems="center" justifyContent="center"
                 border="2px solid white" fontSize="14px">
-                {photoLoading ? <Spinner size="xs" color="white" /> : '📷'}
+                {photoLoading ? <Spinner size="xs" color="purple.900" /> : '📷'}
               </Box>
             </Box>
             <label htmlFor="photo-upload-input" style={{
               display: 'inline-block', padding: '10px 24px',
-              background: 'linear-gradient(to right, #7C3AED, #6D28D9)',
-              color: 'white', borderRadius: '12px', fontSize: '14px',
+              background: 'linear-gradient(to right, #7C3AED, #059669)',
+              color: 'purple.900', borderRadius: '12px', fontSize: '14px',
               fontWeight: '700', cursor: 'pointer'
             }}>
               {photoLoading ? 'Uploading...' : '📷 புகைப்படம் மாற்று / Change Photo'}
@@ -159,20 +160,20 @@ export default function EditProfile() {
                 🗑️ நீக்கு / Remove
               </Button>
             )}
-            {photoError && <Text color="red.300" fontSize="sm">{photoError}</Text>}
+            {photoError && <Text color="red.500" fontSize="sm">{photoError}</Text>}
             {success && success.includes('Photo') && (
-              <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={2}>
-                <Text color="green.200" fontSize="sm">{success}</Text>
+              <Box bg="green.50" border="1px solid" borderColor="green.200" borderRadius="xl" px={4} py={2}>
+                <Text color="green.700" fontSize="sm">{success}</Text>
               </Box>
             )}
-            <Text color="whiteAlpha.400" fontSize="xs">JPG, PNG — அதிகபட்சம் 5MB</Text>
+            <Text color="gray.400" fontSize="xs">JPG, PNG — அதிகபட்சம் 5MB</Text>
           </VStack>
         </Box>
 
         {/* Profile Form */}
         <Box {...sectionBox}>
           <VStack spacing={4} align="stretch">
-            <Text fontSize="md" fontWeight="600" color="whiteAlpha.800">
+            <Text fontSize="md" fontWeight="600" color="gray.700">
               📋 அடிப்படை விவரம் / Basic Details
             </Text>
 
@@ -185,9 +186,9 @@ export default function EditProfile() {
               <FormLabel {...labelStyle}>பாலினம் / Gender</FormLabel>
               <Select value={form.gender} onChange={e => setForm({...form, gender: e.target.value})}
                 {...inputStyle} placeholder="தேர்வு செய்யவும்">
-                <option value="male" style={{background:'#1e1b4b'}}>ஆண் / Male</option>
-                <option value="female" style={{background:'#1e1b4b'}}>பெண் / Female</option>
-                <option value="other" style={{background:'#1e1b4b'}}>மற்றவை / Other</option>
+                <option value="male" style={{background:'white', color:'#1a1a2e'}}>ஆண் / Male</option>
+                <option value="female" style={{background:'white', color:'#1a1a2e'}}>பெண் / Female</option>
+                <option value="other" style={{background:'white', color:'#1a1a2e'}}>மற்றவை / Other</option>
               </Select>
             </FormControl>
 
@@ -214,7 +215,7 @@ export default function EditProfile() {
                 {...inputStyle}
                 placeholder="குலத்தை தேர்வு செய்யவும் / Select Kutham">
                 {kuthams.map(k => (
-                  <option key={k.id} value={k.name} style={{background:'#1e1b4b'}}>
+                  <option key={k.id} value={k.name} style={{background:'white', color:'#1a1a2e'}}>
                     {k.name}
                   </option>
                 ))}
@@ -226,32 +227,32 @@ export default function EditProfile() {
 
             {/* Contact Admin Section */}
             {showContactAdmin && (
-              <Box bg="orange.900" border="1px solid" borderColor="orange.500"
+              <Box bg="orange.50" border="1.5px solid" borderColor="orange.300"
                 borderRadius="xl" px={4} py={4}>
-                <Text color="orange.200" fontSize="sm" fontWeight="700" mb={1}>
+                <Text color="orange.700" fontSize="sm" fontWeight="700" mb={1}>
                   📋 உங்கள் குலப்பெயரை சேர்க்க Admin-ஐ தொடர்பு கொள்ளவும்
                 </Text>
-                <Text color="orange.300" fontSize="xs" mb={4}>
+                <Text color="orange.600" fontSize="xs" mb={4}>
                   Contact admin to add your family/kutham name to the approved list
                 </Text>
                 <VStack spacing={3} align="stretch">
                   <Button
                     h="44px" borderRadius="xl" fontSize="sm" fontWeight="700"
-                    bg="green.600" color="white"
+                    bg="green.600" color="purple.900"
                     onClick={() => window.open(`https://wa.me/${ADMIN_WHATSAPP}?text=${adminMessage}`, '_blank')}
                     _hover={{ bg: 'green.700' }}>
                     📱 WhatsApp Admin
                   </Button>
                   <Button
                     h="44px" borderRadius="xl" fontSize="sm" fontWeight="700"
-                    bg="blue.600" color="white"
+                    bg="blue.600" color="purple.900"
                     onClick={() => window.open(`https://t.me/${ADMIN_TELEGRAM}`, '_blank')}
                     _hover={{ bg: 'blue.700' }}>
                     ✈️ Telegram — @{ADMIN_TELEGRAM}
                   </Button>
                   <Button
                     h="44px" borderRadius="xl" fontSize="sm" fontWeight="700"
-                    bg="purple.600" color="white"
+                    bg="purple.600" color="purple.900"
                     onClick={() => window.open(`mailto:${ADMIN_EMAIL}?subject=Kutham Addition Request&body=${decodeURIComponent(adminMessage)}`, '_blank')}
                     _hover={{ bg: 'purple.700' }}>
                     📧 Email — {ADMIN_EMAIL}
@@ -280,19 +281,19 @@ export default function EditProfile() {
             </HStack>
 
             {error && (
-              <Box bg="red.900" border="1px solid" borderColor="red.500" borderRadius="xl" px={4} py={3}>
-                <Text color="red.200" fontSize="sm">{error}</Text>
+              <Box bg="red.50" border="1px solid" borderColor="red.200" borderRadius="xl" px={4} py={3}>
+                <Text color="red.600" fontSize="sm">{error}</Text>
               </Box>
             )}
             {success && !success.includes('Photo') && (
-              <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={3}>
-                <Text color="green.200" fontSize="sm">{success}</Text>
+              <Box bg="green.50" border="1px solid" borderColor="green.200" borderRadius="xl" px={4} py={3}>
+                <Text color="green.700" fontSize="sm">{success}</Text>
               </Box>
             )}
 
             <Button w="100%" h={{ base: '50px', md: '56px' }}
               bgGradient="linear(to-r, purple.600, green.500)"
-              color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
+              color="purple.900" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
               isLoading={loading} onClick={handleSave}
               _hover={{ transform: 'translateY(-2px)' }}>
               சேமிக்கவும் / Save

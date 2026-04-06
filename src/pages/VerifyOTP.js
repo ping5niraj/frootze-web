@@ -88,16 +88,16 @@ export default function VerifyOTP() {
 
   const sectionBox = {
     w: '100%',
-    bg: 'whiteAlpha.100',
+    bg: 'white',
     border: '1px solid',
-    borderColor: 'whiteAlpha.200',
+    borderColor: 'purple.100',
     borderRadius: '2xl',
     px: { base: 5, md: 8 },
     py: { base: 4, md: 5 },
   };
 
   return (
-    <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)"
+    <Box minH="100vh" w="100vw" bgGradient="linear(135deg, #f5f3ff 0%, #ede9fe 100%)"
       display="flex" alignItems="center" justifyContent="center"
       px={{ base: 4, md: 8 }} py={10}>
       <VStack w="100%" maxW="900px" spacing={4} align="stretch">
@@ -111,7 +111,7 @@ export default function VerifyOTP() {
               fontSize="xl" boxShadow="0 4px 14px rgba(128,0,255,0.4)">
               🌳
             </Box>
-            <Text fontSize={{ base: '2xl', md: '3xl' }} fontWeight="800" color="white">
+            <Text fontSize={{ base: '2xl', md: '3xl' }} fontWeight="800" color="purple.900">
               frootze
             </Text>
           </HStack>
@@ -119,13 +119,13 @@ export default function VerifyOTP() {
 
         {/* Section 2 — Title */}
         <Box {...sectionBox} py={{ base: 3, md: 4 }}>
-          <Heading fontSize={{ base: 'xl', md: '2xl' }} fontWeight="700" color="white" mb={1}>
+          <Heading fontSize={{ base: 'xl', md: '2xl' }} fontWeight="700" color="purple.900" mb={1}>
             🔐 OTP சரிபார்க்கவும்
           </Heading>
-          <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.600">
+          <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.500">
             +91 {phone} க்கு OTP அனுப்பப்பட்டது
           </Text>
-          <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.400">
+          <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.400">
             OTP sent to +91 {phone}
           </Text>
         </Box>
@@ -134,7 +134,7 @@ export default function VerifyOTP() {
         <Box {...sectionBox} py={{ base: 6, md: 8 }}>
           <VStack spacing={5} align="stretch">
 
-            <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.600" textAlign="center">
+            <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.500" textAlign="center">
               உங்கள் தொலைபேசிக்கு வந்த 6 இலக்க OTP-ஐ உள்ளிடவும்
             </Text>
 
@@ -151,10 +151,10 @@ export default function VerifyOTP() {
                 style={{
                   width: '100%',
                   padding: '16px',
-                  background: 'rgba(255,255,255,0.1)',
-                  border: '2px solid rgba(255,255,255,0.3)',
+                  background: 'white',
+                  border: '2px solid #DDD6FE',
                   borderRadius: '14px',
-                  color: 'white',
+                  color: 'purple.900',
                   fontSize: '28px',
                   fontWeight: '700',
                   textAlign: 'center',
@@ -166,14 +166,14 @@ export default function VerifyOTP() {
             </Box>
 
             {error && (
-              <Box bg="red.900" border="1px solid" borderColor="red.500" borderRadius="xl" px={4} py={3}>
-                <Text color="red.200" fontSize="sm">{error}</Text>
+              <Box bg="red.50" border="1px solid" borderColor="red.200" borderRadius="xl" px={4} py={3}>
+                <Text color="red.600" fontSize="sm">{error}</Text>
               </Box>
             )}
 
             <Button w="100%" h={{ base: '50px', md: '56px' }}
               bgGradient="linear(to-r, purple.600, green.500)"
-              color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
+              color="purple.900" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
               isLoading={loading} loadingText="சரிபார்க்கிறோம்..."
               isDisabled={otp.length !== 6}
               onClick={handleVerify}
@@ -185,7 +185,7 @@ export default function VerifyOTP() {
 
             <HStack justify="center">
               {canResend ? (
-                <Text fontSize="sm" color="purple.300" fontWeight="600" cursor="pointer"
+                <Text fontSize="sm" color="purple.500" fontWeight="600" cursor="pointer"
                   onClick={() => {
                     navigatingRef.current = true;
                     localStorage.removeItem('pmf_pending_phone');
@@ -196,20 +196,20 @@ export default function VerifyOTP() {
                   ← OTP மீண்டும் அனுப்பு / Resend OTP
                 </Text>
               ) : (
-                <Text fontSize="sm" color="whiteAlpha.400">
+                <Text fontSize="sm" color="gray.400">
                   மீண்டும் அனுப்ப {resendTimer}s / Resend in {resendTimer}s
                 </Text>
               )}
             </HStack>
 
-            <Text fontSize="sm" color="whiteAlpha.400" textAlign="center" cursor="pointer"
+            <Text fontSize="sm" color="gray.400" textAlign="center" cursor="pointer"
               onClick={() => {
                 navigatingRef.current = true;
                 localStorage.removeItem('pmf_pending_phone');
                 window.confirmationResult = null;
                 window.location.href = '/';
               }}
-              _hover={{ color: 'white' }}>
+              _hover={{ color: 'purple.900' }}>
               ← எண்ணை மாற்றவும் / Change number
             </Text>
 

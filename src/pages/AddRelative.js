@@ -42,17 +42,18 @@ const RELATIONS = [
 const CHILD_RELATIONS = ['son', 'daughter', 'grandson', 'granddaughter'];
 
 const sectionBox = {
-  w: '100%', bg: 'whiteAlpha.100', border: '1px solid',
-  borderColor: 'whiteAlpha.200', borderRadius: '2xl',
+  w: '100%', bg: 'white', border: '1.5px solid',
+  borderColor: 'purple.100', borderRadius: '2xl',
   px: { base: 5, md: 8 },
 };
 
 const inputStyle = {
-  bg: 'whiteAlpha.100', border: '1px solid', borderColor: 'whiteAlpha.300', color: 'white',
-  h: { base: '50px', md: '56px' }, fontSize: { base: 'md', md: 'lg' },
-  _placeholder: { color: 'whiteAlpha.400' },
-  _focus: { borderColor: 'purple.400', boxShadow: '0 0 0 3px rgba(128,0,255,0.2)' },
+  bg: 'purple.50', border: '1.5px solid', borderColor: 'purple.200',
+  color: 'purple.900', h: '44px', fontSize: 'sm',
+  _placeholder: { color: 'purple.300' },
+  _focus: { bg: 'white', borderColor: 'purple.400', boxShadow: '0 0 0 3px rgba(124,58,237,0.1)' },
 };
+
 
 export default function AddRelative() {
   const { user } = useAuth();
@@ -242,7 +243,7 @@ export default function AddRelative() {
   };
 
   return (
-    <Box minH="100vh" w="100vw" bgGradient="linear(to-b, #0f0c29, #1e1b4b)"
+    <Box minH="100vh" w="100vw" bg="#f5f3ff"
       px={{ base: 4, md: 8 }} py={6}>
       <VStack w="100%" maxW="900px" mx="auto" spacing={4} align="stretch">
 
@@ -250,12 +251,12 @@ export default function AddRelative() {
         <Box {...sectionBox} py={5}>
           <HStack spacing={3}>
             <Box as="button" onClick={() => navigate('/dashboard')}
-              color="whiteAlpha.600" fontSize="xl" _hover={{ color: 'white' }}>&#8592;</Box>
+              color="gray.500" fontSize="xl" _hover={{ color: 'purple.900' }}>&#8592;</Box>
             <Box>
-              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="white">
+              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="purple.900">
                 Add Family Member
               </Heading>
-              <Text fontSize={{ base: 'sm', md: 'md' }} color="whiteAlpha.500">
+              <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.500">
                 குடும்பத்தினரை சேர்
               </Text>
             </Box>
@@ -264,7 +265,7 @@ export default function AddRelative() {
 
         {/* Online / Offline Toggle */}
         <Box {...sectionBox} py={4}>
-          <Text fontSize="sm" fontWeight="600" color="whiteAlpha.700" mb={3}>
+          <Text fontSize="sm" fontWeight="600" color="gray.600" mb={3}>
             Are they on frootze? / இவர் frootze-ல் உள்ளாரா?
           </Text>
           <HStack spacing={3}>
@@ -295,13 +296,13 @@ export default function AddRelative() {
 
             {/* Relation selector */}
             <FormControl>
-              <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
+              <FormLabel color="gray.600" fontSize={{ base: 'sm', md: 'md' }}>
                 Relation / உறவு *
               </FormLabel>
               <Select placeholder="Select relation / உறவை தேர்வு செய்யவும்" value={relationType}
                 onChange={e => setRelationType(e.target.value)} {...inputStyle}>
                 {RELATIONS.map(r => (
-                  <option key={r.value} value={r.value} style={{ background: '#1e1b4b' }}>
+                  <option key={r.value} value={r.value} style={{ background: 'white', color: '#1a1a2e' }}>
                     {r.tamil} / {r.english}
                   </option>
                 ))}
@@ -315,13 +316,13 @@ export default function AddRelative() {
                 borderRadius="xl" px={4} py={3}>
                 <HStack justify="space-between" alignItems="center">
                   <Box>
-                    <Text fontSize="sm" color="white" fontWeight="600">Under 18? / 18 வயதுக்கு குறைவா?</Text>
-                    <Text fontSize="xs" color="whiteAlpha.500">Minor — phone number optional</Text>
+                    <Text fontSize="sm" color="purple.900" fontWeight="600">Under 18? / 18 வயதுக்கு குறைவா?</Text>
+                    <Text fontSize="xs" color="gray.500">Minor — phone number optional</Text>
                   </Box>
                   <HStack spacing={2}>
-                    <Button size="xs" bg={!isMinor ? 'purple.600' : 'whiteAlpha.200'} color="white"
+                    <Button size="xs" bg={!isMinor ? 'purple.600' : 'whiteAlpha.200'} color="purple.900"
                       onClick={() => setIsMinor(false)}>No</Button>
-                    <Button size="xs" bg={isMinor ? 'blue.600' : 'whiteAlpha.200'} color="white"
+                    <Button size="xs" bg={isMinor ? 'blue.600' : 'whiteAlpha.200'} color="purple.900"
                       onClick={() => setIsMinor(true)}>Yes</Button>
                   </HStack>
                 </HStack>
@@ -332,12 +333,12 @@ export default function AddRelative() {
             {!isOffline && (!CHILD_RELATIONS.includes(relationType) || !isMinor) && (
               <>
                 <FormControl>
-                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
+                  <FormLabel color="gray.600" fontSize={{ base: 'sm', md: 'md' }}>
                     Phone / மொபைல் எண் *
                   </FormLabel>
                   <InputGroup size="lg">
                     <InputLeftAddon bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
-                      color="white" fontSize="sm" fontWeight="600" h={{ base: '50px', md: '56px' }} px={4}>
+                      color="purple.900" fontSize="sm" fontWeight="600" h={{ base: '50px', md: '56px' }} px={4}>
                       +91
                     </InputLeftAddon>
                     <Input type="tel" maxLength={10} placeholder="9999999999"
@@ -350,8 +351,8 @@ export default function AddRelative() {
                   </InputGroup>
                   {chainLoading && (
                     <HStack mt={2} px={1}>
-                      <Spinner color="purple.300" size="sm"/>
-                      <Text color="whiteAlpha.500" fontSize="sm">Detecting connection...</Text>
+                      <Spinner color="purple.500" size="sm"/>
+                      <Text color="gray.500" fontSize="sm">Detecting connection...</Text>
                     </HStack>
                   )}
                 </FormControl>
@@ -364,21 +365,21 @@ export default function AddRelative() {
                         <Text fontSize="xs" color="green.400" fontWeight="700">
                           Connection found — auto-selected:
                         </Text>
-                        <Text fontSize="md" color="white" fontWeight="800" mt={1}>
+                        <Text fontSize="md" color="purple.900" fontWeight="800" mt={1}>
                           {suggestedRelation.tamil} / {suggestedRelation.type}
                         </Text>
                       </Box>
-                      <Button size="xs" variant="ghost" color="whiteAlpha.500"
+                      <Button size="xs" variant="ghost" color="gray.500"
                         onClick={() => { setOverride(true); setRelationType(''); }}
-                        _hover={{ color: 'white' }}>Change</Button>
+                        _hover={{ color: 'purple.900' }}>Change</Button>
                     </HStack>
                   </Box>
                 )}
 
                 {overrideRelation && (
                   <HStack>
-                    <Text fontSize="xs" color="whiteAlpha.500">Selecting manually</Text>
-                    <Button size="xs" variant="ghost" color="purple.300"
+                    <Text fontSize="xs" color="gray.500">Selecting manually</Text>
+                    <Button size="xs" variant="ghost" color="purple.500"
                       onClick={() => { setOverride(false); setRelationType(suggestedRelation?.type || ''); }}>
                       Revert
                     </Button>
@@ -386,7 +387,7 @@ export default function AddRelative() {
                 )}
 
                 <FormControl>
-                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>
+                  <FormLabel color="gray.600" fontSize={{ base: 'sm', md: 'md' }}>
                     Email (optional)
                   </FormLabel>
                   <Input type="email" placeholder="relative@email.com"
@@ -394,7 +395,7 @@ export default function AddRelative() {
                 </FormControl>
 
                 <Box bg="purple.900" border="1px solid" borderColor="purple.600" borderRadius="xl" px={4} py={3}>
-                  <Text fontSize="xs" color="purple.300" fontWeight="600" mb={1}>Note</Text>
+                  <Text fontSize="xs" color="purple.500" fontWeight="600" mb={1}>Note</Text>
                   <Text fontSize="xs" color="purple.200">
                     A WhatsApp notification will be sent. They can accept from their Dashboard.
                   </Text>
@@ -406,16 +407,16 @@ export default function AddRelative() {
             {!isOffline && CHILD_RELATIONS.includes(relationType) && isMinor && (
               <>
                 <FormControl>
-                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>Child's Name *</FormLabel>
+                  <FormLabel color="gray.600" fontSize={{ base: 'sm', md: 'md' }}>Child's Name *</FormLabel>
                   <Input placeholder="e.g. Raman Kumar" value={offlineName}
                     onChange={e => setOfflineName(e.target.value)} {...inputStyle} />
                 </FormControl>
                 <FormControl>
-                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>Gender *</FormLabel>
+                  <FormLabel color="gray.600" fontSize={{ base: 'sm', md: 'md' }}>Gender *</FormLabel>
                   <Select placeholder="Select gender" value={offlineGender}
                     onChange={e => setOfflineGender(e.target.value)} {...inputStyle}>
-                    <option value="male" style={{ background: '#1e1b4b' }}>Male</option>
-                    <option value="female" style={{ background: '#1e1b4b' }}>Female</option>
+                    <option value="male" style={{ background: 'white', color: '#1a1a2e' }}>Male</option>
+                    <option value="female" style={{ background: 'white', color: '#1a1a2e' }}>Female</option>
                   </Select>
                 </FormControl>
               </>
@@ -431,7 +432,7 @@ export default function AddRelative() {
                   </Text>
                 </Box>
                 <FormControl>
-                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>Name *</FormLabel>
+                  <FormLabel color="gray.600" fontSize={{ base: 'sm', md: 'md' }}>Name *</FormLabel>
                   <Input placeholder="e.g. Raman Kumar" value={offlineName}
                     onChange={e => { setOfflineName(e.target.value); setSelectedOfflineUser(null); }}
                     {...inputStyle} />
@@ -440,23 +441,23 @@ export default function AddRelative() {
                 {/* Existing offline node search results */}
                 {offlineSearchLoading && (
                   <HStack spacing={2} px={1}>
-                    <Spinner size="xs" color="purple.300" />
-                    <Text fontSize="xs" color="whiteAlpha.500">தேடுகிறோம்...</Text>
+                    <Spinner size="xs" color="purple.500" />
+                    <Text fontSize="xs" color="gray.500">தேடுகிறோம்...</Text>
                   </HStack>
                 )}
 
                 {!offlineSearchLoading && offlineSearchResults.length > 0 && !selectedOfflineUser && (
                   <Box bg="purple.900" border="1px solid" borderColor="purple.500" borderRadius="xl" px={4} py={3}>
-                    <Text fontSize="xs" color="purple.300" fontWeight="700" mb={2}>
+                    <Text fontSize="xs" color="purple.500" fontWeight="700" mb={2}>
                       🔍 இந்த பெயரில் ஏற்கனவே உறுப்பினர்கள் உள்ளனர் / Existing members found:
                     </Text>
                     <VStack spacing={2} align="stretch">
                       {offlineSearchResults.map(r => (
                         <HStack key={r.id} justify="space-between"
-                          bg="whiteAlpha.100" borderRadius="lg" px={3} py={2}>
+                          bg="white" borderRadius="lg" px={3} py={2}>
                           <VStack spacing={0} align="start">
-                            <Text fontSize="sm" color="white" fontWeight="600">{r.name}</Text>
-                            <Text fontSize="xs" color="whiteAlpha.500">
+                            <Text fontSize="sm" color="purple.900" fontWeight="600">{r.name}</Text>
+                            <Text fontSize="xs" color="gray.500">
                               {r.gender} {r.kutham ? `• ${r.kutham}` : ''} • சேர்த்தவர்: {r.added_by}
                             </Text>
                           </VStack>
@@ -471,9 +472,9 @@ export default function AddRelative() {
                           </Button>
                         </HStack>
                       ))}
-                      <Button size="sm" variant="ghost" color="whiteAlpha.500"
+                      <Button size="sm" variant="ghost" color="gray.500"
                         onClick={() => setOfflineSearchResults([])}
-                        _hover={{ color: 'white' }}>
+                        _hover={{ color: 'purple.900' }}>
                         வேறு நபர் / Different person — create new
                       </Button>
                     </VStack>
@@ -482,16 +483,16 @@ export default function AddRelative() {
 
                 {/* Confirmed existing node */}
                 {selectedOfflineUser && (
-                  <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={3}>
+                  <Box bg="green.50" border="1px solid" borderColor="green.200" borderRadius="xl" px={4} py={3}>
                     <HStack justify="space-between">
                       <VStack spacing={0} align="start">
                         <Text fontSize="xs" color="green.300" fontWeight="700">✅ ஏற்கனவே உள்ள உறுப்பினர் / Existing member confirmed</Text>
-                        <Text fontSize="sm" color="white" fontWeight="600">{selectedOfflineUser.name}</Text>
-                        <Text fontSize="xs" color="whiteAlpha.500">சேர்த்தவர்: {selectedOfflineUser.added_by}</Text>
+                        <Text fontSize="sm" color="purple.900" fontWeight="600">{selectedOfflineUser.name}</Text>
+                        <Text fontSize="xs" color="gray.500">சேர்த்தவர்: {selectedOfflineUser.added_by}</Text>
                       </VStack>
-                      <Button size="xs" variant="ghost" color="whiteAlpha.400"
+                      <Button size="xs" variant="ghost" color="gray.400"
                         onClick={() => { setSelectedOfflineUser(null); setOfflineName(''); }}
-                        _hover={{ color: 'white' }}>
+                        _hover={{ color: 'purple.900' }}>
                         மாற்று
                       </Button>
                     </HStack>
@@ -499,11 +500,11 @@ export default function AddRelative() {
                 )}
                 {!selectedOfflineUser && (
                 <FormControl>
-                  <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>Gender *</FormLabel>
+                  <FormLabel color="gray.600" fontSize={{ base: 'sm', md: 'md' }}>Gender *</FormLabel>
                   <Select placeholder="Select gender" value={offlineGender}
                     onChange={e => setOfflineGender(e.target.value)} {...inputStyle}>
-                    <option value="male" style={{ background: '#1e1b4b' }}>Male</option>
-                    <option value="female" style={{ background: '#1e1b4b' }}>Female</option>
+                    <option value="male" style={{ background: 'white', color: '#1a1a2e' }}>Male</option>
+                    <option value="female" style={{ background: 'white', color: '#1a1a2e' }}>Female</option>
                   </Select>
                 </FormControl>
                 )}
@@ -535,15 +536,15 @@ export default function AddRelative() {
                 </Box>
                 <HStack spacing={3}>
                   <Button flex={1} h="44px" bgGradient="linear(to-r, purple.600, green.500)"
-                    color="white" fontSize="sm" fontWeight="700" borderRadius="xl"
+                    color="purple.900" fontSize="sm" fontWeight="700" borderRadius="xl"
                     isLoading={inviteLoading} loadingText="Sending..."
                     onClick={handleSendInvite}>
                     Send Invite / அழைப்பு அனுப்பு
                   </Button>
-                  <Button flex={1} h="44px" variant="ghost" color="whiteAlpha.500"
+                  <Button flex={1} h="44px" variant="ghost" color="gray.500"
                     fontSize="sm" borderRadius="xl"
                     onClick={() => setShowInvitePrompt(false)}
-                    _hover={{ color: 'white' }}>
+                    _hover={{ color: 'purple.900' }}>
                     Cancel
                   </Button>
                 </HStack>
@@ -551,14 +552,14 @@ export default function AddRelative() {
             )}
 
             {error && (
-              <Box bg="red.900" border="1px solid" borderColor="red.500" borderRadius="xl" px={4} py={3}>
-                <Text color="red.200" fontSize="sm">{error}</Text>
+              <Box bg="red.50" border="1px solid" borderColor="red.200" borderRadius="xl" px={4} py={3}>
+                <Text color="red.600" fontSize="sm">{error}</Text>
               </Box>
             )}
 
             {success && (
-              <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={3}>
-                <Text color="green.200" fontSize={{ base: 'sm', md: 'md' }}>{success}</Text>
+              <Box bg="green.50" border="1px solid" borderColor="green.200" borderRadius="xl" px={4} py={3}>
+                <Text color="green.700" fontSize={{ base: 'sm', md: 'md' }}>{success}</Text>
               </Box>
             )}
 
@@ -587,7 +588,7 @@ export default function AddRelative() {
             {!success && !showInvitePrompt && (
               <Button w="100%" h={{ base: '50px', md: '56px' }}
                 bgGradient={isOffline ? 'linear(to-r, orange.600, orange.500)' : 'linear(to-r, purple.600, green.500)'}
-                color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
+                color="purple.900" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
                 isLoading={loading} loadingText="Adding..."
                 isDisabled={
                   isOffline
@@ -617,8 +618,8 @@ export default function AddRelative() {
                     Open WhatsApp
                   </Button>
                 )}
-                <Button flex={1} h="50px" variant="ghost" color="whiteAlpha.600" borderRadius="xl"
-                  onClick={() => navigate('/dashboard')} _hover={{ color: 'white' }}>
+                <Button flex={1} h="50px" variant="ghost" color="gray.500" borderRadius="xl"
+                  onClick={() => navigate('/dashboard')} _hover={{ color: 'purple.900' }}>
                   Back to Dashboard
                 </Button>
               </HStack>
