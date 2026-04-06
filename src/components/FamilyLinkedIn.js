@@ -21,8 +21,8 @@ import SuggestionsBanner from './SuggestionsBanner';
 // ─────────────────────────────────────────
 const NODE_W   = 90;
 const NODE_H   = 100;
-const H_GAP    = 28;
-const V_GAP    = 110;  // increased from 90 — more room for labels between rows
+const H_GAP    = 40;   // wider gap between nodes
+const V_GAP    = 120;  // taller gap between rows — more room for labels
 const PAD      = 40;
 const LEFT_PAD = 70; // space for generation labels
 
@@ -150,24 +150,45 @@ function SVGRenderer({ positionedNodes, positionedEdges, totalW, totalH }) {
         </marker>
       </defs>
 
-      {/* Edges */}
+  // Pre-compute: how many edges share each destination node
+  // Used to spread labels horizontally when multiple edges converge
+  const edgesByDest = {};
+  positionedEdges.forEach(e => {
+    if (!edgesByDest[e.to_id]) edgesByDest[e.to_id] = [];
+    edgesByDest[e.to_id].push(e);
+  });
+  const edgeDestIndex = {}; // edge unique key → index among siblings
+  Object.values(edgesByDest).forEach(group => {
+    group.forEach((e, i) => {
+      edgeDestIndex[`${e.from_id}-${e.to_id}`] = { index: i, total: group.length };
+    });
+  });
       {positionedEdges.map((e, i) => {
         const color  = e.verified ? '#A78BFA' : '#FCD34D';
         const marker = e.verified ? 'lk-arrow-v' : 'lk-arrow-p';
         const label  = e.relation_tamil || '';
 
-        // Place label 30% from source node — spreads naturally
-        const labelX = e.x1 + (e.x2 - e.x1) * 0.3;
-        const labelY = e.y1 + (e.y2 - e.y1) * 0.3;
+        // Get sibling info for this edge
+        const sibInfo = edgeDestIndex[`${e.from_id}-${e.to_id}`] || { index: 0, total: 1 };
+        const { index, total } = sibInfo;
 
-        // Straight lines — cleaner, no crossing curves
-        const pathD = `M ${e.x1} ${e.y1} L ${e.x2} ${e.y2}`;
+        // Base label at 30% from source
+        const baseLabelX = e.x1 + (e.x2 - e.x1) * 0.3;
+        const baseLabelY = e.y1 + (e.y2 - e.y1) * 0.3;
+
+        // Spread labels horizontally when multiple edges converge on same node
+        const spreadWidth = 70;
+        const totalSpread = (total - 1) * spreadWidth;
+        const offsetX = total > 1 ? (index * spreadWidth) - totalSpread / 2 : 0;
+
+        const labelX = baseLabelX + offsetX;
+        const labelY = baseLabelY;
 
         return (
           <g key={`e${i}`}>
-            <path
-              d={pathD}
-              stroke={color} strokeWidth={1.5} fill="none"
+            <line
+              x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2}
+              stroke={color} strokeWidth={1.5}
               strokeDasharray={e.verified ? 'none' : '4,3'}
               markerEnd={`url(#${marker})`}
             />
