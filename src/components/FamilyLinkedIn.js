@@ -22,7 +22,7 @@ import SuggestionsBanner from './SuggestionsBanner';
 const NODE_W   = 90;
 const NODE_H   = 100;
 const H_GAP    = 28;
-const V_GAP    = 90;
+const V_GAP    = 110;  // increased from 90 — more room for labels between rows
 const PAD      = 40;
 const LEFT_PAD = 70; // space for generation labels
 
@@ -156,15 +156,12 @@ function SVGRenderer({ positionedNodes, positionedEdges, totalW, totalH }) {
         const marker = e.verified ? 'lk-arrow-v' : 'lk-arrow-p';
         const label  = e.relation_tamil || '';
 
-        // Place label 25% from source — spreads labels naturally when edges fan out
-        const labelX = e.x1 + (e.x2 - e.x1) * 0.25;
-        const labelY = e.y1 + (e.y2 - e.y1) * 0.25;
+        // Place label 30% from source node — spreads naturally
+        const labelX = e.x1 + (e.x2 - e.x1) * 0.3;
+        const labelY = e.y1 + (e.y2 - e.y1) * 0.3;
 
-        // Use curved path for vertical edges to reduce visual clutter
-        const isSameGen = e.isSameGen;
-        const pathD = isSameGen
-          ? `M ${e.x1} ${e.y1} L ${e.x2} ${e.y2}`
-          : `M ${e.x1} ${e.y1} C ${e.x1} ${labelY + 20}, ${e.x2} ${labelY + 20}, ${e.x2} ${e.y2}`;
+        // Straight lines — cleaner, no crossing curves
+        const pathD = `M ${e.x1} ${e.y1} L ${e.x2} ${e.y2}`;
 
         return (
           <g key={`e${i}`}>
@@ -180,13 +177,13 @@ function SVGRenderer({ positionedNodes, positionedEdges, totalW, totalH }) {
                   x={labelX - 32} y={labelY - 9}
                   width={64} height={16} rx={8}
                   fill="#1e1b4b" stroke="#4C1D95" strokeWidth={1}
-                  opacity={0.92}
+                  opacity={0.95}
                 />
                 <text
                   x={labelX} y={labelY + 3}
                   textAnchor="middle" fontSize="8" fontWeight="600" fill="#C4B5FD"
                 >
-                  {label.length > 12 ? label.substring(0, 11) + '…' : label}
+                  {label.length > 10 ? label.substring(0, 9) + '…' : label}
                 </text>
               </>
             )}
