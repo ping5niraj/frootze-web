@@ -192,7 +192,7 @@ function InlineSearch() {
                 </Text>
                 <HStack spacing={2} mt={0.5} flexWrap="wrap">
                   {m.kutham && (
-                    <Badge colorScheme="purple" fontSize="9px" borderRadius="full" px={2}>
+                    <Badge colorScheme="purple" fontSize="11px" borderRadius="full" px={2}>
                       {m.kutham}
                     </Badge>
                   )}
@@ -346,7 +346,7 @@ export default function Dashboard() {
           >
             <Text fontSize="20px">🌳</Text>
             <Text
-              fontSize="20px" fontWeight="900" letterSpacing="-0.5px"
+              fontSize="22px" fontWeight="900" letterSpacing="-0.5px"
               bgGradient="linear(to-r, purple.600, green.500)"
               bgClip="text"
               display={{ base: 'none', sm: 'block' }}
@@ -434,7 +434,7 @@ export default function Dashboard() {
 
               <HStack justify="space-between" align="flex-start" position="relative">
                 <VStack spacing={2} align="flex-start">
-                  <Text fontSize="16px" fontWeight="800" color="purple.800">
+                  <Text fontSize="18px" fontWeight="800" color="purple.800">
                     🌳 உங்கள் குடும்ப மரம்
                   </Text>
                   <HStack spacing={2} flexWrap="wrap">
@@ -474,10 +474,10 @@ export default function Dashboard() {
                       spacing={2}
                     >
                       <Avatar size="2xs" name={rel.to_user?.name} />
-                      <Text fontSize="11px" color="purple.800" fontWeight="600">
+                      <Text fontSize="13px" color="purple.800" fontWeight="700">
                         {rel.to_user?.name?.split(' ')[0]}
                       </Text>
-                      <Text fontSize="10px" color="purple.400">{rel.relation_tamil}</Text>
+                      <Text fontSize="12px" color="purple.400">{rel.relation_tamil}</Text>
                     </HStack>
                   ))}
                   {relationships.length > 4 && (
@@ -511,7 +511,7 @@ export default function Dashboard() {
                     boxShadow="0 1px 4px rgba(124,58,237,0.06)"
                   >
                     <Text fontSize="24px">{f.icon}</Text>
-                    <Text fontSize="10px" fontWeight="700" color="purple.600" textAlign="center">
+                    <Text fontSize="12px" fontWeight="700" color="purple.600" textAlign="center">
                       {f.label}
                     </Text>
                   </VStack>
@@ -527,7 +527,7 @@ export default function Dashboard() {
                 borderLeft="4px solid"
                 borderLeftColor="yellow.400"
               >
-                <Text fontSize="14px" fontWeight="700" color="yellow.700" mb={3}>
+                <Text fontSize="15px" fontWeight="700" color="yellow.700" mb={3}>
                   ⚠️ உறுதிப்படுத்தல் தேவை ({pending.length})
                 </Text>
                 <VStack spacing={2} align="stretch">
@@ -543,10 +543,10 @@ export default function Dashboard() {
                         <Avatar size="sm" name={rel.to_user?.name}
                           border="1.5px solid" borderColor="yellow.300" />
                         <Box>
-                          <Text fontSize="13px" fontWeight="700" color="gray.800">
+                          <Text fontSize="14px" fontWeight="700" color="gray.800">
                             {rel.to_user?.name}
                           </Text>
-                          <Text fontSize="11px" color="gray.500">
+                          <Text fontSize="13px" color="gray.500">
                             உங்கள்{' '}
                             <Text as="span" color="purple.600" fontWeight="700">
                               {rel.relation_tamil}
@@ -656,7 +656,7 @@ export default function Dashboard() {
         ══════════════════════════════════════════ */}
         {activeNav === 'notify' && (
           <Box {...card} px={5} py={5}>
-            <Text fontSize="15px" fontWeight="700" color="purple.800" mb={4}>
+            <Text fontSize="17px" fontWeight="700" color="purple.800" mb={4}>
               🔔 அறிவிப்புகள்
             </Text>
             {pending.length === 0 ? (
@@ -674,10 +674,10 @@ export default function Dashboard() {
                       <Avatar size="sm" name={rel.to_user?.name}
                         border="1.5px solid" borderColor="purple.300" />
                       <Box>
-                        <Text fontSize="13px" fontWeight="700" color="gray.800">
+                        <Text fontSize="14px" fontWeight="700" color="gray.800">
                           {rel.to_user?.name}
                         </Text>
-                        <Text fontSize="11px" color="gray.500">
+                        <Text fontSize="13px" color="gray.500">
                           உங்கள்{' '}
                           <Text as="span" color="purple.600" fontWeight="700">
                             {rel.relation_tamil}
@@ -718,14 +718,14 @@ export default function Dashboard() {
                   <Badge
                     position="absolute" bottom="-4px" right="-4px"
                     colorScheme="green" borderRadius="full"
-                    fontSize="9px" px={2} py={1}
+                    fontSize="11px" px={2} py={1}
                     border="2px solid white"
                   >
                     🏢 Agent
                   </Badge>
                 )}
               </Box>
-              <Text fontSize="20px" fontWeight="800" color="purple.900">{user?.name}</Text>
+              <Text fontSize="22px" fontWeight="800" color="purple.900">{user?.name}</Text>
               <Text fontSize="13px" color="gray.400" mb={2}>{user?.phone}</Text>
               {user?.kutham && (
                 <Badge colorScheme="purple" borderRadius="full" px={4} py={1} fontSize="12px">
@@ -758,8 +758,8 @@ export default function Dashboard() {
                   <VStack key={i} spacing={0}
                     bg={s.bg} borderRadius="xl" py={4}
                     border="1px solid" borderColor={s.color + '30'}>
-                    <Text fontSize="22px" fontWeight="800" color={s.color}>{s.value}</Text>
-                    <Text fontSize="9px" color="gray.500" textAlign="center" mt={1} px={1}>
+                    <Text fontSize="26px" fontWeight="800" color={s.color}>{s.value}</Text>
+                    <Text fontSize="11px" color="gray.500" textAlign="center" mt={1} px={1}>
                       {s.label}
                     </Text>
                   </VStack>
@@ -779,7 +779,7 @@ export default function Dashboard() {
                     <Text fontSize="14px" fontWeight="800" color="purple.800">
                       🏢 Business Agent
                     </Text>
-                    <Text fontSize="11px" color="gray.500">
+                    <Text fontSize="13px" color="gray.500">
                       விளம்பரம் வெளியிட அனுமதி உள்ளது
                     </Text>
                   </VStack>
@@ -828,7 +828,7 @@ export default function Dashboard() {
                   <Text>{n.icon}</Text>
                 </Box>
                 <Text
-                  fontSize="9px"
+                  fontSize="11px"
                   fontWeight={isActive ? '800' : '500'}
                   mt={0.5}
                 >

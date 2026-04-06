@@ -21,10 +21,10 @@ import SuggestionsBanner from './SuggestionsBanner';
 // ─────────────────────────────────────────
 const NODE_W   = 90;
 const NODE_H   = 100;
-const H_GAP    = 40;   // wider gap between nodes
-const V_GAP    = 120;  // taller gap between rows — more room for labels
+const H_GAP    = 40;
+const V_GAP    = 160;  // extra vertical gap — room for rotated labels on steep edges
 const PAD      = 40;
-const LEFT_PAD = 70; // space for generation labels
+const LEFT_PAD = 70;
 
 // Generation display labels — UI only
 const GEN_LABELS = {
@@ -50,11 +50,8 @@ const KUTHAM_PAL = [
 
 // ─────────────────────────────────────────
 // Layout engine — pure geometry, no business logic
-// Input:  nodes[] and edges[] from API
-// Output: positioned nodes and edges with x,y coordinates
 // ─────────────────────────────────────────
 function computeLayout(nodes, edges) {
-  // Build kutham color map
   const kuthamMap = new Map();
   let ki = 0;
   nodes.forEach(n => {
@@ -74,7 +71,6 @@ function computeLayout(nodes, edges) {
     return kc || { fill: '#F3F4F6', stroke: '#9CA3AF', text: '#6B7280' };
   };
 
-  // Group nodes by generation
   const byGen = {};
   nodes.forEach(n => {
     const g = n.generation;
@@ -82,27 +78,23 @@ function computeLayout(nodes, edges) {
     byGen[g].push(n);
   });
 
-  // Sort generations descending (past at top, future at bottom)
   const sortedGens = Object.keys(byGen).map(Number).sort((a, b) => b - a);
 
-  // Canvas width based on max nodes in any row
   const rowCounts = Object.values(byGen).map(arr => arr.length);
-  const maxNodes = rowCounts.length > 0 ? Math.max(...rowCounts) : 1;
-  const totalW = Math.max(600, maxNodes * (NODE_W + H_GAP) + PAD * 2);
+  const maxNodes  = rowCounts.length > 0 ? Math.max(...rowCounts) : 1;
+  const totalW    = Math.max(600, maxNodes * (NODE_W + H_GAP) + PAD * 2);
 
-  // Assign y position per generation row
   const genRowIndex = {};
   sortedGens.forEach((gen, i) => { genRowIndex[gen] = i; });
   const genY = (gen) => PAD + genRowIndex[gen] * (NODE_H + V_GAP);
 
-  // Position nodes — centered per row
   const posMap = new Map();
   const positionedNodes = [];
 
   sortedGens.forEach(gen => {
     const rowNodes = byGen[gen];
-    const total = rowNodes.length * NODE_W + (rowNodes.length - 1) * H_GAP;
-    const startX = (totalW - total) / 2;
+    const total    = rowNodes.length * NODE_W + (rowNodes.length - 1) * H_GAP;
+    const startX   = (totalW - total) / 2;
     rowNodes.forEach((node, i) => {
       const x = startX + i * (NODE_W + H_GAP);
       const y = genY(gen);
@@ -111,7 +103,6 @@ function computeLayout(nodes, edges) {
     });
   });
 
-  // Position edges using node positions
   const positionedEdges = edges.map(e => {
     const from = posMap.get(e.from_id);
     const to   = posMap.get(e.to_id);
@@ -122,95 +113,104 @@ function computeLayout(nodes, edges) {
       ...e,
       x1: from.x + NODE_W / 2,
       y1: isSameGen ? from.y + NODE_H / 2 : from.y + NODE_H,
-      x2: to.x + NODE_W / 2,
-      y2: isSameGen ? to.y + NODE_H / 2 : to.y,
+      x2: to.x   + NODE_W / 2,
+      y2: isSameGen ? to.y + NODE_H / 2   : to.y,
       isSameGen,
     };
   }).filter(Boolean);
 
   const numRows = sortedGens.length;
-  const totalH = PAD + numRows * (NODE_H + V_GAP) + PAD;
+  const totalH  = PAD + numRows * (NODE_H + V_GAP) + PAD;
 
   return { positionedNodes, positionedEdges, totalW, totalH, sortedGens, genY };
 }
 
 // ─────────────────────────────────────────
-// SVG Renderer — web only, pure drawing
-// No logic here — only SVG primitives
+// SVG Renderer — pure drawing, no logic
 // ─────────────────────────────────────────
 function SVGRenderer({ positionedNodes, positionedEdges, totalW, totalH }) {
   return (
     <svg width={totalW} height={totalH} style={{ display: 'block' }}>
       <defs>
-        <marker id="lk-arrow-v" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-          <path d="M0,0 L0,6 L8,3 z" fill="#A78BFA" />
+        <marker id="lk-arrow-v" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto">
+          <path d="M0,0 L0,7 L10,3.5 z" fill="#7C3AED" />
         </marker>
-        <marker id="lk-arrow-p" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-          <path d="M0,0 L0,6 L8,3 z" fill="#FCD34D" />
+        <marker id="lk-arrow-p" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto">
+          <path d="M0,0 L0,7 L10,3.5 z" fill="#D97706" />
         </marker>
       </defs>
 
-      {/* Edges */}
+      {/* ── Edges ───────────────────────────────────────────────────────
+          Label sits directly ON the line, rotated to match the edge angle.
+
+          How it works:
+            1. midX, midY  — exact center of the edge line
+            2. angleDeg    — atan2 converts dx/dy into degrees
+            3. The entire label group (pill + text) is rotated around
+               the midpoint using SVG transform="rotate(angle, cx, cy)"
+            4. Result: label always lies flat along its own edge line
+               regardless of direction — vertical, diagonal, horizontal
+      ──────────────────────────────────────────────────────────────── */}
       {positionedEdges.map((e, i) => {
         const color  = e.verified ? '#A78BFA' : '#FCD34D';
         const marker = e.verified ? 'lk-arrow-v' : 'lk-arrow-p';
         const label  = e.relation_tamil || '';
 
-        // ── Label Placement ──────────────────────────────────────────────
-        // Place label at 80% along the edge — near the arrowhead (destination).
-        // This means the label sits RIGHT NEXT TO the node it points to,
-        // making it visually clear: "this is YOUR relation to this person."
-        //
-        // When multiple edges arrive at the same node they come from different
-        // directions, so their 80% points naturally land at different coordinates
-        // — no overlap math needed.
-        //
-        // We also add a small perpendicular nudge (14px sideways off the line)
-        // so the arrow line does not cut through the label pill.
-        // ────────────────────────────────────────────────────────────────
-        const t = 0.80;
-        const labelX = e.x1 + (e.x2 - e.x1) * t;
-        const labelY = e.y1 + (e.y2 - e.y1) * t;
+        // Center of the edge line
+        const midX = (e.x1 + e.x2) / 2;
+        const midY = (e.y1 + e.y2) / 2;
 
-        // Perpendicular unit vector — nudges label off the line
-        const dx  = e.x2 - e.x1;
-        const dy  = e.y2 - e.y1;
-        const len = Math.sqrt(dx * dx + dy * dy) || 1;
-        const perpX = (-dy / len) * 14;
-        const perpY = ( dx / len) * 14;
+        // Exact angle of this edge in degrees
+        const angleDeg = Math.atan2(e.y2 - e.y1, e.x2 - e.x1) * (180 / Math.PI);
 
-        const finalX = labelX + perpX;
-        const finalY = labelY + perpY;
+        // Pill sized to fit full Tamil text — no truncation
+        const pillW = 88;
+        const pillH = 20;
 
         return (
           <g key={`e${i}`}>
+            {/* Arrow line — drawn in two segments so label gap looks intentional */}
             <line
               x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2}
-              stroke={color} strokeWidth={1.5}
-              strokeDasharray={e.verified ? 'none' : '4,3'}
+              stroke={color} strokeWidth={2}
+              strokeDasharray={e.verified ? 'none' : '5,4'}
               markerEnd={`url(#${marker})`}
             />
+
+            {/* Label group — rotated around the midpoint to lie ON the line */}
             {label && (
-              <>
+              <g transform={`rotate(${angleDeg}, ${midX}, ${midY})`}>
+                {/* Pill background — solid, high contrast */}
                 <rect
-                  x={finalX - 34} y={finalY - 9}
-                  width={68} height={16} rx={8}
-                  fill="#1e1b4b" stroke="#4C1D95" strokeWidth={1}
-                  opacity={0.95}
+                  x={midX - pillW / 2}
+                  y={midY - pillH / 2}
+                  width={pillW}
+                  height={pillH}
+                  rx={10}
+                  fill={e.verified ? '#6D28D9' : '#D97706'}
+                  stroke="white"
+                  strokeWidth={1.5}
+                  opacity={1}
                 />
+                {/* Label text — white, clear, larger */}
                 <text
-                  x={finalX} y={finalY + 3}
-                  textAnchor="middle" fontSize="8" fontWeight="600" fill="#C4B5FD"
+                  x={midX}
+                  y={midY + 4.5}
+                  textAnchor="middle"
+                  fontSize="11"
+                  fontWeight="700"
+                  fill="white"
+                  fontFamily="system-ui, -apple-system, sans-serif"
                 >
-                  {label.length > 11 ? label.substring(0, 10) + '…' : label}
+                  {label.length > 12 ? label.substring(0, 11) + '…' : label}
                 </text>
-              </>
+              </g>
             )}
           </g>
         );
       })}
 
-      {/* Nodes — drawn AFTER edges so nodes appear on top of label pills */}
+      {/* ── Nodes — drawn AFTER edges so cards always appear on top ───── */}
       {positionedNodes.map((node, i) => {
         const { x, y, color, is_root, verified, is_offline } = node;
         const cx = x + NODE_W / 2;
@@ -274,8 +274,7 @@ function SVGRenderer({ positionedNodes, positionedEdges, totalW, totalH }) {
 }
 
 // ─────────────────────────────────────────
-// Main Component
-// Single API call → layout → render
+// Main Component — single API call → layout → render
 // ─────────────────────────────────────────
 export default function FamilyLinkedIn({ currentUser, onRelationAdded }) {
   const [layout, setLayout]   = useState(null);
@@ -288,13 +287,10 @@ export default function FamilyLinkedIn({ currentUser, onRelationAdded }) {
     setLoading(true);
     setError(null);
     try {
-      // Single API call — backend returns everything
       const res = await api.get(
         `/api/relationships/linkedin-tree/${currentUser.id}?maxGen=3&minGen=-2`
       );
       const { nodes, edges } = res.data;
-
-      // Pure geometry — no business logic
       const l = computeLayout(nodes || [], edges || []);
       setLayout(l);
     } catch (e) {
@@ -332,7 +328,7 @@ export default function FamilyLinkedIn({ currentUser, onRelationAdded }) {
 
       {!loading && !error && layout && (
         <Box position="relative">
-          {/* Generation labels — left side, UI only */}
+          {/* Generation labels — left side */}
           {layout.sortedGens.map(gen => {
             const cfg = GEN_LABELS[String(gen)];
             if (!cfg) return null;
