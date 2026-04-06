@@ -199,11 +199,12 @@ export default function AddRelative() {
         }
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.error || '';
+      console.error('handleAdd error:', err.response?.data || err.message);
+      const errorMsg = err.response?.data?.error || err.message || 'சேர்க்க முடியவில்லை / Failed';
       if (errorMsg.includes('No user found') || errorMsg.includes('register')) {
         setShowInvitePrompt(true);
       } else {
-        setError(errorMsg || 'சேர்க்க முடியவில்லை / Failed');
+        setError(errorMsg);
       }
     } finally { setLoading(false); }
   };
