@@ -88,13 +88,14 @@ function CreatePost({ currentUser, onPostCreated }) {
   };
 
   const uploadToR2 = async (file) => {
-    // Upload via existing /api/photos endpoint (already uses R2)
+    // Use /api/photos/upload-media — dedicated feed media endpoint
+    // Returns { media_url, media_type } — does NOT touch user profile
     const formData = new FormData();
-    formData.append('photo', file);
-    const res = await api.post('/api/photos/upload', formData, {
+    formData.append('media', file);
+    const res = await api.post('/api/photos/upload-media', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
-    return res.data.url;
+    return res.data.media_url;
   };
 
   const handlePost = async () => {
