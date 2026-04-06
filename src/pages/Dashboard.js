@@ -14,6 +14,7 @@ import ShareTree from '../components/ShareTree';
 import BirthdayBanner from '../components/BirthdayBanner';
 import SuggestionsBanner from '../components/SuggestionsBanner';
 import FamilyLinkedIn from '../components/FamilyLinkedIn';
+import FamilyFeed from '../components/FamilyFeed';
 
 const DIRECT_RELATIONS = new Set([
   'father','mother','father_in_law','mother_in_law',
@@ -83,7 +84,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('tree');
   const [treeMode, setTreeMode] = useState('direct'); // 'direct' or 'extended'
-  const [actionLoading, setActionLoading] = useState('');
+  const [familyStats, setFamilyStats] = useState(null);
   const treeRef = useRef(null);
   const [directRelationships, setDirectRelationships] = useState([]);
   const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
@@ -162,6 +163,11 @@ export default function Dashboard() {
       setDirectRelationships(allRels.filter(r => DIRECT_RELATIONS.has(r.relation_type)));
       setPending(pendingList);
       setSummary(res.data.summary || {});
+      // Fetch family stats for dashboard
+      try {
+        const statsRes = await api.get(`/api/posts/stats/${user.id}`);
+        setFamilyStats(statsRes.data.stats || null);
+      } catch (e) { /* non-fatal */ }
       const alreadyShown = sessionStorage.getItem('pmf_suggestions_shown');
       if (allRels.length === 0 && pendingList.length > 0 && !alreadyShown) {
         sessionStorage.setItem('pmf_suggestions_shown', 'true');
@@ -283,6 +289,25 @@ export default function Dashboard() {
           ))}
         </SimpleGrid>
 
+        {/* Section 2b — Family Stats Bar */}
+        {familyStats && (
+          <SimpleGrid columns={4} spacing={2}>
+            {[
+              { icon: '👨‍👩‍👧‍👦', label: 'உறவினர்',       value: familyStats.total_relatives,    color: 'purple.300' },
+              { icon: '🏮',        label: 'குதம்',          value: familyStats.kutham_count,        color: 'orange.300' },
+              { icon: '🎂',        label: 'பிறந்தநாள்',    value: familyStats.upcoming_birthdays,  color: 'pink.300'   },
+              { icon: '📸',        label: 'பதிவுகள்',      value: familyStats.total_posts,         color: 'blue.300'   },
+            ].map((s, i) => (
+              <Box key={i} bg="whiteAlpha.100" border="1px solid" borderColor="whiteAlpha.200"
+                borderRadius="2xl" px={2} py={3} textAlign="center">
+                <Text fontSize="xl">{s.icon}</Text>
+                <Text fontSize={{ base: 'lg', md: '2xl' }} fontWeight="800" color={s.color}>{s.value}</Text>
+                <Text fontSize="9px" color="whiteAlpha.500" mt={0.5}>{s.label}</Text>
+              </Box>
+            ))}
+          </SimpleGrid>
+        )}
+
         {/* Section 3 — Birthday Banner */}
         <BirthdayBanner />
 
@@ -346,6 +371,7 @@ export default function Dashboard() {
               { key: 'extended', label: '🌳 விரிவான'         },
               { key: 'network',  label: '🕸️ நெட்வொர்க்'     },
               { key: 'linkedin', label: '🔗 வலைதளம்'        },
+              { key: 'feed',     label: '📸 பதிவுகள்'       },
             ].map(t => (
               <Button key={t.key} flex={1} size="sm"
                 bg={treeMode === t.key ? 'purple.600' : 'transparent'}
@@ -391,6 +417,8 @@ export default function Dashboard() {
               />
             ) : treeMode === 'linkedin' ? (
               <FamilyLinkedIn currentUser={user} onRelationAdded={fetchData} />
+            ) : treeMode === 'feed' ? (
+              <FamilyFeed currentUser={user} />
             ) : (
               <Box ref={treeRef} overflowX="auto">
                 <FamilyTree
