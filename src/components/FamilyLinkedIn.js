@@ -139,21 +139,6 @@ function computeLayout(nodes, edges) {
 // No logic here — only SVG primitives
 // ─────────────────────────────────────────
 function SVGRenderer({ positionedNodes, positionedEdges, totalW, totalH }) {
-  // Pre-compute: group edges by source generation
-  // Spread labels across the row width to avoid overlap
-  const edgesBySourceGen = {};
-  positionedEdges.forEach(e => {
-    const key = e.generation_from;
-    if (!edgesBySourceGen[key]) edgesBySourceGen[key] = [];
-    edgesBySourceGen[key].push(e);
-  });
-  const edgeGenIndex = {};
-  Object.values(edgesBySourceGen).forEach(group => {
-    group.forEach((e, i) => {
-      edgeGenIndex[`${e.from_id}-${e.to_id}`] = { index: i, total: group.length };
-    });
-  });
-
   return (
     <svg width={totalW} height={totalH} style={{ display: 'block' }}>
       <defs>
@@ -171,16 +156,31 @@ function SVGRenderer({ positionedNodes, positionedEdges, totalW, totalH }) {
         const marker = e.verified ? 'lk-arrow-v' : 'lk-arrow-p';
         const label  = e.relation_tamil || '';
 
-        // Get sibling info for this edge — for Y offset only
-        const sibInfo = edgeGenIndex[`${e.from_id}-${e.to_id}`] || { index: 0, total: 1 };
-        const { index, total } = sibInfo;
-
-        // Label follows its own edge line — X stays on the edge, Y spreads vertically
-        const t = 0.4; // 40% from source
+        // ── Label Placement ──────────────────────────────────────────────
+        // Place label at 80% along the edge — near the arrowhead (destination).
+        // This means the label sits RIGHT NEXT TO the node it points to,
+        // making it visually clear: "this is YOUR relation to this person."
+        //
+        // When multiple edges arrive at the same node they come from different
+        // directions, so their 80% points naturally land at different coordinates
+        // — no overlap math needed.
+        //
+        // We also add a small perpendicular nudge (14px sideways off the line)
+        // so the arrow line does not cut through the label pill.
+        // ────────────────────────────────────────────────────────────────
+        const t = 0.80;
         const labelX = e.x1 + (e.x2 - e.x1) * t;
-        const baseLabelY = e.y1 + (e.y2 - e.y1) * t;
-        // Spread vertically if multiple edges from same gen
-        const labelY = baseLabelY + (total > 1 ? (index - (total-1)/2) * 18 : 0);
+        const labelY = e.y1 + (e.y2 - e.y1) * t;
+
+        // Perpendicular unit vector — nudges label off the line
+        const dx  = e.x2 - e.x1;
+        const dy  = e.y2 - e.y1;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        const perpX = (-dy / len) * 14;
+        const perpY = ( dx / len) * 14;
+
+        const finalX = labelX + perpX;
+        const finalY = labelY + perpY;
 
         return (
           <g key={`e${i}`}>
@@ -193,16 +193,16 @@ function SVGRenderer({ positionedNodes, positionedEdges, totalW, totalH }) {
             {label && (
               <>
                 <rect
-                  x={labelX - 32} y={labelY - 9}
-                  width={64} height={16} rx={8}
+                  x={finalX - 34} y={finalY - 9}
+                  width={68} height={16} rx={8}
                   fill="#1e1b4b" stroke="#4C1D95" strokeWidth={1}
                   opacity={0.95}
                 />
                 <text
-                  x={labelX} y={labelY + 3}
+                  x={finalX} y={finalY + 3}
                   textAnchor="middle" fontSize="8" fontWeight="600" fill="#C4B5FD"
                 >
-                  {label.length > 10 ? label.substring(0, 9) + '…' : label}
+                  {label.length > 11 ? label.substring(0, 10) + '…' : label}
                 </text>
               </>
             )}
@@ -210,7 +210,7 @@ function SVGRenderer({ positionedNodes, positionedEdges, totalW, totalH }) {
         );
       })}
 
-      {/* Nodes */}
+      {/* Nodes — drawn AFTER edges so nodes appear on top of label pills */}
       {positionedNodes.map((node, i) => {
         const { x, y, color, is_root, verified, is_offline } = node;
         const cx = x + NODE_W / 2;
