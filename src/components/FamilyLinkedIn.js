@@ -139,6 +139,20 @@ function computeLayout(nodes, edges) {
 // No logic here — only SVG primitives
 // ─────────────────────────────────────────
 function SVGRenderer({ positionedNodes, positionedEdges, totalW, totalH }) {
+  // Pre-compute: how many edges share each destination node
+  // Used to spread labels horizontally when multiple edges converge
+  const edgesByDest = {};
+  positionedEdges.forEach(e => {
+    if (!edgesByDest[e.to_id]) edgesByDest[e.to_id] = [];
+    edgesByDest[e.to_id].push(e);
+  });
+  const edgeDestIndex = {};
+  Object.values(edgesByDest).forEach(group => {
+    group.forEach((e, i) => {
+      edgeDestIndex[`${e.from_id}-${e.to_id}`] = { index: i, total: group.length };
+    });
+  });
+
   return (
     <svg width={totalW} height={totalH} style={{ display: 'block' }}>
       <defs>
@@ -150,19 +164,7 @@ function SVGRenderer({ positionedNodes, positionedEdges, totalW, totalH }) {
         </marker>
       </defs>
 
-  // Pre-compute: how many edges share each destination node
-  // Used to spread labels horizontally when multiple edges converge
-  const edgesByDest = {};
-  positionedEdges.forEach(e => {
-    if (!edgesByDest[e.to_id]) edgesByDest[e.to_id] = [];
-    edgesByDest[e.to_id].push(e);
-  });
-  const edgeDestIndex = {}; // edge unique key → index among siblings
-  Object.values(edgesByDest).forEach(group => {
-    group.forEach((e, i) => {
-      edgeDestIndex[`${e.from_id}-${e.to_id}`] = { index: i, total: group.length };
-    });
-  });
+      {/* Edges */}
       {positionedEdges.map((e, i) => {
         const color  = e.verified ? '#A78BFA' : '#FCD34D';
         const marker = e.verified ? 'lk-arrow-v' : 'lk-arrow-p';
