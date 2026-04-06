@@ -14,6 +14,7 @@ import Birthdays from './pages/Birthdays';
 import Quiz from './pages/Quiz';
 import TreeInvite from './pages/TreeInvite';
 import FamilySuggestions from './pages/FamilySuggestions';
+import CreateAd from './pages/CreateAd';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
           <Route path="/tree-invite/:token" element={<TreeInvite />} />
           <Route path="/family-suggestions" element={<ProtectedRoute><FamilySuggestions /></ProtectedRoute>} />
+          <Route path="/create-ad" element={<ProtectedRoute><CreateAd /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

@@ -89,6 +89,24 @@ export default function Admin() {
     try { await api(token).delete(`/api/admin/kuthams/${id}`); loadKuthams(); } catch(e) {}
   };
 
+  const loadAgents = async () => {
+    try {
+      setLoading(true);
+      const r = await api(token).get('/api/admin/users');
+      setAgents(r.data.users || []);
+    } catch(e) {}
+    finally { setLoading(false); }
+  };
+
+  const handleToggleAgent = async (userId, currentStatus, name) => {
+    const newStatus = !currentStatus;
+    if (!window.confirm(`${name} ${newStatus ? 'Business Agent ஆக மேம்படுத்தவுமா?' : 'Business Agent அந்தஸ்து நீக்கவுமா?'}`)) return;
+    try {
+      await api(token).post('/api/admin/upgrade-agent', { user_id: userId, is_business_agent: newStatus });
+      loadAgents();
+    } catch(e) { alert(e.response?.data?.error || 'Failed'); }
+  };
+
   const switchTab = (key) => {
     setActiveTab(key);
     if (key === 'stats')   loadStats();
@@ -96,6 +114,7 @@ export default function Admin() {
     if (key === 'pending') loadPendingRels();
     if (key === 'under18') loadUnder18();
     if (key === 'offline') loadOffline();
+    if (key === 'agents')  loadAgents();
   };
 
   // ── Login ──
@@ -121,13 +140,16 @@ export default function Admin() {
     </Box>
   );
 
+  const [agents, setAgents] = useState([]);
+
   const TABS = [
-    { key: 'stats',   label: '📊 Stats'    },
-    { key: 'pending', label: '⏳ Pending'   },
-    { key: 'under18', label: '👶 Under 18'  },
-    { key: 'offline', label: '🕊️ Offline'   },
-    { key: 'kuthams', label: '🏷️ Kuthams'  },
-    { key: 'users',   label: '👥 Users'     },
+    { key: 'stats',   label: '📊 Stats'       },
+    { key: 'pending', label: '⏳ Pending'      },
+    { key: 'under18', label: '👶 Under 18'     },
+    { key: 'offline', label: '🕊️ Offline'      },
+    { key: 'kuthams', label: '🏷️ Kuthams'     },
+    { key: 'users',   label: '👥 Users'        },
+    { key: 'agents',  label: '🏢 Biz Agents'  },
   ];
 
   return (
@@ -379,6 +401,52 @@ export default function Admin() {
                           {new Date(u.created_at).toLocaleDateString('en-IN')}
                         </Text>
                       </HStack>
+                    </HStack>
+                  ))}
+                </VStack>}
+            </Box>
+          </VStack>
+        )}
+
+        {/* ── BUSINESS AGENTS ── */}
+        {activeTab === 'agents' && (
+          <VStack spacing={4} align="stretch">
+            <Box {...sectionBox}>
+              <HStack justify="space-between" mb={4}>
+                <Text fontSize="md" fontWeight="700" color="white">🏢 Business Agents</Text>
+                <Button size="sm" variant="ghost" color="whiteAlpha.500" onClick={loadAgents}>🔄</Button>
+              </HStack>
+              <Text fontSize="xs" color="whiteAlpha.500" mb={4}>
+                Business Agent ஆக மேம்படுத்தப்பட்ட உறுப்பினர்கள் குடும்ப நெட்வொர்க்கில் விளம்பரம் வெளியிடலாம்.
+              </Text>
+              {loading ? <Box textAlign="center" py={6}><Spinner color="purple.300"/></Box>
+              : <VStack spacing={2} align="stretch">
+                  {agents.length === 0 && <Text color="whiteAlpha.400" textAlign="center" py={4}>No users found</Text>}
+                  {agents.map(u => (
+                    <HStack key={u.id} bg="whiteAlpha.100" borderRadius="xl" px={4} py={3}
+                      justify="space-between" flexWrap="wrap" gap={2}
+                      borderLeft="3px solid" borderLeftColor={u.is_business_agent ? '#10B981' : 'transparent'}>
+                      <HStack spacing={3}>
+                        <Avatar size="sm" name={u.name} bg={u.is_business_agent ? 'green.600' : 'purple.600'} />
+                        <Box>
+                          <HStack spacing={2}>
+                            <Text fontSize="sm" fontWeight="600" color="white">{u.name}</Text>
+                            {u.is_business_agent && (
+                              <Badge colorScheme="green" fontSize="9px" borderRadius="full" px={2}>
+                                🏢 Agent
+                              </Badge>
+                            )}
+                          </HStack>
+                          <Text fontSize="xs" color="whiteAlpha.500">{u.phone}</Text>
+                        </Box>
+                      </HStack>
+                      <Button
+                        size="sm" borderRadius="lg" fontWeight="700"
+                        colorScheme={u.is_business_agent ? 'red' : 'green'}
+                        variant={u.is_business_agent ? 'outline' : 'solid'}
+                        onClick={() => handleToggleAgent(u.id, u.is_business_agent, u.name)}>
+                        {u.is_business_agent ? '🔽 நீக்கு' : '🔼 Agent ஆக்கு'}
+                      </Button>
                     </HStack>
                   ))}
                 </VStack>}
