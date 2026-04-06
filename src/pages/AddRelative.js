@@ -79,6 +79,12 @@ export default function AddRelative() {
   const [overrideRelation, setOverride] = useState(false);
   const chainTimer = useRef(null);
 
+  // Offline search
+  const [offlineSearchResults, setOfflineSearchResults] = useState([]);
+  const [offlineSearchLoading, setOfflineSearchLoading] = useState(false);
+  const [selectedOfflineUser, setSelectedOfflineUser]   = useState(null); // confirmed existing
+  const offlineSearchTimer = useRef(null);
+
   const selectedRelation  = RELATIONS.find(r => r.value === relationType);
   const suggestedRelation = chainData?.suggested_relation;
   const hasSuggestion     = !!suggestedRelation?.type && !!chainData?.chain;
@@ -102,6 +108,31 @@ export default function AddRelative() {
       setRelationType(suggestedRelation.type);
     }
   }, [chainData, overrideRelation]);
+
+  // Search existing offline users when name is typed
+  useEffect(() => {
+    if (!isOffline || offlineName.trim().length < 2) {
+      setOfflineSearchResults([]);
+      return;
+    }
+    // If user already confirmed an existing node, don't search again
+    if (selectedOfflineUser) return;
+
+    clearTimeout(offlineSearchTimer.current);
+    offlineSearchTimer.current = setTimeout(async () => {
+      setOfflineSearchLoading(true);
+      try {
+        const res = await api.get(`/api/relationships/offline-users/search?name=${encodeURIComponent(offlineName.trim())}&user_id=${user?.id}`);
+        setOfflineSearchResults(res.data.results || []);
+      } catch (e) {
+        setOfflineSearchResults([]);
+      } finally {
+        setOfflineSearchLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(offlineSearchTimer.current);
+  }, [offlineName, isOffline, selectedOfflineUser]);
 
   const detectChain = async (digits) => {
     setChainLoading(true);
@@ -133,9 +164,12 @@ export default function AddRelative() {
       if (isOffline || (isChildRelation2 && isMinor)) {
         await api.post('/api/relationships', {
           relation_type: relationType, relation_tamil: selectedRelation?.tamil,
-          is_offline: true, offline_name: offlineName.trim(), offline_gender: offlineGender,
+          is_offline: true,
+          offline_name: selectedOfflineUser ? selectedOfflineUser.name : offlineName.trim(),
+          offline_gender: selectedOfflineUser ? selectedOfflineUser.gender : offlineGender,
+          offline_user_id: selectedOfflineUser ? selectedOfflineUser.id : null,
         });
-        setSuccess(`${isOffline ? '🕊️' : '👶'} ${offlineName} குடும்ப மரத்தில் சேர்க்கப்பட்டார்`);
+        setSuccess(`${isOffline ? '🕊️' : '👶'} ${selectedOfflineUser ? selectedOfflineUser.name : offlineName} குடும்ப மரத்தில் சேர்க்கப்பட்டார்`);
       } else {
         const res = await api.post('/api/relationships', {
           to_user_phone: phone, relation_type: relationType,
@@ -398,8 +432,70 @@ export default function AddRelative() {
                 <FormControl>
                   <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>Name *</FormLabel>
                   <Input placeholder="e.g. Raman Kumar" value={offlineName}
-                    onChange={e => setOfflineName(e.target.value)} {...inputStyle} />
+                    onChange={e => { setOfflineName(e.target.value); setSelectedOfflineUser(null); }}
+                    {...inputStyle} />
                 </FormControl>
+
+                {/* Existing offline node search results */}
+                {offlineSearchLoading && (
+                  <HStack spacing={2} px={1}>
+                    <Spinner size="xs" color="purple.300" />
+                    <Text fontSize="xs" color="whiteAlpha.500">தேடுகிறோம்...</Text>
+                  </HStack>
+                )}
+
+                {!offlineSearchLoading && offlineSearchResults.length > 0 && !selectedOfflineUser && (
+                  <Box bg="purple.900" border="1px solid" borderColor="purple.500" borderRadius="xl" px={4} py={3}>
+                    <Text fontSize="xs" color="purple.300" fontWeight="700" mb={2}>
+                      🔍 இந்த பெயரில் ஏற்கனவே உறுப்பினர்கள் உள்ளனர் / Existing members found:
+                    </Text>
+                    <VStack spacing={2} align="stretch">
+                      {offlineSearchResults.map(r => (
+                        <HStack key={r.id} justify="space-between"
+                          bg="whiteAlpha.100" borderRadius="lg" px={3} py={2}>
+                          <VStack spacing={0} align="start">
+                            <Text fontSize="sm" color="white" fontWeight="600">{r.name}</Text>
+                            <Text fontSize="xs" color="whiteAlpha.500">
+                              {r.gender} {r.kutham ? `• ${r.kutham}` : ''} • சேர்த்தவர்: {r.added_by}
+                            </Text>
+                          </VStack>
+                          <Button size="xs" colorScheme="purple" borderRadius="lg"
+                            onClick={() => {
+                              setSelectedOfflineUser(r);
+                              setOfflineName(r.name);
+                              setOfflineGender(r.gender);
+                              setOfflineSearchResults([]);
+                            }}>
+                            இதுவே ✓
+                          </Button>
+                        </HStack>
+                      ))}
+                      <Button size="sm" variant="ghost" color="whiteAlpha.500"
+                        onClick={() => setOfflineSearchResults([])}
+                        _hover={{ color: 'white' }}>
+                        வேறு நபர் / Different person — create new
+                      </Button>
+                    </VStack>
+                  </Box>
+                )}
+
+                {/* Confirmed existing node */}
+                {selectedOfflineUser && (
+                  <Box bg="green.900" border="1px solid" borderColor="green.500" borderRadius="xl" px={4} py={3}>
+                    <HStack justify="space-between">
+                      <VStack spacing={0} align="start">
+                        <Text fontSize="xs" color="green.300" fontWeight="700">✅ ஏற்கனவே உள்ள உறுப்பினர் / Existing member confirmed</Text>
+                        <Text fontSize="sm" color="white" fontWeight="600">{selectedOfflineUser.name}</Text>
+                        <Text fontSize="xs" color="whiteAlpha.500">சேர்த்தவர்: {selectedOfflineUser.added_by}</Text>
+                      </VStack>
+                      <Button size="xs" variant="ghost" color="whiteAlpha.400"
+                        onClick={() => { setSelectedOfflineUser(null); setOfflineName(''); }}
+                        _hover={{ color: 'white' }}>
+                        மாற்று
+                      </Button>
+                    </HStack>
+                  </Box>
+                )}
                 <FormControl>
                   <FormLabel color="whiteAlpha.700" fontSize={{ base: 'sm', md: 'md' }}>Gender *</FormLabel>
                   <Select placeholder="Select gender" value={offlineGender}
@@ -491,9 +587,13 @@ export default function AddRelative() {
                 color="white" fontSize={{ base: 'md', md: 'lg' }} fontWeight="700" borderRadius="xl"
                 isLoading={loading} loadingText="Adding..."
                 isDisabled={
-                  isOffline ? (!offlineName.trim() || !offlineGender || !relationType) :
-                  (CHILD_RELATIONS.includes(relationType) && isMinor) ? (!offlineName.trim() || !offlineGender || !relationType) :
-                  (phone.length < 10 || !relationType)
+                  isOffline
+                    ? selectedOfflineUser
+                      ? !relationType  // existing user confirmed — just need relation
+                      : (!offlineName.trim() || !offlineGender || !relationType || offlineSearchResults.length > 0)
+                    : (CHILD_RELATIONS.includes(relationType) && isMinor)
+                    ? (!offlineName.trim() || !offlineGender || !relationType)
+                    : (phone.length < 10 || !relationType)
                 }
                 onClick={handleAdd}
                 _hover={{ transform: 'translateY(-2px)' }}
