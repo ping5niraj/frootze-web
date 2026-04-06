@@ -84,6 +84,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('tree');
   const [treeMode, setTreeMode] = useState('direct'); // 'direct' or 'extended'
+  const [actionLoading, setActionLoading] = useState('');
   const [familyStats, setFamilyStats] = useState(null);
   const treeRef = useRef(null);
   const [directRelationships, setDirectRelationships] = useState([]);
