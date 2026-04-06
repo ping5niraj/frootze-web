@@ -150,8 +150,8 @@ export default function AddRelative() {
     if (!relationType) { setError('உறவு முறை தேர்வு செய்யவும்'); return; }
     const isChildRelation = CHILD_RELATIONS.includes(relationType);
     if (isOffline) {
-      if (!offlineName.trim()) { setError('பெயர் உள்ளிடவும்'); return; }
-      if (!offlineGender) { setError('பாலினம் தேர்வு செய்யவும்'); return; }
+      if (!selectedOfflineUser && !offlineName.trim()) { setError('பெயர் உள்ளிடவும்'); return; }
+      if (!selectedOfflineUser && !offlineGender) { setError('பாலினம் தேர்வு செய்யவும்'); return; }
     } else if (isChildRelation && isMinor) {
       if (!offlineName.trim()) { setError('குழந்தையின் பெயர் உள்ளிடவும்'); return; }
       if (!offlineGender) { setError('பாலினம் தேர்வு செய்யவும்'); return; }
@@ -589,7 +589,7 @@ export default function AddRelative() {
                 isDisabled={
                   isOffline
                     ? selectedOfflineUser
-                      ? !relationType  // existing user confirmed — just need relation
+                      ? !relationType
                       : (!offlineName.trim() || !offlineGender || !relationType || offlineSearchResults.length > 0)
                     : (CHILD_RELATIONS.includes(relationType) && isMinor)
                     ? (!offlineName.trim() || !offlineGender || !relationType)
