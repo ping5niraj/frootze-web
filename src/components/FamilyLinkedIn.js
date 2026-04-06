@@ -139,17 +139,18 @@ function computeLayout(nodes, edges) {
 // No logic here — only SVG primitives
 // ─────────────────────────────────────────
 function SVGRenderer({ positionedNodes, positionedEdges, totalW, totalH }) {
-  // Pre-compute: how many edges share each destination node
-  // Used to spread labels horizontally when multiple edges converge
-  const edgesByDest = {};
+  // Pre-compute: group edges by source generation
+  // Spread labels across the row width to avoid overlap
+  const edgesBySourceGen = {};
   positionedEdges.forEach(e => {
-    if (!edgesByDest[e.to_id]) edgesByDest[e.to_id] = [];
-    edgesByDest[e.to_id].push(e);
+    const key = e.generation_from;
+    if (!edgesBySourceGen[key]) edgesBySourceGen[key] = [];
+    edgesBySourceGen[key].push(e);
   });
-  const edgeDestIndex = {};
-  Object.values(edgesByDest).forEach(group => {
+  const edgeGenIndex = {};
+  Object.values(edgesBySourceGen).forEach(group => {
     group.forEach((e, i) => {
-      edgeDestIndex[`${e.from_id}-${e.to_id}`] = { index: i, total: group.length };
+      edgeGenIndex[`${e.from_id}-${e.to_id}`] = { index: i, total: group.length };
     });
   });
 
@@ -170,21 +171,16 @@ function SVGRenderer({ positionedNodes, positionedEdges, totalW, totalH }) {
         const marker = e.verified ? 'lk-arrow-v' : 'lk-arrow-p';
         const label  = e.relation_tamil || '';
 
-        // Get sibling info for this edge
-        const sibInfo = edgeDestIndex[`${e.from_id}-${e.to_id}`] || { index: 0, total: 1 };
+        // Get sibling info for this edge — for Y offset only
+        const sibInfo = edgeGenIndex[`${e.from_id}-${e.to_id}`] || { index: 0, total: 1 };
         const { index, total } = sibInfo;
 
-        // Base label at 30% from source
-        const baseLabelX = e.x1 + (e.x2 - e.x1) * 0.3;
-        const baseLabelY = e.y1 + (e.y2 - e.y1) * 0.3;
-
-        // Spread labels horizontally when multiple edges converge on same node
-        const spreadWidth = 70;
-        const totalSpread = (total - 1) * spreadWidth;
-        const offsetX = total > 1 ? (index * spreadWidth) - totalSpread / 2 : 0;
-
-        const labelX = baseLabelX + offsetX;
-        const labelY = baseLabelY;
+        // Label follows its own edge line — X stays on the edge, Y spreads vertically
+        const t = 0.4; // 40% from source
+        const labelX = e.x1 + (e.x2 - e.x1) * t;
+        const baseLabelY = e.y1 + (e.y2 - e.y1) * t;
+        // Spread vertically if multiple edges from same gen
+        const labelY = baseLabelY + (total > 1 ? (index - (total-1)/2) * 18 : 0);
 
         return (
           <g key={`e${i}`}>
