@@ -62,27 +62,7 @@ function LoginCard({ activeTab, setActiveTab, phone, setPhone, password, setPass
           </Text>
         </VStack>
 
-        {/* Tab toggle */}
-        <HStack bg="purple.50" borderRadius="xl" p="5px"
-          border="1px solid" borderColor="purple.100">
-          {[
-            { key: 'otp',      label: '📱 OTP'         },
-            { key: 'password', label: '🔑 கடவுச்சொல்' },
-          ].map(t => (
-            <Button key={t.key} flex={1} size="sm" h="36px"
-              bg={activeTab === t.key ? 'white' : 'transparent'}
-              color={activeTab === t.key ? 'purple.700' : 'gray.400'}
-              borderRadius="lg" fontWeight="700" fontSize="13px"
-              boxShadow={activeTab === t.key ? '0 1px 6px rgba(124,58,237,0.15)' : 'none'}
-              onClick={() => { setActiveTab(t.key); setError(''); }}
-              _hover={{ bg: activeTab === t.key ? 'white' : 'purple.100' }}
-              transition="all 0.15s">
-              {t.label}
-            </Button>
-          ))}
-        </HStack>
-
-        {/* Phone input */}
+        {/* Phone input — FIRST */}
         <InputGroup>
           <InputLeftAddon
             bg="purple.50" border="1.5px solid" borderColor="purple.200"
@@ -106,7 +86,32 @@ function LoginCard({ activeTab, setActiveTab, phone, setPhone, password, setPass
           />
         </InputGroup>
 
-        {/* Password input */}
+        {/* Login method toggle — SECOND */}
+        <Box>
+          <Text fontSize="11px" color="gray.400" mb={2} fontWeight="600">
+            உள்நுழைவு முறை / Login method
+          </Text>
+          <HStack bg="purple.50" borderRadius="xl" p="5px"
+            border="1px solid" borderColor="purple.100">
+            {[
+              { key: 'otp',      label: '📱 OTP'         },
+              { key: 'password', label: '🔑 கடவுச்சொல்' },
+            ].map(t => (
+              <Button key={t.key} flex={1} size="sm" h="36px"
+                bg={activeTab === t.key ? 'white' : 'transparent'}
+                color={activeTab === t.key ? 'purple.700' : 'gray.400'}
+                borderRadius="lg" fontWeight="700" fontSize="13px"
+                boxShadow={activeTab === t.key ? '0 1px 6px rgba(124,58,237,0.15)' : 'none'}
+                onClick={() => { setActiveTab(t.key); setError(''); }}
+                _hover={{ bg: activeTab === t.key ? 'white' : 'purple.100' }}
+                transition="all 0.15s">
+                {t.label}
+              </Button>
+            ))}
+          </HStack>
+        </Box>
+
+        {/* Password input — only shown when password tab selected */}
         {activeTab === 'password' && (
           <InputGroup>
             <Input
