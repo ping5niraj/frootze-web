@@ -100,7 +100,7 @@ export default function VerifyOTP() {
     <Box minH="100vh" w="100vw" bgGradient="linear(135deg, #f5f3ff 0%, #ede9fe 100%)"
       display="flex" alignItems="center" justifyContent="center"
       px={{ base: 4, md: 8 }} py={10}>
-      <VStack w="100%" maxW="900px" spacing={4} align="stretch">
+      <VStack w="100%" maxW="560px" spacing={4} align="stretch">
 
         {/* Section 1 — Logo */}
         <Box {...sectionBox}>

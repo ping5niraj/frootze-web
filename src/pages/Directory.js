@@ -82,20 +82,34 @@ export default function Directory() {
 
   return (
     <Box minH="100vh" w="100vw" bg="#f5f3ff"
-      px={{ base: 4, md: 8 }} py={6} pb={24}>
-      <VStack w="100%" maxW="900px" mx="auto" spacing={4} align="stretch">
-
-        {/* Header */}
-        <Box {...sectionBox}>
-          <HStack spacing={3}>
-            <Box as="button" onClick={() => navigate('/dashboard')}
-              color="gray.500" fontSize="xl" _hover={{ color: 'purple.900' }}>←</Box>
-            <Box>
-              <Heading fontSize={{ base: 'xl', md: '2xl' }} color="purple.900">📚 குடும்ப அகராதி</Heading>
-              <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.500">
-                Family Directory · {filtered.length} / {allMembers.length} members
-              </Text>
-            </Box>
+      px={{ base: 4, md: 10, lg: 16 }} py={6} pb={24}>
+      <VStack w="100%" maxW="1200px" mx="auto" spacing={4} align="stretch">
+        {/* Sticky Top Bar */}
+        <Box position="sticky" top={0} zIndex={100}
+          bg="white" borderBottom="1px solid" borderColor="purple.100"
+          boxShadow="0 2px 8px rgba(124,58,237,0.08)"
+          px={4} py={3}
+          mx={{ base: -4, md: -10, lg: -16 }}
+          mb={4}>
+          <HStack maxW="1200px" mx="auto" justify="space-between">
+            <HStack spacing={3}>
+              <Box as="button" onClick={() => navigate('/dashboard')}
+                w="36px" h="36px" borderRadius="xl"
+                bg="purple.50" border="1px solid" borderColor="purple.200"
+                display="flex" alignItems="center" justifyContent="center"
+                color="purple.600" fontSize="16px" fontWeight="bold"
+                _hover={{ bg: 'purple.100' }}>
+                ←
+              </Box>
+              <Box>
+                <Text fontSize="16px" fontWeight="800" color="purple.900">📚 குடும்ப அகராதி</Text>
+                <Text fontSize="11px" color="gray.400">Family Directory</Text>
+              </Box>
+            </HStack>
+            <HStack spacing={1}>
+              <Box w="7px" h="7px" borderRadius="full" bg="purple.400" />
+              <Text fontSize="12px" color="purple.400" fontWeight="700">frootze</Text>
+            </HStack>
           </HStack>
         </Box>
 

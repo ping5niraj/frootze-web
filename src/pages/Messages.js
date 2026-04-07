@@ -104,30 +104,35 @@ export default function Messages() {
 
   return (
     <Box minH="100vh" w="100vw" bg="#f5f3ff"
-      px={{ base: 4, md: 8 }} py={6} pb={24}>
-      <VStack w="100%" maxW="900px" mx="auto" spacing={4} align="stretch">
+      px={{ base: 4, md: 10, lg: 16 }} py={6} pb={24}>
+      <VStack w="100%" maxW="1200px" mx="auto" spacing={4} align="stretch">
 
-        {/* Section 1 — Header */}
-        <Box {...sectionBox} py={5}>
-          <HStack justify="space-between">
+        {/* Sticky Top Bar */}
+        <Box position="sticky" top={0} zIndex={100}
+          bg="white" borderBottom="1px solid" borderColor="purple.100"
+          boxShadow="0 2px 8px rgba(124,58,237,0.08)"
+          px={4} py={3}
+          mx={{ base: -4, md: -10, lg: -16 }}
+          mb={4}>
+          <HStack maxW="1200px" mx="auto" justify="space-between">
             <HStack spacing={3}>
-              <Box as="button" onClick={() => navigate('/dashboard')} color="gray.500" fontSize="xl" _hover={{ color: 'purple.900' }}>←</Box>
+              <Box as="button" onClick={() => navigate('/dashboard')}
+                w="36px" h="36px" borderRadius="xl"
+                bg="purple.50" border="1px solid" borderColor="purple.200"
+                display="flex" alignItems="center" justifyContent="center"
+                color="purple.600" fontSize="16px" fontWeight="bold"
+                _hover={{ bg: 'purple.100' }}>
+                ←
+              </Box>
               <Box>
-                <HStack spacing={2}>
-                  <Heading fontSize={{ base: 'xl', md: '2xl' }} color="purple.900">💬 செய்திகள்</Heading>
-                  {unreadCount > 0 && (
-                    <Badge colorScheme="purple" borderRadius="full" px={2}>{unreadCount}</Badge>
-                  )}
-                </HStack>
-                <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.500">Messages</Text>
+                <Text fontSize="16px" fontWeight="800" color="purple.900">💬 செய்திகள்</Text>
+                <Text fontSize="11px" color="gray.400">Messages</Text>
               </Box>
             </HStack>
-            <Button size="sm" h="40px"
-              bgGradient="linear(to-r, purple.600, green.500)"
-              color="purple.900" borderRadius="xl" fontWeight="600"
-              onClick={() => { setShowCompose(!showCompose); setSendError(''); setSendSuccess(''); }}>
-              {showCompose ? '✕ மூடு' : '+ புதிய செய்தி'}
-            </Button>
+            <HStack spacing={1}>
+              <Box w="7px" h="7px" borderRadius="full" bg="purple.400" />
+              <Text fontSize="12px" color="purple.400" fontWeight="700">frootze</Text>
+            </HStack>
           </HStack>
         </Box>
 
